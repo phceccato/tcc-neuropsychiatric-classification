@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dados
+EEG.machinelearing_data_BRMH.csv
+
+# PDFs
+Pesquisa sobre Transtornos Neuropsiquiátricos.pdf
