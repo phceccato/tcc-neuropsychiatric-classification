@@ -64,7 +64,8 @@ def load_data():
     return X_train, X_val, X_test, y_train, y_val, y_test, le
 
 
-def make_loaders(X_train, X_val, X_test, y_train, y_val, y_test):
+def make_loaders(X_train, X_val, X_test, y_train, y_val, y_test,
+                 batch_size: int = BATCH_SIZE):
     def to_tensor(X, y):
         return TensorDataset(torch.from_numpy(X), torch.from_numpy(y))
 
@@ -72,9 +73,9 @@ def make_loaders(X_train, X_val, X_test, y_train, y_val, y_test):
     val_ds   = to_tensor(X_val,   y_val)
     test_ds  = to_tensor(X_test,  y_test)
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
-    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE)
-    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE)
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    val_loader   = DataLoader(val_ds,   batch_size=batch_size)
+    test_loader  = DataLoader(test_ds,  batch_size=batch_size)
     return train_loader, val_loader, test_loader
 
 
