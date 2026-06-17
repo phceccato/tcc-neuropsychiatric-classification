@@ -6,8 +6,9 @@ Projeto de TCC voltado à classificação de transtornos neuropsiquiátricos uti
 
 ## Dataset
 
-**EEG BRMH** — SMG-SNU Boramae Medical Center (Coreia do Sul, 2019)
-- 945 pacientes · 7 diagnósticos · 1144 features (PSD + coerência EEG + metadados)
+**EEG BRMH** — SMG-SNU Boramae Medical Center (Coreia do Sul, 2019)  
+Park et al. (2021) — https://osf.io/8bsvr  
+- 945 pacientes · 7 diagnósticos · features PSD (AB.*) + coerência (COH.*) + metadados demográficos
 - Arquivo: `EEG.machinelearing_data_BRMH.csv`
 
 ---
@@ -15,17 +16,11 @@ Projeto de TCC voltado à classificação de transtornos neuropsiquiátricos uti
 ## Ordem de execução
 
 ```bash
-# 1. Análise exploratória dos dados brutos
-python analise_eeg.py
+# 1. Análise de paridade demográfica (por sexo)
+python parity_analysis.py
 
-# 2. Pré-processamento (imputação → SMOTE → normalização → PCA)
-python preprocess.py
-
-# 3. Treinamento da rede neural base
+# 2. Experimentos de linha de base — Cenário A (4 sub-cenários × 2 targets)
 python neural_net.py
-
-# 4. Otimização de hiperparâmetros com Optuna
-python optuna_search.py
 ```
 
 ---
@@ -34,35 +29,49 @@ python optuna_search.py
 
 | Script | Descrição |
 |---|---|
-| `analise_eeg.py` | Análise exploratória: distribuição de classes, demografia, PSD por banda, coerência, PCA/t-SNE, comparação de modelos clássicos |
-| `preprocess.py` | Pipeline de pré-processamento: KNN imputation, SMOTE, StandardScaler, PCA (95% de variância) |
-| `neural_net.py` | MLP em PyTorch (`88 → 256 → 128 → 64 → 7`) com early stopping e ReduceLROnPlateau |
-| `optuna_search.py` | Busca automática de hiperparâmetros com Optuna (TPE + MedianPruner, 50 trials) |
+| `parity_analysis.py` | Análise de paridade demográfica por sexo: calcula P(C=1 \| A=sexo) para `main.disorder` e `specific.disorder`; gera dot-plot estilo "equality of odds", gráfico de barras e heatmap |
+| `neural_net.py` | Experimentos de linha de base (Cenário A): MLP em PyTorch com pipeline por fold sem data leakage — KNNImputer → ADASYN → StandardScaler → (PCA opcional); validação cruzada 5-fold + holdout 75/25; 4 sub-cenários de features (PSD, FC, PSD+FC, PSD+FC+PCA) × 2 targets (main/specific); métricas: Balanced Accuracy, Macro F1, AUC-ROC, Cohen's κ |
+
+### Sub-cenários (`neural_net.py`)
+
+| Sub-cenário | Features | PCA |
+|---|---|---|
+| A1 | PSD (`AB.*`) | Não |
+| A2 | Coerência (`COH.*`) | Não |
+| A3 | PSD + Coerência | Não |
+| A4 | PSD + Coerência | Sim (95% var.) |
+
+### Arquitetura MLP (Cenário A — hiperparâmetros fixos)
+
+```
+Input → 1024 → 512 → 256 → 128 → 64 → n_classes
+(BatchNorm + GELU + Dropout 0.30 em cada camada oculta)
+Otimizador: Adam  lr=1e-5  weight_decay=1e-4
+Early stopping: patience=20  |  ReduceLROnPlateau (factor=0.9, patience=3)
+```
 
 ---
 
 ## Saídas geradas
 
 ```
-outputs/
-├── X_preprocessed.csv          # features PCA prontas para treino
-├── y_labels.csv                # labels textuais
-├── y_encoded.csv               # labels codificadas
-├── preprocessors.pkl           # imputer, scaler, pca, label_encoder
-├── neural_net.pt               # pesos do modelo base
-├── pp_01_nan_antes_imputacao.png
-├── pp_02_balanceamento.png
-├── pp_03_pca_variancia.png
-├── pp_04_pca_scatter.png
-├── nn_01_learning_curves.png
-├── nn_02_confusion_matrix.png
-├── nn_03_f1_por_classe.png
-└── optuna/
-    ├── best_model.pt           # melhor modelo encontrado pelo Optuna
-    ├── best_params.json        # hiperparâmetros do melhor trial
-    ├── trials.csv              # histórico dos 50 trials
-    ├── optimization_history.png
-    └── param_importance.png
+parity_dotplot.png              # dot-plot equality of odds (main + specific)
+parity_bars.png                 # barras P(C=1 | A=sexo) por transtorno
+parity_heatmap.png              # heatmap de paridade demográfica
+
+outputs/baseline/
+├── library_versions.json
+└── scenario_a/
+    ├── summary_main.csv        # tabela de resultados agregados (main.disorder)
+    ├── summary_specific.csv    # tabela de resultados agregados (specific.disorder)
+    ├── main/
+    │   ├── A{1..4}_main_results.json
+    │   ├── A{1..4}_main_cm.png       # matriz de confusão (normalizada)
+    │   └── A{1..4}_main_loss.png     # curvas de loss por fold
+    └── specific/
+        ├── A{1..4}_specific_results.json
+        ├── A{1..4}_specific_cm.png
+        └── A{1..4}_specific_loss.png
 ```
 
 ---
