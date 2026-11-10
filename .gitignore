@@ -1,0 +1,8 @@
+dados/
+outputs/
+artigos/
+venv/
+__pycache__/
+pipeline/e11_figuras/
+tests/e11_figuras/
+docs/11_figuras.md
