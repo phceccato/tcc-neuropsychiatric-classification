@@ -32,6 +32,21 @@ venv/bin/python -m pipeline.e07_DTSF.rodar --modelos D --permutacoes 25 2>&1 | t
 venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt                                                          # resumo_dtsf.md e H1–H3
 ```
 
+### CPU ou GPU
+
+Por padrão os treinos rodam na CPU, com 1 thread por processo; as rodadas registradas foram feitas assim. Numa máquina com GPU NVIDIA e o PyTorch com CUDA, `--dispositivo cuda` treina na GPU:
+
+```bash
+venv/bin/python -m pipeline.e07_DTSF.rodar --modelos D D_sem_T D_sem_E D_sem_mixup --dispositivo cuda --processos 14 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt
+venv/bin/python -m pipeline.e07_DTSF.rodar --modelos D --permutacoes 25 --dispositivo cuda --processos 14 2>&1 | tee -a outputs/07_DTSF/log_dtsf_permutacoes.txt
+```
+
+- Os processos dividem a mesma GPU. O sorteio das janelas, o Mixup e a STFT continuam na CPU, com os mesmos geradores, e o lote só depois vai para a GPU; por isso vale usar quase todos os núcleos em `--processos`.
+- Com `cuda`, os processos são criados com `spawn` (a GPU não sobrevive a `fork`) e a cuDNN fica em modo determinístico.
+- **A GPU não reproduz bit a bit as contas da CPU.** Uma rodada em GPU dá números próximos, mas não idênticos aos de uma rodada em CPU (a época escolhida pelo early stopping pode mudar). Cada `.json` registra o dispositivo, e o runner se recusa a completar uma pasta que já tem tarefas feitas em outro dispositivo: para trocar, use outra `--saida` ou apague as tarefas antigas.
+- O caminho padrão não mudou: um fold retreinado na CPU com 1 thread (SZ, D, repetição 0, fold 0) dá probabilidades idênticas às gravadas na 2ª rodada (diferença máxima 0).
+- A etapa 09 (`explicar` e `lote`) continua treinando o D na CPU.
+
 ## Modelo
 
 | Parte | Arquitetura |
