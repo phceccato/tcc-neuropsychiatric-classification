@@ -42,9 +42,9 @@ dados/
 
 ## Como rodar
 
-Os treinos do DTSF (etapas 07 e 09) rodam na CPU por padrão, como nas rodadas registradas. Numa máquina com
+Os treinos do DTSF (etapas 07, 09 e 12) rodam na CPU por padrão, como nas rodadas registradas. Numa máquina com
 GPU NVIDIA, acrescente `--dispositivo cuda` aos comandos `e07_DTSF.rodar`, `e09_investigacao.explicar` e
-`e09_investigacao.lote` ([docs/07_DTSF.md](docs/07_DTSF.md#cpu-ou-gpu)); os resultados ficam próximos, mas não
+`e09_investigacao.lote` e `e12_FA_SDKA.rodar` ([docs/07_DTSF.md](docs/07_DTSF.md#cpu-ou-gpu)); os resultados ficam próximos, mas não
 idênticos aos da CPU. As etapas 06 e 08 (scikit-learn) usam só a CPU: ajuste `--processos` ao número de núcleos.
 
 ```bash
@@ -71,6 +71,8 @@ venv/bin/python -m pipeline.e09_investigacao.erros         # perfil das pessoas 
 venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt   # AUC por subconjunto de sessão + D no MDD sem jan/2013 (retoma) → outputs/09_investigacao/lote/
 venv/bin/python -m pipeline.e10_topomapa.topomapa --pessoa MDD-MDD-S27   # mapas topográficos por banda de uma pessoa → outputs/10_topomapa/
 venv/bin/python -m pipeline.e10_topomapa.todos                           # os mesmos mapas para as 84 pessoas → outputs/10_topomapa/<dataset>/<classe>/<sessão>/
+venv/bin/python -m pipeline.e12_FA_SDKA.rodar 2>&1 | tee -a outputs/12_FA_SDKA/log_treinos.txt   # exploratório: D + FA, D + SDKA, D + FA + SDKA (retoma) → outputs/12_FA_SDKA/resultados/
+venv/bin/python -m pipeline.e12_FA_SDKA.avaliar   # variante − D → outputs/12_FA_SDKA/resultados/resumo.md
 venv/bin/python -m pipeline.e11_figuras.h1_nula   # figura da distribuição nula da H1 (pgfplots) → outputs/11_figuras/fig_h1_nula.tex
 venv/bin/python -m pipeline.e11_figuras.roc       # curvas ROC por pessoa (pgfplots) → outputs/11_figuras/fig_roc.tex
 venv/bin/python -m pipeline.e11_figuras.sessoes   # linha do tempo das gravações (pgfplots) → outputs/11_figuras/fig_sessoes.tex
