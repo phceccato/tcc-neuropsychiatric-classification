@@ -12,6 +12,10 @@ Com --permutacoes N, roda o teste contra o acaso: para cada permutação k, os r
 do dataset são embaralhados e o modelo é retreinado do zero nas partições da repetição 0; grava
 outputs/07_DTSF/permutacoes/<dataset>/<modelo>/p<k>_f<fold>.csv.
 
+Com --dispositivo cuda, cada processo treina na GPU (pipeline/e07_DTSF/treino.py): os processos dividem a
+mesma GPU e continuam preparando os lotes na CPU. O .json de cada tarefa registra o dispositivo, e o runner
+se recusa a completar uma pasta que já tem tarefas feitas em outro dispositivo (use outra --saida).
+
 Pré-requisitos: python -m pipeline.e07_DTSF.dados (cache do sinal a 125 Hz) e
 python -m pipeline.e07_DTSF.dados_dtsf (cache multibanda).
 """
@@ -19,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import os
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -58,8 +63,33 @@ def _iniciar() -> None:
     torch.set_num_threads(1)
 
 
+def dispositivos_gravados(pastas: list[Path]) -> set[str]:
+    """Dispositivos registrados nos .json já gravados (os antigos, sem o campo, foram feitos na CPU)."""
+    return {json.load(open(a)).get("dispositivo", "cpu") for p in pastas for a in p.glob("*.json")}
+
+
+def argumento_dispositivo(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--dispositivo", choices=["cpu", "cuda"], default="cpu",
+                        help="cpu (padrão, como as rodadas registradas) ou cuda (GPU dividida entre os processos)")
+
+
+def conferir_dispositivo(parser: argparse.ArgumentParser, dispositivo: str, pastas: list[Path]) -> None:
+    """Para com erro se pediram cuda sem GPU ou se as pastas já têm tarefas feitas em outro dispositivo."""
+    if dispositivo == "cuda" and not torch.cuda.is_available():
+        parser.error("--dispositivo cuda, mas o PyTorch não encontra GPU (torch.cuda.is_available() é False)")
+    outros = dispositivos_gravados(pastas) - {dispositivo}
+    if outros:
+        parser.error(f"já há tarefas feitas em {sorted(outros)} em {', '.join(map(str, pastas))}; para rodar em "
+                     f"{dispositivo}, use outra --saida ou apague as tarefas antigas (não misture CPU e GPU)")
+
+
+def contexto_processos(dispositivo: str):
+    """A GPU não sobrevive a fork: com cuda, os processos são criados com spawn."""
+    return multiprocessing.get_context("spawn" if dispositivo == "cuda" else None)
+
+
 def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv: str, saida: str,
-                 permutacao: int | None = None) -> str:
+                 permutacao: int | None = None, dispositivo: str = "cpu") -> str:
     folds = pd.read_csv(folds_csv)
     g = folds[(folds["dataset"] == dataset) & (folds["repeticao"] == repeticao) & (folds["fold"] == fold)]
     y = (g.set_index("subject_uid")["grupo"] != "HC").astype(int)
@@ -69,14 +99,15 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     fonte = _fonte(dataset, folds)
 
     inicio = time.time()
-    resultado = treinar(modelo, fonte, papel["treino"], papel["validacao"], y, semente=SEMENTE + 1000 * repeticao + fold)
+    resultado = treinar(modelo, fonte, papel["treino"], papel["validacao"], y, semente=SEMENTE + 1000 * repeticao + fold,
+                        dispositivo=dispositivo)
     prob = prever(resultado.modelo, fonte, papel["teste"])
 
     destino = Path(saida) / dataset / modelo
     destino.mkdir(parents=True, exist_ok=True)
     base = destino / (f"r{repeticao}_f{fold}" if permutacao is None else f"p{permutacao}_f{fold}")
     with open(f"{base}.json", "w") as f:
-        json.dump(dict(melhor_epoca=resultado.melhor_epoca, segundos=time.time() - inicio,
+        json.dump(dict(melhor_epoca=resultado.melhor_epoca, segundos=time.time() - inicio, dispositivo=dispositivo,
                        historico=resultado.historico), f)
     pd.DataFrame([dict(repeticao=repeticao, fold=fold, subject_uid=u, y=int(y[u]), prob=p) for u, p in prob.items()]
                  ).to_csv(f"{base}.csv.tmp", index=False)
@@ -96,6 +127,7 @@ def main() -> None:
     parser.add_argument("--processos", type=int, default=10)
     parser.add_argument("--permutacoes", type=int, default=0,
                         help="roda N permutações de rótulo (repetição 0) em vez dos treinos reais")
+    argumento_dispositivo(parser)
     args = parser.parse_args()
 
     if args.permutacoes:
@@ -106,9 +138,11 @@ def main() -> None:
     else:
         tarefas = [(d, m, r, f, None) for m in args.modelos for d in args.datasets for r in args.repeticoes
                    for f in args.folds_ids if not (Path(args.saida) / d / m / f"r{r}_f{f}.csv").exists()]
-    print(f"{len(tarefas)} tarefas pendentes", flush=True)
-    with ProcessPoolExecutor(args.processos, initializer=_iniciar) as executor:
-        futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, k) for d, m, r, f, k in tarefas]
+    conferir_dispositivo(parser, args.dispositivo, [Path(args.saida) / d / m for m in args.modelos for d in args.datasets])
+    print(f"{len(tarefas)} tarefas pendentes ({args.dispositivo})", flush=True)
+    with ProcessPoolExecutor(args.processos, initializer=_iniciar, mp_context=contexto_processos(args.dispositivo)) as executor:
+        futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, k, args.dispositivo)
+                   for d, m, r, f, k in tarefas]
         for i, futuro in enumerate(as_completed(futuros), 1):
             print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 

@@ -25,3 +25,36 @@ def test_runner_so_aceita_o_dtsf_e_as_ablacoes(monkeypatch):
     monkeypatch.setattr("sys.argv", ["rodar", "--modelos", "F"])
     with pytest.raises(SystemExit):
         r.main()
+
+
+# ---------- dispositivo (CPU ou GPU) ----------
+
+def test_dispositivos_gravados_le_os_json_e_trata_os_antigos_como_cpu(tmp_path):
+    import json
+    pasta = tmp_path / "SZ" / "D"
+    pasta.mkdir(parents=True)
+    json.dump(dict(melhor_epoca=1), open(pasta / "r0_f0.json", "w"))
+    json.dump(dict(melhor_epoca=1, dispositivo="cuda"), open(pasta / "r0_f1.json", "w"))
+    assert r.dispositivos_gravados([pasta]) == {"cpu", "cuda"}
+    assert r.dispositivos_gravados([tmp_path / "vazia"]) == set()
+
+
+def test_runner_nao_mistura_cpu_e_gpu_na_mesma_pasta(tmp_path, monkeypatch):
+    import json
+
+    import pytest
+    pasta = tmp_path / "SZ" / "D"
+    pasta.mkdir(parents=True)
+    json.dump(dict(melhor_epoca=1), open(pasta / "r0_f0.json", "w"))
+    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+    monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path), "--datasets", "SZ", "--dispositivo", "cuda"])
+    with pytest.raises(SystemExit):
+        r.main()
+
+
+def test_runner_recusa_cuda_sem_gpu(monkeypatch):
+    import pytest
+    monkeypatch.setattr("torch.cuda.is_available", lambda: False)
+    monkeypatch.setattr("sys.argv", ["rodar", "--dispositivo", "cuda"])
+    with pytest.raises(SystemExit):
+        r.main()
