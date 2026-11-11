@@ -5,11 +5,20 @@ transtorno depressivo maior (MDD).
 
 ## Dados
 
-Os dados não são versionados. Baixe-os das fontes abaixo e coloque-os em `dados/`:
+Os dados não são versionados. A etapa 00 baixa as duas bases das fontes oficiais para `dados/` e confere
+cada arquivo pelo tamanho e pelo MD5 ([docs/00_dados.md](docs/00_dados.md)):
+
+```bash
+venv/bin/python -m pipeline.e00_dados.baixar             # baixa (retoma) e confere → dados/
+venv/bin/python -m pipeline.e00_dados.baixar --conferir  # só confere; imprime a impressão digital de cada base
+venv/bin/python -m pytest tests/e00_dados                # inclui a conferência de dados/ desta máquina
+```
+
+Estrutura esperada:
 
 ```
 dados/
-├── Schizophrenia_dataset/   # h01.edf … h14.edf, s01.edf … s14.edf, MANIFEST.TXT
+├── Schizophrenia_dataset/   # h01.edf … h14.edf, s01.edf … s14.edf
 └── Depression_dataset/      # "H S<n> <EC|EO|TASK>.edf", "MDD S<n> <EC|EO|TASK>.edf"
 ```
 
