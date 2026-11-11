@@ -26,6 +26,8 @@ venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_inves
 
 Pré-requisitos: as etapas 02, 03, 05, 06, 07 (com os caches e as previsões do D) e 08.
 
+O `explicar` e o `lote` aceitam `--dispositivo cuda`, como a etapa 07 (ver [07_DTSF.md](07_DTSF.md#cpu-ou-gpu)): os retreinos do D rodam na GPU. No `explicar`, o modelo volta para a CPU antes do SHAP, que continua na CPU. Use o mesmo dispositivo da etapa 07, para o D da etapa 09 ser treinado como o D que ele investiga; o runner se recusa a completar uma pasta com retreinos feitos em outro dispositivo.
+
 ## 1. Data de gravação × diagnóstico
 
 O EDF não informa lote nem sessão. A sessão foi reconstruída pela data do cabeçalho: datas separadas por mais de 30 dias abrem uma sessão nova.
