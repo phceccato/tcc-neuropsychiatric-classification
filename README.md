@@ -42,6 +42,11 @@ dados/
 
 ## Como rodar
 
+Os treinos do DTSF (etapas 07 e 09) rodam na CPU por padrão, como nas rodadas registradas. Numa máquina com
+GPU NVIDIA, acrescente `--dispositivo cuda` aos comandos `e07_DTSF.rodar`, `e09_investigacao.explicar` e
+`e09_investigacao.lote` ([docs/07_DTSF.md](docs/07_DTSF.md#cpu-ou-gpu)); os resultados ficam próximos, mas não
+idênticos aos da CPU. As etapas 06 e 08 (scikit-learn) usam só a CPU: ajuste `--processos` ao número de núcleos.
+
 ```bash
 python -m venv venv && venv/bin/pip install -r requirements.txt
 venv/bin/python -m pytest tests
