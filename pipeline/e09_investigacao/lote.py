@@ -31,7 +31,8 @@ from sklearn.metrics import roc_auc_score
 from pipeline.avaliacao.metricas import escores_por_pessoa, ic_bootstrap
 from pipeline.e05_folds.folds import gerar
 from pipeline.e07_DTSF.avaliar import SEMENTE, completo, ler_modelo
-from pipeline.e07_DTSF.rodar import _iniciar, rodar_tarefa
+from pipeline.e07_DTSF.rodar import (_iniciar, argumento_dispositivo, conferir_dispositivo, contexto_processos,
+                                     rodar_tarefa)
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS  # os 9 baselines da etapa 08 (LR, RF e KNN × 3 modalidades)
 from pipeline.e09_investigacao.datas import pessoas_por_dataset
 
@@ -87,6 +88,7 @@ def main() -> None:
     parser.add_argument("--saida", type=Path, default=Path("outputs/09_investigacao/lote"))
     parser.add_argument("--processos", type=int, default=10)
     parser.add_argument("--sem-retreino", action="store_true", help="só a análise de subconjuntos")
+    argumento_dispositivo(parser)
     args = parser.parse_args()
     args.saida.mkdir(parents=True, exist_ok=True)
 
@@ -115,9 +117,12 @@ def main() -> None:
     resultados = args.saida / "resultados"
     if not args.sem_retreino:
         tarefas = [(r, f) for r in range(10) for f in range(5) if not (resultados / "MDD" / "D" / f"r{r}_f{f}.csv").exists()]
-        print(f"{len(tarefas)} treinos pendentes", flush=True)
-        with ProcessPoolExecutor(args.processos, initializer=_iniciar) as executor:
-            futuros = [executor.submit(rodar_tarefa, "MDD", "D", r, f, str(folds_csv), str(resultados)) for r, f in tarefas]
+        conferir_dispositivo(parser, args.dispositivo, [resultados / "MDD" / "D"])
+        print(f"{len(tarefas)} treinos pendentes ({args.dispositivo})", flush=True)
+        with ProcessPoolExecutor(args.processos, initializer=_iniciar,
+                                 mp_context=contexto_processos(args.dispositivo)) as executor:
+            futuros = [executor.submit(rodar_tarefa, "MDD", "D", r, f, str(folds_csv), str(resultados), None,
+                                       args.dispositivo) for r, f in tarefas]
             for i, futuro in enumerate(as_completed(futuros), 1):
                 print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 

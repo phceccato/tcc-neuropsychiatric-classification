@@ -22,7 +22,8 @@ Grava em outputs/09_investigacao/explicacao/:
 - modelos/<dataset>/f<fold>.pt e .json (época escolhida);
 - janelas/<dataset>/f<fold>.csv (uma linha por janela de teste);
 - atribuicoes/<dataset>/f<fold>.npz (agregados por pessoa).
-Tarefas já gravadas são puladas. O resumo e as figuras ficam em pipeline/e09_investigacao/relatorio_explicacao.py.
+Tarefas já gravadas são puladas. Com --dispositivo cuda, só o treino do D roda na GPU; o modelo volta para
+a CPU antes do SHAP, que continua na CPU. O .json de cada modelo registra o dispositivo do treino. O resumo e as figuras ficam em pipeline/e09_investigacao/relatorio_explicacao.py.
 """
 from __future__ import annotations
 
@@ -38,7 +39,8 @@ import torch
 
 from pipeline.e07_DTSF.dados import janelas_avaliacao
 from pipeline.e07_DTSF.redes_dtsf import DTSF
-from pipeline.e07_DTSF.rodar import SEMENTE, _fonte, _iniciar
+from pipeline.e07_DTSF.rodar import (SEMENTE, _fonte, _iniciar, argumento_dispositivo, conferir_dispositivo,
+                                     contexto_processos)
 from pipeline.e07_DTSF.treino import treinar
 
 MODELO, REPETICAO = "D", 0
@@ -86,7 +88,7 @@ def sortear_fundo(fonte, treino: list[str], y: pd.Series, por_classe: int, rng: 
     return np.concatenate(linhas)
 
 
-def rodar_tarefa(dataset: str, fold: int, folds_csv: str, saida: str) -> str:
+def rodar_tarefa(dataset: str, fold: int, folds_csv: str, saida: str, dispositivo: str = "cpu") -> str:
     inicio = time.time()
     folds = pd.read_csv(folds_csv)
     g = folds[(folds["dataset"] == dataset) & (folds["repeticao"] == REPETICAO) & (folds["fold"] == fold)]
@@ -102,10 +104,12 @@ def rodar_tarefa(dataset: str, fold: int, folds_csv: str, saida: str) -> str:
         modelo.load_state_dict(torch.load(caminho_modelo))
         modelo.eval()
     else:
-        resultado = treinar(MODELO, fonte, papel["treino"], papel["validacao"], y, semente=SEMENTE + 1000 * REPETICAO + fold)
-        modelo = resultado.modelo
+        resultado = treinar(MODELO, fonte, papel["treino"], papel["validacao"], y, semente=SEMENTE + 1000 * REPETICAO + fold,
+                            dispositivo=dispositivo)
+        modelo = resultado.modelo.cpu()
         torch.save(modelo.state_dict(), caminho_modelo)
-        caminho_modelo.with_suffix(".json").write_text(json.dumps(dict(melhor_epoca=resultado.melhor_epoca)))
+        caminho_modelo.with_suffix(".json").write_text(json.dumps(dict(melhor_epoca=resultado.melhor_epoca,
+                                                                        dispositivo=dispositivo)))
     for p in modelo.parameters():
         p.requires_grad_(False)
 
@@ -143,13 +147,16 @@ def main() -> None:
     parser.add_argument("--saida", default="outputs/09_investigacao/explicacao")
     parser.add_argument("--datasets", nargs="+", default=["SZ", "MDD"])
     parser.add_argument("--processos", type=int, default=10)
+    argumento_dispositivo(parser)
     args = parser.parse_args()
 
     tarefas = [(d, f) for d in args.datasets for f in range(5)
                if not (Path(args.saida) / "janelas" / d / f"f{f}.csv").exists()]
-    print(f"{len(tarefas)} tarefas pendentes", flush=True)
-    with ProcessPoolExecutor(args.processos, initializer=_iniciar) as executor:
-        futuros = [executor.submit(rodar_tarefa, d, f, args.folds, args.saida) for d, f in tarefas]
+    conferir_dispositivo(parser, args.dispositivo, [Path(args.saida) / "modelos" / d for d in args.datasets])
+    print(f"{len(tarefas)} tarefas pendentes ({args.dispositivo})", flush=True)
+    with ProcessPoolExecutor(args.processos, initializer=_iniciar,
+                             mp_context=contexto_processos(args.dispositivo)) as executor:
+        futuros = [executor.submit(rodar_tarefa, d, f, args.folds, args.saida, args.dispositivo) for d, f in tarefas]
         for i, futuro in enumerate(as_completed(futuros), 1):
             print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 
