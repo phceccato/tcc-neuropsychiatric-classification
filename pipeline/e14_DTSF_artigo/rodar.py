@@ -11,9 +11,9 @@ Escolhas fixadas antes de rodar, sem busca:
   a coluna de parâmetros;
 - o resto do treino é o do D, e não o do artigo (SGD, lotes de 128, 50 épocas), para isolar o tamanho.
 
-D_artigo_FA: o D_artigo com a Frequency Attention da etapa 12 (pipeline/e12_FA_SDKA/redes.py) depois do 1º
-bloco temporal; com 64 filtros, são 4 grupos de 16, com os mesmos componentes DCT fixos (704.769 parâmetros).
-Começa com os mesmos pesos do D_artigo, e a comparação com ele isola o efeito da FA.
+D_artigo_FA: o D_artigo com a Frequency Attention (pipeline/e07_DTSF/redes_dtsf.py) depois do 1º bloco
+temporal; com 64 filtros, são 4 grupos de 16, com os componentes DCT fixos (704.769 parâmetros). É o D_FA da
+etapa 07. Começa com os mesmos pesos do D_artigo, e a comparação com ele isola o efeito da FA.
 
 Grava outputs/14_DTSF_artigo/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{csv,json}; com --permutacoes N,
 o teste contra o acaso como na etapa 07, em outputs/14_DTSF_artigo/permutacoes/. Retoma: tarefas gravadas são
@@ -33,7 +33,7 @@ import pandas as pd
 from pipeline.e07_DTSF.rodar import (SEMENTE, _fonte, _iniciar, argumento_dispositivo, conferir_dispositivo,
                                      contexto_processos, rotulos_permutados)
 from pipeline.e07_DTSF.treino import ConfigTreino, prever, treinar
-from pipeline.e12_FA_SDKA.redes import DTSF12
+from pipeline.e07_DTSF.redes_dtsf import DTSF
 
 MODELO = "D_artigo"
 ARTIGO = ConfigTreino(filtros=64, oculto=128, cabecas=4, camadas=2)
@@ -46,7 +46,7 @@ def construtor(modelo: str):
         return None
     if modelo == "D_artigo_FA":
         a = ARTIGO
-        return lambda: DTSF12("D_FA", dropout=a.dropout, dropout_encoder=a.dropout_encoder, filtros=a.filtros,
+        return lambda: DTSF("D_FA", dropout=a.dropout, dropout_encoder=a.dropout_encoder, filtros=a.filtros,
                               oculto=a.oculto, cabecas=a.cabecas, camadas=a.camadas)
     raise ValueError(f"modelo desconhecido: {modelo!r}")
 SAIDA = Path("outputs/14_DTSF_artigo/resultados")
