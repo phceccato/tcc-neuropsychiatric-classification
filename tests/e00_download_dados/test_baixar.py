@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from pipeline.e00_dados import baixar as b
+from pipeline.e00_download_dados import baixar as b
 
-# Valores da lista versionada (pipeline/e00_dados/arquivos.csv): o que toda máquina precisa ter em dados/
+# Valores da lista versionada (pipeline/e00_download_dados/arquivos.csv): o que toda máquina precisa ter em dados/
 ESPERADO = {"SZ": dict(arquivos=28, bytes=274_341_860, impressao="91e07382b04646f85630a69e4638b0e4"),
             "MDD": dict(arquivos=181, bytes=851_613_696, impressao="e98187819f54803c9aeade1885997e52")}
 
@@ -30,7 +30,7 @@ def test_lista_tem_58_registros_ec_no_mdd():
 # ---------- os dados desta máquina ----------
 
 @pytest.mark.skipif(not (b.DADOS / "Schizophrenia_dataset").exists() or not (b.DADOS / "Depression_dataset").exists(),
-                    reason="dados/ ainda não foi baixado (python -m pipeline.e00_dados.baixar)")
+                    reason="dados/ ainda não foi baixado (python -m pipeline.e00_download_dados.baixar)")
 def test_dados_desta_maquina_conferem_com_a_lista():
     """Cada arquivo existe com o tamanho e o MD5 da fonte, e a contagem, os bytes e a impressão digital de cada
     dataset são os mesmos em qualquer máquina."""

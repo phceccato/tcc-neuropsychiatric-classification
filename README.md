@@ -6,12 +6,12 @@ transtorno depressivo maior (MDD).
 ## Dados
 
 Os dados não são versionados. A etapa 00 baixa as duas bases das fontes oficiais para `dados/` e confere
-cada arquivo pelo tamanho e pelo MD5 ([docs/00_dados.md](docs/00_dados.md)):
+cada arquivo pelo tamanho e pelo MD5 ([docs/00_download-dados.md](docs/00_download-dados.md)):
 
 ```bash
-venv/bin/python -m pipeline.e00_dados.baixar             # baixa (retoma) e confere → dados/
-venv/bin/python -m pipeline.e00_dados.baixar --conferir  # só confere; imprime a impressão digital de cada base
-venv/bin/python -m pytest tests/e00_dados                # inclui a conferência de dados/ desta máquina
+venv/bin/python -m pipeline.e00_download_dados.baixar             # baixa (retoma) e confere → dados/
+venv/bin/python -m pipeline.e00_download_dados.baixar --conferir  # só confere; imprime a impressão digital de cada base
+venv/bin/python -m pytest tests/e00_download_dados                # inclui a conferência de dados/ desta máquina
 ```
 
 Estrutura esperada:

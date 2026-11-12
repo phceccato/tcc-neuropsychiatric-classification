@@ -5,7 +5,7 @@
 - MDD: Mumtaz (2016), "MDD Patients and Healthy Controls EEG Data (New)", figshare, versão 2,
   doi:10.6084/m9.figshare.4244171.v2, CC BY 4.0 → dados/Depression_dataset/ (181 EDF).
 
-A lista do que baixar fica versionada em pipeline/e00_dados/arquivos.csv (dataset, arquivo, bytes, md5, url),
+A lista do que baixar fica versionada em pipeline/e00_download_dados/arquivos.csv (dataset, arquivo, bytes, md5, url),
 gerada uma vez das APIs das duas fontes (`--gerar-lista`) e fixa a partir daí: o download não depende de a
 listagem da fonte mudar. Ficam fora da lista os 12 arquivos do figshare que a API lista sem MD5 e cujo link
 de download nunca funcionou (docs/01_auditoria.md). O nome "H S15 EO.edf" aparece duas vezes no figshare;
