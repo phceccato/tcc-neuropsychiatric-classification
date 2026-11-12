@@ -1,4 +1,4 @@
-"""Features espectrais da LR de 76 bandas (pipeline/e06_LR) em cada janela de 4 s.
+"""Features espectrais da LR de 76 bandas (pipeline/e06_LR_psd) em cada janela de 4 s.
 
 Segue docs/00_proposta-tcc.md (referência adicional em "Baselines clássicos por modalidade") e docs/04_features.md:
 

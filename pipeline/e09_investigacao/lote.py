@@ -95,7 +95,7 @@ def main() -> None:
     manifesto = pd.read_csv(args.manifesto)
     pessoas = pessoas_por_dataset(manifesto)
     subs = subconjuntos(pessoas)
-    lr = pd.read_csv("outputs/06_LR/predicoes.csv")
+    lr = pd.read_csv("outputs/06_LR_psd/predicoes.csv")
 
     linhas = []
     for dataset in ("SZ", "MDD"):

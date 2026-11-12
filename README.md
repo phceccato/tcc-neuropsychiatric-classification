@@ -55,7 +55,7 @@ venv/bin/python -m pipeline.e02_harmonizacao.harmonizar     # harmonização das
 venv/bin/python -m pipeline.e03_janelas.janelas             # filtro 2–30 Hz, z-score e índice de janelas → outputs/03_janelas/
 venv/bin/python -m pipeline.e04_features.psd                # PSD de Welch e as 76 features de banda → outputs/04_features/
 venv/bin/python -m pipeline.e05_folds.folds                 # partições 5 × 10 por pessoa → outputs/05_folds/
-venv/bin/python -m pipeline.e06_LR.lr           # regressão logística + permutações → outputs/06_LR/
+venv/bin/python -m pipeline.e06_LR_psd.lr           # regressão logística + permutações → outputs/06_LR_psd/
 venv/bin/python -m pipeline.e07_DTSF.dados               # cache do sinal z-score a 125 Hz → outputs/07_DTSF/cache/
 venv/bin/python -m pipeline.e07_DTSF.dados_dtsf          # cache multibanda do DTSF → outputs/07_DTSF/cache_dtsf/
 venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt   # os 6 modelos DTSF (retoma) → outputs/07_DTSF/resultados/
@@ -89,7 +89,7 @@ Cada pasta de `pipeline/` tem um doc em `docs/` com os resultados da última exe
 | `pipeline/e03_janelas` | [docs/03_janelas.md](docs/03_janelas.md) |
 | `pipeline/e04_features` | [docs/04_features.md](docs/04_features.md) |
 | `pipeline/e05_folds` | [docs/05_folds.md](docs/05_folds.md) |
-| `pipeline/e06_LR` | [docs/06_LR.md](docs/06_LR.md) |
+| `pipeline/e06_LR_psd` | [docs/06_LR_psd.md](docs/06_LR_psd.md) |
 | `pipeline/e07_DTSF` | [docs/07_DTSF.md](docs/07_DTSF.md) |
 | `pipeline/e08_classicos` | [docs/08_classicos.md](docs/08_classicos.md) |
 | `pipeline/e09_investigacao` | [docs/09_investigacao.md](docs/09_investigacao.md) |

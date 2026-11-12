@@ -4,7 +4,7 @@ Modelos: {LR, RF, KNN} × {temporal, espectral, combinado} (características de 
 o combinado concatena as 475 temporais e as 1102 espectrais de cada janela, 1577 no total).
 
 - Pessoas de ajuste: `treino` + `validacao` do fold em outputs/05_folds/folds.csv (o baseline clássico não
-  tem early stopping, como pipeline/e06_LR). As pessoas de `teste` só entram na previsão final.
+  tem early stopping, como pipeline/e06_LR_psd). As pessoas de `teste` só entram na previsão final.
 - Janelas de ajuste: até JANELAS_POR_PESSOA (150) janelas aceitas da grade com 50% de overlap de cada
   pessoa, sorteadas uma vez com `dados.sortear` e o gerador da semente da tarefa (determinístico e sem
   rótulos); quem tem menos aceitas entra com todas. O sorteio vale **só para o ajuste**: toda previsão

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pipeline.e06_LR import lr as b
+from pipeline.e06_LR_psd import lr as b
 
 
 def _janelas():

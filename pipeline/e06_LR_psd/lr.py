@@ -12,7 +12,7 @@ Segue docs/00_proposta-tcc.md ("Baselines clássicos por modalidade", referênci
 
 Checagem no MDD: o mesmo modelo com potência relativa (banda ÷ potência de 2–30 Hz).
 
-Grava em outputs/06_LR/ as previsões, as AUCs nulas e resumo.md.
+Grava em outputs/06_LR_psd/ as previsões, as AUCs nulas e resumo.md.
 """
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def main() -> None:
     parser.add_argument("--features", type=Path, default=Path("outputs/04_features/psd.npz"))
     parser.add_argument("--janelas", type=Path, default=Path("outputs/03_janelas/janelas.csv"))
     parser.add_argument("--folds", type=Path, default=Path("outputs/05_folds/folds.csv"))
-    parser.add_argument("--saida", type=Path, default=Path("outputs/06_LR"))
+    parser.add_argument("--saida", type=Path, default=Path("outputs/06_LR_psd"))
     parser.add_argument("--permutacoes", type=int, default=PERMUTACOES)
     args = parser.parse_args()
 
