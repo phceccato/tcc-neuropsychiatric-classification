@@ -12,7 +12,7 @@ Os resultados ficam em [Resultados](#resultados).
 - Testes: `tests/e08_classicos/`.
 - Saídas:
   - `outputs/08_classicos/caracteristicas/`: o cache, com `temporais.npy`, `espectrais.npy` e `extracao.json` (todo o `outputs/` fica fora do git);
-  - `outputs/08_classicos/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{csv,json}` e `resumo.md`;
+  - `outputs/08_classicos/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{csv,json}` e `resumo.md`, que traz a AUC por pessoa com IC e uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições));
   - `outputs/08_classicos/permutacoes/`, se a rodada de permutações for feita (`rodar --permutacoes 25`). **Nenhum código avalia essas permutações ainda**: rodá-las (2.250 treinos) só faz sentido se a avaliação for implementada; a decisão está nas pendências da proposta.
   - Nada é gravado em `outputs/07_DTSF/resultados`, `outputs/07_DTSF/permutacoes` ou `outputs/06_LR_psd`.
 
