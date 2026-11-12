@@ -6,6 +6,9 @@ linha por (repetição, pessoa) e as colunas repeticao, subject_uid, y (1 = paci
 - métrica primária: ROC-AUC por pessoa, sobre a média da probabilidade fora do fold nas
   repetições;
 - incerteza: IC de 95% por bootstrap estratificado por pessoa e AUC de cada repetição;
+- média ± desvio nas repetições (`metricas_por_repeticao`, `tabela_media_desvio`): em cada repetição, as 5
+  previsões fora do fold juntas dão AUC e secundárias; reporta-se a média e o desvio (ddof = 1) das 10. Mostra
+  quanto o resultado muda com a partição, não a incerteza sobre a população (as repetições reusam as pessoas);
 - secundárias (descritivas): acurácia balanceada, sensibilidade, especificidade e Macro F1
   no limiar 0,5;
 - permutação: p = (nº de nulas ≥ observado + 1) / (N + 1);
@@ -62,6 +65,37 @@ def metricas_secundarias(y: np.ndarray, prob: np.ndarray) -> dict[str, float]:
     especificidade = float(np.mean(previsto[y == 0] == 0))
     return dict(acuracia_balanceada=(sensibilidade + especificidade) / 2, sensibilidade=sensibilidade,
                 especificidade=especificidade, macro_f1=float(f1_score(y, previsto, average="macro")))
+
+
+METRICAS_REPETICAO = {"auc": "AUC", "acuracia_balanceada": "Acurácia balanceada", "sensibilidade": "Sensibilidade",
+                      "especificidade": "Especificidade", "macro_f1": "Macro F1"}
+
+
+def metricas_por_repeticao(predicoes: pd.DataFrame) -> pd.DataFrame:
+    """Uma linha por repetição: AUC e secundárias (limiar 0,5) sobre as previsões fora do fold dela."""
+    linhas = []
+    for r, g in predicoes.groupby("repeticao"):
+        linhas.append(dict(repeticao=r, auc=roc_auc_score(g["y"], g["prob"]), **metricas_secundarias(g["y"], g["prob"])))
+    return pd.DataFrame(linhas).set_index("repeticao")
+
+
+def media_desvio(predicoes: pd.DataFrame) -> dict[str, tuple[float, float]]:
+    """{métrica: (média, desvio)} nas repetições; desvio com ddof = 1 (0 com uma repetição só)."""
+    t = metricas_por_repeticao(predicoes)
+    return {m: (float(t[m].mean()), float(t[m].std(ddof=1)) if len(t) > 1 else 0.0) for m in METRICAS_REPETICAO}
+
+
+def tabela_media_desvio(linhas: list[tuple[list[str], pd.DataFrame | None]], rotulos: list[str]) -> list[str]:
+    """Tabela markdown com média ± desvio das métricas por repetição; `None` marca um modelo incompleto."""
+    saida = ["| " + " | ".join([*rotulos, *METRICAS_REPETICAO.values()]) + " |",
+             "| " + " | ".join(["---"] * (len(rotulos) + len(METRICAS_REPETICAO))) + " |"]
+    for chave, predicoes in linhas:
+        if predicoes is None:
+            saida.append("| " + " | ".join([*chave, "incompleto", *[""] * (len(METRICAS_REPETICAO) - 1)]) + " |")
+            continue
+        md = media_desvio(predicoes)
+        saida.append("| " + " | ".join([*chave, *(f"{md[m][0]:.3f} ± {md[m][1]:.3f}" for m in METRICAS_REPETICAO)]) + " |")
+    return saida
 
 
 def p_valor(observado: float, nulas: np.ndarray) -> float:

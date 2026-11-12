@@ -230,3 +230,30 @@ def test_delta_por_fold_recusa_fold_com_uma_classe_so():
     a.loc[a["subject_uid"] == "P1", "fold"] = 0  # fold 0 só com pacientes, fold 1 só com controles
     with pytest.raises(ValueError):
         m.delta_por_fold(a, a.copy())
+
+
+def _predicoes_repeticoes():
+    linhas = []
+    for r, probs in enumerate([[0.9, 0.6, 0.3, 0.2, 0.7], [0.8, 0.7, 0.6, 0.1, 0.2]]):
+        for i, (yy, pp) in enumerate(zip([1, 1, 1, 0, 0], probs)):
+            linhas.append(dict(repeticao=r, fold=i % 2, subject_uid=f"S{i}", y=yy, prob=pp))
+    return pd.DataFrame(linhas)
+
+
+def test_metricas_por_repeticao_usam_as_previsoes_de_cada_repeticao():
+    pred = _predicoes_repeticoes()
+    t = m.metricas_por_repeticao(pred)
+    assert list(t.index) == [0, 1] and list(t.columns) == list(m.METRICAS_REPETICAO)
+    assert t.loc[0, "sensibilidade"] == pytest.approx(2 / 3) and t.loc[1, "sensibilidade"] == pytest.approx(1)
+    assert t.loc[1, "auc"] == pytest.approx(1) and t.loc[0, "auc"] == m.roc_auc_score([1, 1, 1, 0, 0], [0.9, 0.6, 0.3, 0.2, 0.7])
+    md = m.media_desvio(pred)
+    assert md["sensibilidade"][0] == pytest.approx((2 / 3 + 1) / 2)
+    assert md["sensibilidade"][1] == pytest.approx(np.std([2 / 3, 1], ddof=1))
+    assert md["auc"][0] == pytest.approx(m.auc_por_repeticao(pred).mean())
+
+
+def test_tabela_media_desvio_tem_uma_coluna_por_metrica_e_marca_incompletos():
+    t = m.tabela_media_desvio([(["X"], _predicoes_repeticoes()), (["Y"], None)], ["Modelo"])
+    assert t[0] == "| Modelo | AUC | Acurácia balanceada | Sensibilidade | Especificidade | Macro F1 |"
+    assert t[2].startswith("| X | ") and t[2].count("±") == 5
+    assert t[3].startswith("| Y | incompleto |")
