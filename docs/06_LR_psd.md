@@ -1,16 +1,16 @@
-# LR — resultados
+# LR_psd — regressão logística sobre a PSD em bandas: resultados
 
 A regressão logística sobre as 76 features de banda fica **acima do acaso nos dois transtornos**. As AUCs por pessoa são **0,78 na SZ** e **0,87 no MDD**. Na SZ, o IC de 95% vai de 0,59 a 0,92.
 
-- Código: [pipeline/e06_LR/lr.py](../pipeline/e06_LR/lr.py), com as métricas de [avaliacao.md](avaliacao.md)
+- Código: [pipeline/e06_LR_psd/lr.py](../pipeline/e06_LR_psd/lr.py), com as métricas de [avaliacao.md](avaliacao.md)
 - Duração: ~4 min, quase todo gasto nas 1000 permutações
-- Saídas em `outputs/06_LR/`:
+- Saídas em `outputs/06_LR_psd/`:
   - `predicoes.csv`: probabilidade fora do fold de cada pessoa, em cada repetição;
   - `permutacoes.csv`: as AUCs nulas;
   - `resumo.md`.
 
 ```bash
-venv/bin/python -m pipeline.e06_LR.lr
+venv/bin/python -m pipeline.e06_LR_psd.lr
 ```
 
 ## Modelo
