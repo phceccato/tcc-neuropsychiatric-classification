@@ -27,6 +27,6 @@ venv/bin/python -m pipeline.e05_folds.folds
 
 | Constante | Onde | Valor |
 | --- | --- | --- |
-| `SEMENTE` | `e05_folds/folds.py` (partições), `e06_LR/lr.py`, `e07_DTSF/rodar.py` (treino do DTSF e dos clássicos da 08), `e07_DTSF/avaliar.py` (bootstrap e permutações pareadas) | 20261108 |
+| `SEMENTE` | `e05_folds/folds.py` (partições), `e06_LR_psd/lr.py`, `e07_DTSF/rodar.py` (treino do DTSF e dos clássicos da 08), `e07_DTSF/avaliar.py` (bootstrap e permutações pareadas) | 20261108 |
 | `SEMENTE_PERMUTACAO` | `e07_DTSF/rodar.py` (permutações de rótulo da H1) | 1108000 |
 | `SEMENTE_SHAP` | `e09_investigacao/explicar.py` | 1108 |
