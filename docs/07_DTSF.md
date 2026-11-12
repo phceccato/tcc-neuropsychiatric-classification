@@ -106,7 +106,7 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 - **Equivalência com as redes anteriores,** com a mesma semente e as mesmas entradas, saídas idênticas:
   - o `D_pequeno` é o D de 80 mil parâmetros das rodadas anteriores;
-  - o `D` é o D_artigo, e o `D_FA` é o D_artigo_FA da etapa 14.
+  - o `D` e o `D_FA` são os modelos gravados como D_artigo e D_artigo_FA em `outputs/14_DTSF_artigo/resultados`.
 
   O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Por isso, previsões já gravadas desses modelos no mesmo dispositivo podem ser copiadas para `outputs/07_DTSF/resultados/<conjunto>/<modelo>/`, e o runner pula as tarefas já gravadas.
 
