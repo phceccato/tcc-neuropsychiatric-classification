@@ -33,8 +33,7 @@ from torch.nn import functional as F
 
 from pipeline.e07_DTSF.dados import janelas_avaliacao, sortear
 from pipeline.e07_DTSF.dados_dtsf import estatisticas_stft
-from pipeline.e07_DTSF.redes_dtsf import (ALFA_MIXUP, CABECAS, CAMADAS, DROPOUT, DROPOUT_ENCODER, DTSF, FILTROS, OCULTO,
-                                          misturar, sortear_mixup)
+from pipeline.e07_DTSF.redes_dtsf import ALFA_MIXUP, DROPOUT, DROPOUT_ENCODER, DTSF, misturar, sortear_mixup
 
 MAX_EPOCAS, PACIENCIA = 100, 10
 JANELAS_POR_PESSOA = 60
@@ -45,7 +44,8 @@ LOTE_INFERENCIA = 256
 
 @dataclass(frozen=True)
 class ConfigTreino:
-    """Hiperparâmetros do DTSF (treino e dimensões da rede); os valores padrão são os da etapa 07."""
+    """Hiperparâmetros do DTSF: os do treino, iguais para todos os modelos da etapa 07, e as dimensões da rede.
+    Dimensões None (o padrão) usam as do modelo (`MODELOS` em redes_dtsf.py)."""
     lr: float = LR
     weight_decay: float = WEIGHT_DECAY
     tamanho_lote: int = TAMANHO_LOTE
@@ -54,10 +54,10 @@ class ConfigTreino:
     dropout: float = DROPOUT
     dropout_encoder: float = DROPOUT_ENCODER
     alfa_mixup: float = ALFA_MIXUP
-    filtros: int = FILTROS
-    oculto: int = OCULTO
-    cabecas: int = CABECAS
-    camadas: int = CAMADAS
+    filtros: int | None = None
+    oculto: int | None = None
+    cabecas: int | None = None
+    camadas: int | None = None
 
 
 PADRAO = ConfigTreino()
@@ -107,7 +107,7 @@ def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Ser
             max_epocas: int | None = None, paciencia: int | None = None, config: ConfigTreino = PADRAO,
             dispositivo: str = "cpu", construir: Callable[[], DTSF] | None = None) -> Resultado:
     """Treina o DTSF `tipo` com `config`; `construir`, se dado, cria a rede no lugar de `DTSF(tipo, …)`
-    (a etapa 14 usa para o DTSF com a FA da etapa 12). A rede é criada depois da semente, como o D."""
+    (as etapas 12 e 14 usam para as suas variantes). A rede é criada depois da semente, como o D."""
     max_epocas = config.max_epocas if max_epocas is None else max_epocas
     paciencia = config.paciencia if paciencia is None else paciencia
     dispositivo = torch.device(dispositivo)

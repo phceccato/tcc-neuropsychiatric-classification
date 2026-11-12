@@ -10,7 +10,9 @@
 - SDKA: a perda de treino ganha α · SMMD (pipeline/e12_FA_SDKA/treino.py) sobre a representação do
   token CLS (32 dimensões, depois do LayerNorm final, entrada da camada de saída).
 
-As dimensões da rede podem mudar como no D (a etapa 14 usa a FA sobre o D com as dimensões do artigo, com 64
+A FA (`AtencaoFrequencia`) fica em pipeline/e07_DTSF/redes_dtsf.py, onde o modelo principal (D_FA, com as
+dimensões do artigo) também a usa; aqui ela é aplicada ao DTSF com as dimensões reduzidas (16 filtros, GRU 32)
+por padrão. As dimensões da rede podem mudar como no D (a etapa 14 usa a FA sobre o D com as dimensões do artigo, com 64
 filtros: 4 grupos de 16).
 
 Tipos: D_FA (D + FA), D_SDKA (D + SMMD no treino) e D_FA_SDKA (os dois). Fora a FA, a rede é o D da
@@ -18,51 +20,15 @@ etapa 07 (pipeline/e07_DTSF/redes_dtsf.py), com Mixup.
 """
 from __future__ import annotations
 
-import math
-
 import torch
-from torch import nn
 
-from pipeline.e07_DTSF.redes_dtsf import CABECAS, CAMADAS, DROPOUT, DROPOUT_ENCODER, DTSF, FILTROS, OCULTO
+from pipeline.e07_DTSF.redes_dtsf import (CABECAS, CAMADAS, COMPONENTES_FA, DROPOUT, DROPOUT_ENCODER, FILTROS,
+                                          GRADE_FCANET, LARGURA_MAPA, OCULTO, REDUCAO_FA, AtencaoFrequencia, DTSF,
+                                          base_dct)
 
 TIPOS_12 = ("D_FA", "D_SDKA", "D_FA_SDKA")
-GRADE_FCANET = 7
-COMPONENTES_FA = (0, 1, 2, 3)       # índices na grade 7, um por grupo
-REDUCAO_FA = 4
-LARGURA_MAPA = 250                  # 500 amostras → MaxPool (1, 2)
-
-
-def base_dct(n: int, u: int) -> torch.Tensor:
-    """Base da DCT-II ortonormal de tamanho n, componente u (normalização do FcaNet)."""
-    w = torch.arange(n, dtype=torch.float32)
-    base = torch.cos(math.pi * u * (w + 0.5) / n) / math.sqrt(n)
-    return base * math.sqrt(2) if u else base
-
-
-class AtencaoFrequencia(nn.Module):
-    """FA sobre um mapa [B, C, 1, W]: um componente DCT por grupo de C/n filtros → pesos por filtro."""
-
-    def __init__(self, canais: int = FILTROS, largura: int = LARGURA_MAPA,
-                 componentes: tuple[int, ...] = COMPONENTES_FA, reducao: int = REDUCAO_FA):
-        super().__init__()
-        if canais % len(componentes):
-            raise ValueError(f"{canais} canais não se dividem em {len(componentes)} grupos")
-        passo = largura // GRADE_FCANET
-        por_grupo = canais // len(componentes)
-        filtro = torch.stack([base_dct(largura, u * passo) for u in componentes for _ in range(por_grupo)])
-        self.register_buffer("filtro_dct", filtro)                     # [C, W]
-        self.componentes = tuple(u * passo for u in componentes)
-        self.fc = nn.Sequential(nn.Linear(canais, canais // reducao, bias=False), nn.ReLU(),
-                                nn.Linear(canais // reducao, canais, bias=False), nn.Sigmoid())
-
-    def pesos(self, mapa: torch.Tensor) -> torch.Tensor:
-        if mapa.shape[2] != 1 or mapa.shape[3] != self.filtro_dct.shape[1]:
-            raise ValueError(f"mapa {tuple(mapa.shape)} incompatível com a FA de largura {self.filtro_dct.shape[1]}")
-        freq = (mapa[:, :, 0, :] * self.filtro_dct).sum(-1)             # [B, C]
-        return self.fc(freq)
-
-    def forward(self, mapa: torch.Tensor) -> torch.Tensor:
-        return mapa * self.pesos(mapa)[:, :, None, None]
+__all__ = ["AtencaoFrequencia", "base_dct", "DTSF12", "TIPOS_12", "COMPONENTES_FA", "GRADE_FCANET", "LARGURA_MAPA",
+           "REDUCAO_FA"]
 
 
 class DTSF12(DTSF):

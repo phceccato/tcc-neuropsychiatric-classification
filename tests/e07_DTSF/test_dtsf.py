@@ -8,30 +8,85 @@ from pipeline.e07_DTSF import dados_dtsf as dd
 from pipeline.e07_DTSF import redes_dtsf as rd
 from pipeline.e07_DTSF import treino as t
 
-TIPOS = ["D", "D_sem_T", "D_sem_E", "D_sem_mixup"]
+TIPOS = list(rd.TIPOS_DTSF)
 
 
 def _entradas(n=4, amostras=500):
     return torch.randn(n, 19, 5, amostras), torch.randn(n, 19, 29, 16)
 
 
+def _n(m):
+    return sum(p.numel() for p in m.parameters())
+
+
 # ---------- redes ----------
+
+def test_os_seis_modelos_da_etapa_e_o_principal():
+    assert rd.TIPOS_DTSF == ("D_FA", "D_pequeno", "D", "D_sem_mixup", "D_sem_T", "D_sem_E")
+    assert rd.PRINCIPAL == "D_FA"
+
 
 @pytest.mark.parametrize("tipo", TIPOS)
 def test_cada_variante_devolve_um_logit_por_janela(tipo):
     assert rd.DTSF(tipo)(*_entradas(8)).shape == (8,)
 
 
-def test_d_tem_cerca_de_80_mil_parametros():
-    assert 78_000 < sum(p.numel() for p in rd.DTSF("D").parameters()) < 82_000
+def test_numero_de_parametros():
+    assert _n(rd.DTSF("D_pequeno")) == 80_449        # o D das rodadas anteriores
+    assert _n(rd.DTSF("D")) == 702_721               # dimensões do artigo
+    assert _n(rd.DTSF("D_FA")) == 704_769            # + FA: FC(64 → 16) e FC(16 → 64), sem viés
+    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D"))
 
 
-def test_formas_dos_ramos_e_dos_tokens():
-    modelo = rd.DTSF("D").eval()
+def test_dimensoes_do_artigo_e_reduzidas():
+    for tipo in TIPOS:
+        v = rd.MODELOS[tipo]
+        esperado = (16, 32, 2, 2) if tipo == "D_pequeno" else (64, 128, 4, 2)
+        assert (v.filtros, v.oculto, v.cabecas, v.camadas) == esperado
+    m = rd.DTSF("D_FA")
+    assert m.encoder[0].atencao.num_heads == 4 and len(m.encoder) == 2
+
+
+@pytest.mark.parametrize("tipo, oculto", [("D_pequeno", 32), ("D", 128), ("D_FA", 128)])
+def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
+    modelo = rd.DTSF(tipo).eval()
     x_t, x_e = _entradas(3)
-    assert modelo.ramo_temporal(x_t).shape == (3, 16, 32)
-    assert modelo.ramo_espectral(x_e).shape == (3, 16, 32)
-    assert modelo.tokens(x_t, x_e).shape == (3, 33, 32)
+    assert modelo.ramo_temporal(x_t).shape == (3, 16, oculto)
+    assert modelo.ramo_espectral(x_e).shape == (3, 16, oculto)
+    assert modelo.tokens(x_t, x_e).shape == (3, 33, oculto)
+
+
+def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_4_grupos():
+    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "D_FA" for t in TIPOS}
+    fa = rd.DTSF("D_FA").fa
+    assert fa.filtro_dct.shape == (64, 250) and fa.componentes == (0, 35, 70, 105)
+
+
+def test_d_fa_comeca_com_os_pesos_do_d():
+    torch.manual_seed(3)
+    a = rd.DTSF("D_FA")
+    torch.manual_seed(3)
+    b = rd.DTSF("D")
+    comuns = {k: v for k, v in a.state_dict().items() if not k.startswith("fa.")}
+    assert comuns.keys() == b.state_dict().keys()
+    assert all(torch.equal(v, b.state_dict()[k]) for k, v in comuns.items())
+
+
+def test_fa_reescala_cada_filtro_do_mapa_temporal():
+    torch.manual_seed(0)
+    m = rd.DTSF("D_FA").eval()
+    x_t, _ = _entradas(2)
+    mapa = m.conv_t[0](x_t)
+    pesos = m.fa.pesos(mapa)
+    assert pesos.shape == (2, 64) and bool(((pesos > 0) & (pesos < 1)).all())
+    assert torch.allclose(m.fa(mapa), mapa * pesos[:, :, None, None])
+
+
+def test_fa_componente_zero_e_o_gap_escalado():
+    fa = rd.AtencaoFrequencia(canais=8)
+    mapa = torch.randn(2, 8, 1, 250)
+    freq = (mapa[:, :, 0, :] * fa.filtro_dct).sum(-1)
+    assert torch.allclose(freq[:, :2], mapa.mean(-1)[:, :2, 0] * 250 ** 0.5, atol=1e-4)
 
 
 def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():
@@ -41,11 +96,19 @@ def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():
     assert torch.equal(sem_t(x_t, x_e), sem_t(torch.randn_like(x_t), x_e))
     assert torch.equal(sem_e(x_t, x_e), sem_e(x_t, torch.randn_like(x_e)))
     assert sem_t.tokens(x_t, x_e).shape[1] == 17 and sem_e.tokens(x_t, x_e).shape[1] == 17
+    assert not sem_t.usa_fa and _n(sem_t) < _n(rd.DTSF("D"))
 
 
 def test_so_d_sem_mixup_desliga_o_mixup():
-    assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {
-        "D": True, "D_sem_T": True, "D_sem_E": True, "D_sem_mixup": False}
+    assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {t: t != "D_sem_mixup" for t in TIPOS}
+
+
+def test_dimensoes_explicitas_substituem_as_do_modelo():
+    torch.manual_seed(5)
+    a = rd.DTSF("D", filtros=16, oculto=32, cabecas=2, camadas=2)
+    torch.manual_seed(5)
+    b = rd.DTSF("D_pequeno")
+    assert all(torch.equal(v, b.state_dict()[k]) for k, v in a.state_dict().items())
 
 
 def test_d_sem_fusao_foi_removido():

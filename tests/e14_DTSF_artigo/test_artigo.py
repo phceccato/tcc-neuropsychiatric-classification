@@ -23,10 +23,10 @@ def test_configuracao_do_artigo():
         (t.PADRAO.lr, t.PADRAO.tamanho_lote, t.PADRAO.dropout, t.PADRAO.alfa_mixup)
 
 
-def test_d_artigo_tem_702_mil_parametros_e_o_d_continua_com_80_mil():
+def test_d_artigo_tem_702_mil_parametros_e_o_d_pequeno_80_mil():
     a = r14.ARTIGO
     assert _n(rd.DTSF("D", filtros=a.filtros, oculto=a.oculto, cabecas=a.cabecas, camadas=a.camadas)) == 702_721
-    assert _n(rd.DTSF("D")) == 80_449
+    assert _n(rd.DTSF("D_pequeno")) == 80_449
 
 
 def test_d_artigo_tem_as_formas_do_artigo():
@@ -41,9 +41,9 @@ def test_d_artigo_tem_as_formas_do_artigo():
 def test_dimensoes_padrao_mantem_o_d_identico():
     x_t, x_e = _entradas()
     torch.manual_seed(5)
-    a = rd.DTSF("D").eval()
+    a = rd.DTSF("D_pequeno").eval()
     torch.manual_seed(5)
-    b = rd.DTSF("D", filtros=rd.FILTROS, oculto=rd.OCULTO, cabecas=rd.CABECAS, camadas=rd.CAMADAS).eval()
+    b = rd.DTSF("D", filtros=rd.FILTROS, oculto=rd.OCULTO, cabecas=rd.CABECAS, camadas=rd.CAMADAS).eval()  # = D_pequeno
     assert torch.equal(a(x_t, x_e), b(x_t, x_e))
 
 

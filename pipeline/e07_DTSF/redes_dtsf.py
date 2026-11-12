@@ -1,25 +1,36 @@
-"""DTSF adaptado (WANG et al., 2026) e as ablações, como em docs/00_proposta-tcc.md.
+"""DTSF adaptado (WANG et al., 2026): o modelo principal, as variantes e as ablações, como em docs/07_DTSF.md.
 
-- Ramo temporal: (19, 5, 500) → Conv2d(19→16, (5, 13)) → BN → GELU → MaxPool (1, 2) → Dropout 0,5
-  → Conv2d(16→16, (1, 25)) → BN → GELU → AdaptiveMaxPool (1, 16) → Dropout 0,5 → GRU 32 → (16, 32).
+Arquitetura (F filtros, oculto H, C cabeças, 2 blocos):
+- Ramo temporal: (19, 5, 500) → Conv2d(19→F, (5, 13)) → BN → GELU → MaxPool (1, 2) → Dropout 0,5
+  → [FA, só nos modelos com FA] → Conv2d(F→F, (1, 25)) → BN → GELU → AdaptiveMaxPool (1, 16) → Dropout 0,5
+  → GRU H → (16, H).
 - Ramo espectral: (19, 29, 16), z-score por (canal, frequência) com estatísticas do treino do fold
-  (buffers) → Conv2d(19→16, (29, 3)) → BN → GELU → Dropout 0,5 → Conv2d(16→16, (1, 3)) → BN → GELU
-  → Dropout 0,5 → GRU 32 → (16, 32).
-- Fusão: tokens dos dois ramos concatenados no tempo → Linear 32 → token CLS no fim → posição
-  aprendível → 2 blocos pre-LN (MHSA de 2 cabeças; GMLP: FFN com gate GELU) → LN → último token
+  (buffers) → Conv2d(19→F, (29, 3)) → BN → GELU → Dropout 0,5 → Conv2d(F→F, (1, 3)) → BN → GELU
+  → Dropout 0,5 → GRU H → (16, H).
+- Fusão: tokens dos dois ramos concatenados no tempo → Linear H → token CLS no fim → posição
+  aprendível → 2 blocos pre-LN (MHSA de C cabeças; GMLP: FFN com gate GELU) → LN → último token
   → Linear → logit.
 
-Ablações: D_sem_T e D_sem_E (o Transformer recebe só os 16 tokens de um ramo + CLS); D_sem_mixup (o D sem
-Mixup).
+Modelos (`MODELOS`):
+- D_FA, o principal: dimensões do artigo (F = 64, H = 128, C = 4) e a Frequency Attention (FA);
+- D: o DTSF com as dimensões do artigo, sem FA;
+- D_pequeno: o D com as dimensões reduzidas (F = 16, H = 32, C = 2), sem FA;
+- D_sem_mixup, D_sem_T e D_sem_E: ablações do D (dimensões do artigo, sem FA): sem Mixup, sem o ramo
+  temporal e sem o ramo espectral (o Transformer recebe só os 16 tokens de um ramo + CLS).
 
-As dimensões (filtros das convoluções, tamanho oculto do GRU e da fusão, cabeças e blocos do encoder) são
-parâmetros do `DTSF`, com os valores acima como padrão; a etapa 14 (pipeline/e14_DTSF_artigo) usa as do
-artigo original.
+Frequency Attention (`AtencaoFrequencia`), a atenção de canal do FcaNet aplicada ao mapa [B, F, 1, 250] que
+sai do 1º bloco temporal: os F filtros são divididos em 4 grupos, cada grupo é resumido por um componente
+DCT ao longo do tempo (0, 35, 70 e 105: os 4 de menor frequência da grade 7 do FcaNet, u · ⌊250/7⌋), e os F
+resumos passam por FC(F → F/4) → ReLU → FC(F/4 → F) → sigmoid, que reescala cada filtro. A FA é criada por
+último: na mesma semente, o D_FA começa com os mesmos pesos do D, e D_FA − D isola o efeito da FA.
 
 O Mixup fica no laço de treino (pipeline/e07_DTSF/treino.py): `sortear_mixup` sorteia λ ~ Beta(1, 1)
 e a permutação do lote; `misturar` aplica os dois aos dois ramos e ao alvo.
 """
 from __future__ import annotations
+
+import math
+from dataclasses import dataclass
 
 import numpy as np
 import torch
@@ -27,10 +38,39 @@ from torch import nn
 from torch.nn import functional as F
 
 N_CANAIS, N_BANDAS, N_FREQUENCIAS, N_QUADROS = 19, 5, 29, 16
-FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2
+FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2              # dimensões reduzidas (D_pequeno)
+FILTROS_ARTIGO, OCULTO_ARTIGO, CABECAS_ARTIGO = 64, 128, 4     # dimensões do artigo (Tabela 1)
 DROPOUT, DROPOUT_ENCODER = 0.5, 0.1
 ALFA_MIXUP = 1.0
-TIPOS_DTSF = ("D", "D_sem_T", "D_sem_E", "D_sem_mixup")
+GRADE_FCANET = 7
+COMPONENTES_FA = (0, 1, 2, 3)       # índices na grade 7, um por grupo
+REDUCAO_FA = 4
+LARGURA_MAPA = 250                  # 500 amostras → MaxPool (1, 2)
+
+
+@dataclass(frozen=True)
+class Variante:
+    """O que cada modelo usa: ramos, Mixup, FA e dimensões (filtros, oculto, cabeças, blocos)."""
+    temporal: bool = True
+    espectral: bool = True
+    mixup: bool = True
+    fa: bool = False
+    filtros: int = FILTROS_ARTIGO
+    oculto: int = OCULTO_ARTIGO
+    cabecas: int = CABECAS_ARTIGO
+    camadas: int = CAMADAS
+
+
+MODELOS = {
+    "D_FA": Variante(fa=True),
+    "D_pequeno": Variante(filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "D": Variante(),
+    "D_sem_mixup": Variante(mixup=False),
+    "D_sem_T": Variante(temporal=False),
+    "D_sem_E": Variante(espectral=False),
+}
+TIPOS_DTSF = tuple(MODELOS)
+PRINCIPAL = "D_FA"
 
 
 def sortear_mixup(rng: np.random.Generator, n: int, alfa: float = ALFA_MIXUP) -> tuple[float, np.ndarray]:
@@ -80,15 +120,56 @@ class _Encoder(nn.Module):
         return x + self.gmlp(self.ln_gmlp(x))
 
 
-class DTSF(nn.Module):
-    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER,
-                 filtros: int = FILTROS, oculto: int = OCULTO, cabecas: int = CABECAS, camadas: int = CAMADAS):
+def base_dct(n: int, u: int) -> torch.Tensor:
+    """Base da DCT-II ortonormal de tamanho n, componente u (normalização do FcaNet)."""
+    w = torch.arange(n, dtype=torch.float32)
+    base = torch.cos(math.pi * u * (w + 0.5) / n) / math.sqrt(n)
+    return base * math.sqrt(2) if u else base
+
+
+class AtencaoFrequencia(nn.Module):
+    """FA sobre um mapa [B, C, 1, W]: um componente DCT por grupo de C/n filtros → pesos por filtro."""
+
+    def __init__(self, canais: int = FILTROS, largura: int = LARGURA_MAPA,
+                 componentes: tuple[int, ...] = COMPONENTES_FA, reducao: int = REDUCAO_FA):
         super().__init__()
-        if tipo not in TIPOS_DTSF:
+        if canais % len(componentes):
+            raise ValueError(f"{canais} canais não se dividem em {len(componentes)} grupos")
+        passo = largura // GRADE_FCANET
+        por_grupo = canais // len(componentes)
+        filtro = torch.stack([base_dct(largura, u * passo) for u in componentes for _ in range(por_grupo)])
+        self.register_buffer("filtro_dct", filtro)                     # [C, W]
+        self.componentes = tuple(u * passo for u in componentes)
+        self.fc = nn.Sequential(nn.Linear(canais, canais // reducao, bias=False), nn.ReLU(),
+                                nn.Linear(canais // reducao, canais, bias=False), nn.Sigmoid())
+
+    def pesos(self, mapa: torch.Tensor) -> torch.Tensor:
+        if mapa.shape[2] != 1 or mapa.shape[3] != self.filtro_dct.shape[1]:
+            raise ValueError(f"mapa {tuple(mapa.shape)} incompatível com a FA de largura {self.filtro_dct.shape[1]}")
+        freq = (mapa[:, :, 0, :] * self.filtro_dct).sum(-1)             # [B, C]
+        return self.fc(freq)
+
+    def forward(self, mapa: torch.Tensor) -> torch.Tensor:
+        return mapa * self.pesos(mapa)[:, :, None, None]
+
+
+class DTSF(nn.Module):
+    """O modelo `tipo` de `MODELOS`; dimensões passadas aqui (não None) substituem as do modelo."""
+
+    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER,
+                 filtros: int | None = None, oculto: int | None = None, cabecas: int | None = None,
+                 camadas: int | None = None):
+        super().__init__()
+        if tipo not in MODELOS:
             raise ValueError(f"tipo desconhecido: {tipo!r}")
+        v = MODELOS[tipo]
+        filtros = v.filtros if filtros is None else filtros
+        oculto = v.oculto if oculto is None else oculto
+        cabecas = v.cabecas if cabecas is None else cabecas
+        camadas = v.camadas if camadas is None else camadas
         self.tipo = tipo
-        self.mixup = tipo != "D_sem_mixup"
-        self.usa_t, self.usa_e = tipo != "D_sem_T", tipo != "D_sem_E"
+        self.mixup = v.mixup
+        self.usa_t, self.usa_e, self.usa_fa = v.temporal, v.espectral, v.fa
         if self.usa_t:
             self.conv_t = nn.Sequential(
                 _BlocoConv(N_CANAIS, (N_BANDAS, 13), nn.MaxPool2d((1, 2), (1, 2)), dropout, filtros),
@@ -107,6 +188,8 @@ class DTSF(nn.Module):
         self.encoder = nn.ModuleList([_Encoder(oculto, dropout_encoder, cabecas) for _ in range(camadas)])
         self.ln_final = nn.LayerNorm(oculto)
         self.saida = nn.Linear(oculto, 1)
+        if self.usa_fa:                                  # por último: o resto começa igual ao do D
+            self.fa = AtencaoFrequencia(canais=filtros)
 
     def definir_normalizacao(self, media: torch.Tensor, desvio: torch.Tensor) -> None:
         self.stft_media.copy_(media)
@@ -118,7 +201,11 @@ class DTSF(nn.Module):
         return gru(mapa.squeeze(2).transpose(1, 2))[0]   # [B, 16 passos, oculto]
 
     def ramo_temporal(self, x_t: torch.Tensor) -> torch.Tensor:
-        return self._sequencia(self.conv_t, self.gru_t, x_t)
+        mapa = self.conv_t[0](x_t)                       # [B, filtros, 1, 250]
+        if self.usa_fa:
+            mapa = self.fa(mapa)
+        mapa = self.conv_t[1](mapa)                      # [B, filtros, 1, 16]
+        return self.gru_t(mapa.squeeze(2).transpose(1, 2))[0]
 
     def ramo_espectral(self, x_e: torch.Tensor) -> torch.Tensor:
         x_e = (x_e - self.stft_media[:, :, None]) / self.stft_desvio[:, :, None]

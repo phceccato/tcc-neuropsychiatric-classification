@@ -64,7 +64,7 @@ def test_so_as_variantes_com_fa_tem_a_fa():
 
 def test_d_sdka_e_o_d_com_a_mesma_inicializacao():
     torch.manual_seed(0)
-    d = rd.DTSF("D").eval()
+    d = rd.DTSF("D_pequeno").eval()
     torch.manual_seed(0)
     v = r12.DTSF12("D_SDKA").eval()
     x_t, x_e = _entradas()
@@ -73,7 +73,7 @@ def test_d_sdka_e_o_d_com_a_mesma_inicializacao():
 
 def test_fa_acrescenta_poucos_parametros():
     n = lambda m: sum(p.numel() for p in m.parameters())
-    assert n(r12.DTSF12("D_FA")) - n(rd.DTSF("D")) == 16 * 4 * 2
+    assert n(r12.DTSF12("D_FA")) - n(rd.DTSF("D_pequeno")) == 16 * 4 * 2
 
 
 def test_tipo_desconhecido_falha():
