@@ -2,15 +2,15 @@
 
 Baixa as duas bases de EEG das fontes oficiais para `dados/` e confere cada arquivo pelo tamanho e pelo MD5 publicados pela fonte. Serve para montar o mesmo `dados/` em qualquer máquina e para provar que os dados usados são os da fonte, sem alteração.
 
-- Código: [pipeline/e00_dados/baixar.py](../pipeline/e00_dados/baixar.py)
-- Lista fixa do que baixar: [pipeline/e00_dados/arquivos.csv](../pipeline/e00_dados/arquivos.csv), com dataset, nome local, bytes, MD5 e URL de cada arquivo (209 linhas).
-- Testes: `tests/e00_dados/` (11 testes).
+- Código: [pipeline/e00_download_dados/baixar.py](../pipeline/e00_download_dados/baixar.py)
+- Lista fixa do que baixar: [pipeline/e00_download_dados/arquivos.csv](../pipeline/e00_download_dados/arquivos.csv), com dataset, nome local, bytes, MD5 e URL de cada arquivo (209 linhas).
+- Testes: `tests/e00_download_dados/` (11 testes).
 - Saída: `dados/Schizophrenia_dataset/` e `dados/Depression_dataset/` (fora do git).
 
 ```bash
-venv/bin/python -m pipeline.e00_dados.baixar             # baixa o que falta, confere tudo e imprime o resumo
-venv/bin/python -m pipeline.e00_dados.baixar --conferir  # só confere a pasta, sem baixar
-venv/bin/python -m pytest tests/e00_dados                # inclui o teste que confere dados/ desta máquina
+venv/bin/python -m pipeline.e00_download_dados.baixar             # baixa o que falta, confere tudo e imprime o resumo
+venv/bin/python -m pipeline.e00_download_dados.baixar --conferir  # só confere a pasta, sem baixar
+venv/bin/python -m pytest tests/e00_download_dados                # inclui o teste que confere dados/ desta máquina
 ```
 
 ## Fontes
