@@ -23,6 +23,7 @@ com os de uma rodada em CPU.
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -104,7 +105,9 @@ def _perda_validacao(modelo: DTSF, fonte, por_pessoa: dict, y: pd.Series, peso_p
 
 def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Series, semente: int,
             max_epocas: int | None = None, paciencia: int | None = None, config: ConfigTreino = PADRAO,
-            dispositivo: str = "cpu") -> Resultado:
+            dispositivo: str = "cpu", construir: Callable[[], DTSF] | None = None) -> Resultado:
+    """Treina o DTSF `tipo` com `config`; `construir`, se dado, cria a rede no lugar de `DTSF(tipo, …)`
+    (a etapa 14 usa para o DTSF com a FA da etapa 12). A rede é criada depois da semente, como o D."""
     max_epocas = config.max_epocas if max_epocas is None else max_epocas
     paciencia = config.paciencia if paciencia is None else paciencia
     dispositivo = torch.device(dispositivo)
@@ -113,8 +116,9 @@ def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Ser
     torch.manual_seed(semente)
     rng = np.random.default_rng(semente)
     por_pessoa = {uid: g for uid, g in fonte.indice.groupby("subject_uid")}
-    modelo = DTSF(tipo, dropout=config.dropout, dropout_encoder=config.dropout_encoder, filtros=config.filtros,
-                  oculto=config.oculto, cabecas=config.cabecas, camadas=config.camadas)
+    modelo = construir() if construir is not None else \
+        DTSF(tipo, dropout=config.dropout, dropout_encoder=config.dropout_encoder, filtros=config.filtros,
+             oculto=config.oculto, cabecas=config.cabecas, camadas=config.camadas)
     rng_mixup = gerador_mixup(semente)
 
     linhas_treino = np.concatenate([por_pessoa[u].loc[~por_pessoa[u]["rejeitada"], "linha"].to_numpy() for u in treino])

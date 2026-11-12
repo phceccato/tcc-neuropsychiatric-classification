@@ -10,6 +10,9 @@
 - SDKA: a perda de treino ganha α · SMMD (pipeline/e12_FA_SDKA/treino.py) sobre a representação do
   token CLS (32 dimensões, depois do LayerNorm final, entrada da camada de saída).
 
+As dimensões da rede podem mudar como no D (a etapa 14 usa a FA sobre o D com as dimensões do artigo, com 64
+filtros: 4 grupos de 16).
+
 Tipos: D_FA (D + FA), D_SDKA (D + SMMD no treino) e D_FA_SDKA (os dois). Fora a FA, a rede é o D da
 etapa 07 (pipeline/e07_DTSF/redes_dtsf.py), com Mixup.
 """
@@ -20,7 +23,7 @@ import math
 import torch
 from torch import nn
 
-from pipeline.e07_DTSF.redes_dtsf import DROPOUT, DROPOUT_ENCODER, DTSF, FILTROS
+from pipeline.e07_DTSF.redes_dtsf import CABECAS, CAMADAS, DROPOUT, DROPOUT_ENCODER, DTSF, FILTROS, OCULTO
 
 TIPOS_12 = ("D_FA", "D_SDKA", "D_FA_SDKA")
 GRADE_FCANET = 7
@@ -65,14 +68,16 @@ class AtencaoFrequencia(nn.Module):
 class DTSF12(DTSF):
     """O D da etapa 07, com a FA depois do 1º bloco temporal (D_FA, D_FA_SDKA) e o CLS exposto."""
 
-    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER):
+    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER,
+                 filtros: int = FILTROS, oculto: int = OCULTO, cabecas: int = CABECAS, camadas: int = CAMADAS):
         if tipo not in TIPOS_12:
             raise ValueError(f"tipo desconhecido: {tipo!r}")
-        super().__init__("D", dropout=dropout, dropout_encoder=dropout_encoder)
+        super().__init__("D", dropout=dropout, dropout_encoder=dropout_encoder, filtros=filtros, oculto=oculto,
+                         cabecas=cabecas, camadas=camadas)
         self.tipo = tipo
         self.usa_fa, self.usa_sdka = "FA" in tipo, "SDKA" in tipo
         if self.usa_fa:
-            self.fa = AtencaoFrequencia()
+            self.fa = AtencaoFrequencia(canais=filtros)
 
     def ramo_temporal(self, x_t: torch.Tensor) -> torch.Tensor:
         mapa = self.conv_t[0](x_t)                                      # [B, 16, 1, 250]
