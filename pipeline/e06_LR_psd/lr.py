@@ -25,7 +25,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from pipeline.avaliacao.metricas import avaliar, p_valor, roc_auc_score
+from pipeline.avaliacao.metricas import avaliar, p_valor, roc_auc_score, tabela_media_desvio
 
 PERMUTACOES = 1000
 SEMENTE = 20261108
@@ -91,7 +91,7 @@ def main() -> None:
     folds = pd.read_csv(args.folds)
     args.saida.mkdir(parents=True, exist_ok=True)
 
-    linhas = ["# LR — resultados", "",
+    linhas = ["# LR_psd — resultados", "",
               "Regressão logística L2 (C = 1), com peso de classe, sobre a média das features por pessoa; z-score com estatísticas "
               f"do treino de cada fold; 5 folds × 10 repetições. p: {args.permutacoes} permutações de rótulo "
               "com retreino, na repetição 0. IC de 95% por bootstrap estratificado (2000 reamostragens).", "",
@@ -122,6 +122,11 @@ def main() -> None:
 
     pd.concat(predicoes, ignore_index=True).to_csv(args.saida / "predicoes.csv", index=False)
     pd.concat(nulas_todas, ignore_index=True).to_csv(args.saida / "permutacoes.csv", index=False)
+    linhas += ["", "Média ± desvio nas 10 repetições: em cada repetição, as previsões fora do fold dos 5 folds juntas; "
+               "limiar 0,5 nas secundárias. O desvio mostra a variação com a partição, não a incerteza sobre a "
+               "população.", ""]
+    linhas += tabela_media_desvio([([p["dataset"].iat[0], p["features"].iat[0]], p) for p in predicoes],
+                                  ["Conjunto", "Features"])
     linhas += ["", "A potência relativa é a checagem do MDD (docs/04_features.md): se a absoluta "
                "vencer muito só no MDD, a suspeita é o ganho do aparelho."]
     (args.saida / "resumo.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")

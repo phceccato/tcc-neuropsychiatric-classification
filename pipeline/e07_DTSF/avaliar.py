@@ -30,7 +30,7 @@ import pandas as pd
 
 from scipy.stats import rankdata
 
-from pipeline.avaliacao.metricas import (PERMUTACOES_PAREADAS, avaliar, escores_por_pessoa,
+from pipeline.avaliacao.metricas import (PERMUTACOES_PAREADAS, avaliar, escores_por_pessoa, tabela_media_desvio,
                                          delta_por_fold, delta_por_repeticao, holm,
                                          ic_bootstrap_delta, p_interseccao_uniao, p_valor, parear, roc_auc_score,
                                          t_corrigido, teste_pareado)
@@ -254,6 +254,8 @@ def main() -> None:
                           f"{r['auc_rep_media']:.3f} ± {r['auc_rep_desvio']:.3f} | {r['acuracia_balanceada']:.3f} | "
                           f"{r['sensibilidade']:.3f} | {r['especificidade']:.3f} | {r['macro_f1']:.3f} | "
                           f"{_epocas(args.modelos / dataset / m)} | {acaso_txt} |")
+        linhas += ["", "Média ± desvio nas 10 repetições: em cada repetição, as previsões fora do fold dos 5 folds juntas; limiar 0,5 nas secundárias. O desvio mostra a variação com a partição, não a incerteza sobre a população.", ""]
+        linhas += tabela_media_desvio([([m], completos.get(m)) for m in TIPOS_DTSF], ["Modelo"])
         linhas.append("")
     linhas += linhas_h1(acaso)
     for h in HIPOTESES:

@@ -191,5 +191,6 @@ def test_main_escreve_o_resumo_do_dtsf_sem_tocar_no_resumo_historico(tmp_path, m
     assert "## H2" in resumo and "## H3: Mixup" in resumo and "D_FA − D_sem_T" in resumo and "D_sem_fusao" not in resumo
     assert "| D_FA − D |" in resumo and "| D − D_pequeno |" in resumo and "| D_FA − D_pequeno |" in resumo
     assert "| D_FA | 704.769 |" in resumo and "| D_pequeno | 80.449 |" in resumo
-    assert "## H1: D_FA acima do acaso" in resumo and "incompleta" in resumo            # sem permutações gravadas, a H1 não é decidida
+    assert "## H1: D_FA acima do acaso" in resumo and "incompleta" in resumo
+    assert "Média ± desvio nas 10 repetições" in resumo and resumo.count("| D_FA | 0.") >= 2  # duas tabelas por dataset            # sem permutações gravadas, a H1 não é decidida
     assert (tmp_path / "modelos" / "resumo.md").read_text() == "histórico"

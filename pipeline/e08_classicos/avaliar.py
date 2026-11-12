@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pipeline.avaliacao.metricas import avaliar, holm, p_interseccao_uniao
+from pipeline.avaliacao.metricas import avaliar, holm, p_interseccao_uniao, tabela_media_desvio
 from pipeline.e08_classicos.treino import CLASSIFICADORES, MODALIDADES, MODELOS
 from pipeline.e07_DTSF.avaliar import ALFA, SEMENTE, formatar_ic, ler_modelo, comparacao_pareada, completo
 from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL
@@ -115,6 +115,9 @@ def main() -> None:
                           f"{r['sensibilidade']:.3f} | {r['especificidade']:.3f} | {r['macro_f1']:.3f} | {hp} |")
         if all(completo(predicoes[m]) for m in (REFERENCIA, *MODELOS)):
             resultados[dataset] = comparacoes(predicoes[REFERENCIA], {m: predicoes[m] for m in MODELOS})
+        linhas += ["", "Média ± desvio nas 10 repetições: em cada repetição, as previsões fora do fold dos 5 folds juntas; limiar 0,5 nas secundárias. O desvio mostra a variação com a partição, não a incerteza sobre a população.", ""]
+        linhas += tabela_media_desvio([([m], predicoes[m] if completo(predicoes[m]) else None)
+                                       for m in (REFERENCIA, *MODELOS)], ["Modelo"])
         linhas.append("")
     if set(resultados) == {"SZ", "MDD"}:
         linhas += linhas_h4(resultados) + [""]

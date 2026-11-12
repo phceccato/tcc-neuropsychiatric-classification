@@ -78,6 +78,7 @@ def test_main_grava_so_o_resumo_dos_classicos(tmp_path, monkeypatch):
     assert "## H4" in texto and "interseção-união" in texto and texto.count("| SZ | ") >= 6
     assert "**Validade.**" in texto and "não garante" in texto
     assert '{"C": 0.1} ×40' in texto
+    assert "Média ± desvio nas 10 repetições" in texto and "| Acurácia balanceada | Sensibilidade |" in texto
 
 
 def test_main_sem_resultados_nao_calcula_a_h4(tmp_path, monkeypatch):
