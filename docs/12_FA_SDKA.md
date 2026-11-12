@@ -113,3 +113,14 @@ Diagnóstico (AUC média dentro de cada fold; desvio da probabilidade média ent
 | --- | --- | --- | --- | --- |
 | SZ | 0,779; 0,095 | 0,776; 0,099 | 0,591; 0,078 | 0,650; 0,067 |
 | MDD | 0,945; 0,088 | 0,946; 0,079 | 0,799; 0,084 | 0,796; 0,099 |
+
+### Rodada em GPU
+
+Rodada no PC do laboratório (RTX 3090 Ti), com `--dispositivo cuda`, e comparada com o D da etapa 07 treinado na mesma GPU, com as mesmas partições e sementes (3ª rodada). Números transcritos do resumo daquela máquina:
+
+| Dataset | D | D_FA (Δ; p) | D_SDKA (Δ) | D_FA_SDKA (Δ) |
+| --- | --- | --- | --- | --- |
+| SZ | 0,827 | 0,842 (+0,015; p = 0,056) | 0,658 (−0,168) | 0,679 (−0,148) |
+| MDD | 0,955 | 0,951 (−0,004; p = 0,759) | 0,900 (−0,055) | 0,898 (−0,057) |
+
+O padrão da rodada em CPU se repete: a FA fica um pouco acima do D na SZ (+0,015, depois de +0,020 na CPU), sem significância e sem efeito no MDD; o SDKA piora nos dois transtornos.
