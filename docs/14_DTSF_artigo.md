@@ -39,15 +39,14 @@ O treino também continua o do D (Adam, lr 10⁻³, weight decay 10⁻⁴, lotes
 
 ## D_artigo_FA
 
-O D_artigo com a Frequency Attention da etapa 12 ([12_FA_SDKA.md](12_FA_SDKA.md#frequency-attention)) depois do 1º bloco do ramo temporal. Com 64 filtros, a FA usa 4 grupos de 16, com os mesmos componentes DCT fixos (0, 35, 70 e 105) e FC(64 → 16) → ReLU → FC(16 → 64) → sigmoid: 2.048 parâmetros a mais, 704.769 no total. Começa com os mesmos pesos do D_artigo na mesma semente (a FA é criada por último), então D_artigo_FA − D_artigo isola o efeito da FA no modelo grande.
+O D_artigo com a Frequency Attention ([07_DTSF.md](07_DTSF.md#modelos)) depois do 1º bloco do ramo temporal; é o `D_FA` da etapa 07. Com 64 filtros, a FA usa 4 grupos de 16, com os mesmos componentes DCT fixos (0, 35, 70 e 105) e FC(64 → 16) → ReLU → FC(16 → 64) → sigmoid: 2.048 parâmetros a mais, 704.769 no total. Começa com os mesmos pesos do D_artigo na mesma semente (a FA é criada por último), então D_artigo_FA − D_artigo isola o efeito da FA no modelo grande.
 
-Com várias variantes exploratórias comparadas com o mesmo D nas mesmas pessoas (etapas 12 e 14), uma delas pode parecer melhor só por acaso: os p dessas comparações são descritivos e não corrigem essa multiplicidade.
+Com várias variantes exploratórias comparadas com o mesmo D nas mesmas pessoas, uma delas pode parecer melhor só por acaso: os p dessas comparações são descritivos e não corrigem essa multiplicidade.
 
 ## Validação mínima do fluxo
 
-- Com as dimensões padrão, `DTSF` dá saídas idênticas às de antes da mudança para os quatro modelos da etapa 07 e as variantes da etapa 12, e um fold do D retreinado na CPU (SZ, repetição 0, fold 0) dá probabilidades idênticas às gravadas.
+- Com as dimensões padrão, `DTSF` dá saídas idênticas às de antes da mudança para os quatro modelos da etapa 07, e um fold do D retreinado na CPU (SZ, repetição 0, fold 0) dá probabilidades idênticas às gravadas.
 - Um fold do D_artigo na CPU (SZ, repetição 0, fold 0, 1 thread): época escolhida 15, 257 s. O D no mesmo fold: época 1, 48 s.
-- Com as dimensões padrão, a `DTSF12` da etapa 12 também dá saídas idênticas às de antes de aceitar as dimensões (D_FA e D_SDKA).
 
 ## Resultados
 
