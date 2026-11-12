@@ -4,6 +4,7 @@ Plano em docs/00_proposta-tcc.md:
 
 - AUC por pessoa (média da probabilidade fora do fold nas 10 repetições), IC por bootstrap estratificado
   e secundárias descritivas, como em pipeline/e07_DTSF/avaliar.py;
+- D é o modelo principal da etapa 07 (D_FA, `PRINCIPAL` em pipeline/e07_DTSF/redes_dtsf.py);
 - comparação D − baseline, para cada um dos 9 baselines, sobre os escores por pessoa: permutação pareada
   sobre os ranks (10.000), unilateral D > baseline, com IC do Δ e as sensibilidades (Δ por
   repetição, t corrigido), com `comparacao_pareada` (pipeline/e07_DTSF/avaliar.py);
@@ -12,7 +13,7 @@ Plano em docs/00_proposta-tcc.md:
 - exploratório (sem decisão): interseção-união por modalidade (3 temporais, 3 espectrais, 3 combinados).
 
 Lê outputs/08_classicos/resultados/<dataset>/<modelo>/r*_f*.{csv,json} e
-outputs/07_DTSF/resultados/<dataset>/D; grava só outputs/08_classicos/resultados/resumo.md.
+outputs/07_DTSF/resultados/<dataset>/<modelo principal> (D_FA); grava só outputs/08_classicos/resultados/resumo.md.
 """
 from __future__ import annotations
 
@@ -26,12 +27,13 @@ import pandas as pd
 from pipeline.avaliacao.metricas import avaliar, holm, p_interseccao_uniao
 from pipeline.e08_classicos.treino import CLASSIFICADORES, MODALIDADES, MODELOS
 from pipeline.e07_DTSF.avaliar import ALFA, SEMENTE, formatar_ic, ler_modelo, comparacao_pareada, completo
+from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL
 
-REFERENCIA = "D"
+REFERENCIA = PRINCIPAL
 PLURAL = {"temporal": "temporais", "espectral": "espectrais", "combinado": "combinados"}
 
 def comparacoes(predicoes_d: pd.DataFrame, baselines: dict[str, pd.DataFrame]) -> dict[str, dict]:
-    """D contra cada baseline: Δ, IC, p (ranks) e sensibilidades (`comparacao_pareada`)."""
+    """O modelo principal contra cada baseline: Δ, IC, p (ranks) e sensibilidades (`comparacao_pareada`)."""
     return {m: comparacao_pareada(predicoes_d, p) for m, p in baselines.items()}
 
 def decidir_h4(resultados: dict[str, dict[str, dict]], alfa: float = ALFA) -> dict[str, dict]:
@@ -51,9 +53,9 @@ def _hiperparametros(pasta: Path) -> str:
 
 def linhas_h4(resultados: dict[str, dict[str, dict]]) -> list[str]:
     decisao = decidir_h4(resultados)
-    linhas = ["## H4: D contra os baselines clássicos (condicional às previsões fora do fold)", "",
-              "Cada comparação: permutação pareada sobre os ranks (10.000), unilateral D > baseline. H4 num dataset: "
-              f"D supera os {len(MODELOS)} baselines (interseção-união, p = maior p); decisão por Holm sobre SZ e MDD (α = 0,05). "
+    linhas = [f"## H4: {REFERENCIA} contra os baselines clássicos (condicional às previsões fora do fold)", "",
+              f"Cada comparação: permutação pareada sobre os ranks (10.000), unilateral {REFERENCIA} > baseline. H4 num "
+              f"dataset: {REFERENCIA} supera os {len(MODELOS)} baselines (interseção-união, p = maior p); decisão por Holm sobre SZ e MDD (α = 0,05). "
               "O IC é o bootstrap estratificado e pareado, condicional às previsões obtidas.", "",
               "**Validade.** A interseção-união e o Holm controlam só a multiplicidade. Eles supõem que cada teste "
               "componente tem nível α, e a validação cruzada não garante isso: as pessoas de um fold de teste "
@@ -67,7 +69,7 @@ def linhas_h4(resultados: dict[str, dict[str, dict]]) -> list[str]:
         linhas.append(f"| {dataset} | {d['p']:.4f} | {d['p_ajustado']:.4f} | "
                       f"{'rejeita H0' if d['rejeita'] else 'não rejeita H0'} |")
     linhas += ["", "Comparações componentes e sensibilidades (as sensibilidades não mudam a decisão):", "",
-               "| Dataset | Baseline | ΔAUC D − baseline [IC 95%] | p (ranks) | "
+               f"| Dataset | Baseline | ΔAUC {REFERENCIA} − baseline [IC 95%] | p (ranks) | "
                "ΔAUC por repetição: mín–máx (positivos) | t corrigido p |",
                "| --- | --- | --- | --- | --- | --- |"]
     for dataset, r in resultados.items():
@@ -77,7 +79,7 @@ def linhas_h4(resultados: dict[str, dict[str, dict]]) -> list[str]:
                           f"{dr.min():+.3f} a {dr.max():+.3f} ({int((dr > 0).sum())}/{len(dr)}) | "
                           f"{c['t_corrigido_p']:.4f} |")
     linhas += ["", "Exploratório (sem decisão): interseção-união por modalidade.", "",
-               "| Dataset | " + " | ".join(f"p D > os {len(CLASSIFICADORES)} {PLURAL[m]}" for m in MODALIDADES) + " |",
+               "| Dataset | " + " | ".join(f"p {REFERENCIA} > os {len(CLASSIFICADORES)} {PLURAL[m]}" for m in MODALIDADES) + " |",
                "| --- |" + " --- |" * len(MODALIDADES)]
     for dataset, r in resultados.items():
         ps = [p_interseccao_uniao([r[f"{c}_{m}"]["p"] for c in CLASSIFICADORES]) for m in MODALIDADES]
@@ -117,7 +119,7 @@ def main() -> None:
     if set(resultados) == {"SZ", "MDD"}:
         linhas += linhas_h4(resultados) + [""]
     else:
-        linhas += [f"A H4 só é calculada com o D e os {len(MODELOS)} baselines completos nos dois datasets.", ""]
+        linhas += [f"A H4 só é calculada com o {REFERENCIA} e os {len(MODELOS)} baselines completos nos dois datasets.", ""]
     args.classicos.mkdir(parents=True, exist_ok=True)
     (args.classicos / "resumo.md").write_text("\n".join(linhas), encoding="utf-8")
     print((args.classicos / "resumo.md").read_text(encoding="utf-8"))

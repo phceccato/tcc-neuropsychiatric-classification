@@ -66,7 +66,7 @@ def _gravar(pasta, predicoes):
 def test_main_grava_so_o_resumo_dos_classicos(tmp_path, monkeypatch):
     classicos, modelos = tmp_path / "classicos", tmp_path / "modelos"
     for k, dataset in enumerate(("SZ", "MDD")):
-        _gravar(modelos / dataset / "D", _predicoes(10 + k, 0.3))
+        _gravar(modelos / dataset / ca.REFERENCIA, _predicoes(10 + k, 0.3))
         for i, m in enumerate(MODELOS):
             _gravar(classicos / dataset / m, _predicoes(20 + 7 * k + i, 1.5))
     antes = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
