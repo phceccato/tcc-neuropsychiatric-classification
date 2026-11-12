@@ -26,7 +26,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
 - Código: [pipeline/e07_DTSF/](../pipeline/e07_DTSF/)
   - `dados.py`: cache do sinal a 125 Hz e seleção das janelas (também usados pelos baselines clássicos);
   - `dados_dtsf.py`: cache multibanda e STFT;
-  - `redes_dtsf.py`: os seis modelos (`MODELOS`, com o principal em `PRINCIPAL`) e a Frequency Attention (`AtencaoFrequencia`, também usada pela etapa 12);
+  - `redes_dtsf.py`: os seis modelos (`MODELOS`, com o principal em `PRINCIPAL`) e a Frequency Attention (`AtencaoFrequencia`);
   - `treino.py`: o treino de um fold;
   - `rodar.py`: o runner;
   - `avaliar.py`: o resumo do DTSF, as decisões de H1, H2 e H3 (`decidir_h1`, `decidir_hipotese`), as comparações descritivas (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`), usada por H2, H3 e pela H4.
@@ -106,8 +106,7 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 - **Equivalência com as redes anteriores,** com a mesma semente e as mesmas entradas, saídas idênticas:
   - o `D_pequeno` é o D de 80 mil parâmetros das rodadas anteriores;
-  - o `D` é o D_artigo, e o `D_FA` é o D_artigo_FA da etapa 14;
-  - as variantes da etapa 12 não mudaram.
+  - o `D` é o D_artigo, e o `D_FA` é o D_artigo_FA da etapa 14.
 
   O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Por isso, previsões já gravadas desses modelos no mesmo dispositivo podem ser copiadas para `outputs/07_DTSF/resultados/<conjunto>/<modelo>/`, e o runner pula as tarefas já gravadas.
 
