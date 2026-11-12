@@ -33,6 +33,7 @@ venv/bin/python -m pipeline.e06_LR_psd.lr
 Como ler a tabela:
 - **AUC por pessoa:** calculada sobre a média da probabilidade de cada pessoa nas 10 repetições. O IC vem de um bootstrap estratificado com 2000 reamostragens.
 - **AUC por repetição:** média ± desvio das 10 AUCs.
+- **Média ± desvio:** o `resumo.md` traz também uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias, calculadas em cada repetição com os 5 folds juntos ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições)).
 - **p:** com 1000 permutações, o menor p possível é 1/1001 ≈ 0,001.
 - **Secundárias:** calculadas no limiar 0,5 e só descritivas.
 
