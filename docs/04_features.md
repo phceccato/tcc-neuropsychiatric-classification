@@ -1,6 +1,6 @@
 # Features espectrais (PSD) — resultados
 
-Cada uma das 22.681 janelas tem as 76 potências de banda de Welch (19 canais × 4 bandas, de 2 a 30 Hz) que alimentam a LR da etapa 06 ([06_LR.md](06_LR.md)). Esta etapa só existe para ela.
+Cada uma das 22.681 janelas tem as 76 potências de banda de Welch (19 canais × 4 bandas, de 2 a 30 Hz) que alimentam a LR da etapa 06 ([06_LR_psd.md](06_LR_psd.md)). Esta etapa só existe para ela.
 
 - Código: [pipeline/e04_features/psd.py](../pipeline/e04_features/psd.py)
 - Entrada: o sinal em µV de `outputs/03_janelas/`, já filtrado em 2–30 Hz e sem z-score
