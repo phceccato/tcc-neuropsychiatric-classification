@@ -6,3 +6,6 @@ __pycache__/
 pipeline/e11_figuras/
 tests/e11_figuras/
 docs/11_figuras.md
+pipeline/e12_graficos/
+tests/e12_graficos/
+docs/12_graficos.md
