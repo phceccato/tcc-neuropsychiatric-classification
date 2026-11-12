@@ -12,12 +12,12 @@ A etapa roda seis modelos ([Modelos](#modelos)):
 | --- | --- | --- | --- |
 | `D_FA` | **Principal.** DTSF com as dimensões do artigo e a Frequency Attention (FA) no ramo temporal | 704.769 | H1, H4 |
 | `D_pequeno` | DTSF com as dimensões reduzidas (16 filtros, dimensão 32), sem FA | 80.449 | descritivo (efeito do tamanho) |
-| `D` | DTSF com as dimensões do artigo, sem FA | 702.721 | H2, H3; descritivo (efeito da FA) |
-| `D_sem_mixup` | O `D` sem Mixup | 702.721 | H3 |
-| `D_sem_T` | O `D` só com o ramo espectral | 444.353 | H2 |
-| `D_sem_E` | O `D` só com o ramo temporal | 507.713 | H2 |
+| `D` | O `D_FA` sem a FA (DTSF com as dimensões do artigo) | 702.721 | descritivo (efeito da FA) |
+| `D_sem_mixup` | O `D_FA` sem Mixup | 704.769 | H3 |
+| `D_sem_T` | O `D_FA` só com o ramo espectral (sem ramo temporal, fica sem FA) | 444.353 | H2 |
+| `D_sem_E` | O `D_FA` só com o ramo temporal (com FA) | 509.761 | H2 |
 
-H2 e H3 usam o `D`, e não o `D_FA`, porque as ablações derivam dele: cada uma muda uma coisa em relação ao modelo com que é comparada.
+Todas as hipóteses são sobre o `D_FA`, e cada ablação muda uma coisa só em relação a ele. A FA fica no ramo temporal, então o `D_sem_T` não tem onde pô-la: é a mesma rede que seria a ablação do `D`.
 
 Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados)). A comparação com os baselines clássicos (H4) está em [08_classicos.md](08_classicos.md).
 
@@ -85,11 +85,11 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 - a FA fica só no ramo temporal: a primeira convolução do ramo espectral já junta as 29 frequências;
 - a FA é criada por último, então, na mesma semente, o `D_FA` começa com os mesmos pesos do `D`, e `D_FA` − `D` isola a FA.
 
-| Ablação do `D` | O que muda |
+| Ablação do `D_FA` | O que muda |
 | --- | --- |
 | D_sem_T | Sem o ramo temporal: o Transformer recebe só os 16 tokens espectrais e o CLS |
-| D_sem_E | Sem o ramo espectral |
-| D_sem_mixup | Sem Mixup |
+| D_sem_E | Sem o ramo espectral (com FA no ramo temporal) |
+| D_sem_mixup | Sem Mixup (com FA) |
 
 **Entradas.**
 - **Ramo temporal:** o sinal de 2–30 Hz com z-score por canal da própria pessoa, reamostrado para 125 Hz, e as 4 bandas (Butterworth de ordem 4, `sosfiltfilt`) filtradas na gravação inteira.
