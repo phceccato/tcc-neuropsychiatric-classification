@@ -7,6 +7,7 @@ from scipy.stats import rankdata
 
 from pipeline.avaliacao import metricas as m
 from pipeline.e07_DTSF import avaliar as a
+from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
 
 
 def test_p_acaso_usa_so_permutacoes_completas(tmp_path):
@@ -124,7 +125,8 @@ def test_comparacao_pareada_traz_o_primario_e_as_sensibilidades():
 
 def test_hipoteses_h2_e_h3_comparam_o_d_com_as_ablacoes_da_proposta():
     assert a.HIPOTESES == {"H2": ("D_sem_T", "D_sem_E"), "H3": ("D_sem_mixup",)}
-    assert a.DESCRITIVAS == ()
+    assert a.REFERENCIA_ABLACOES == "D" and set(a.ABLACOES) == {"D_sem_T", "D_sem_E", "D_sem_mixup"}
+    assert a.DESCRITIVAS == (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
 
 
 def test_comparacoes_da_hipotese_sao_d_menos_ablacao():
@@ -172,12 +174,12 @@ def test_main_escreve_o_resumo_do_dtsf_sem_tocar_no_resumo_historico(tmp_path, m
     rng = np.random.default_rng(0)
     uids, y = [f"S{i}" for i in range(8)], [1, 1, 1, 1, 0, 0, 0, 0]
     for dataset in ("SZ", "MDD"):
-        for modelo in ("D", *a.ABLACOES):
+        for modelo in TIPOS_DTSF:
             (tmp_path / "modelos" / dataset / modelo).mkdir(parents=True)
         for r in range(10):
             for fold in (0, 1):
                 idx = [fold, fold + 2, fold + 4, fold + 6]  # 2 pacientes e 2 controles por fold
-                for modelo in ("D", *a.ABLACOES):
+                for modelo in TIPOS_DTSF:
                     pd.DataFrame(dict(repeticao=r, fold=fold, subject_uid=[uids[i] for i in idx], y=[y[i] for i in idx],
                                       prob=rng.uniform(0, 1, 4))).to_csv(
                         tmp_path / "modelos" / dataset / modelo / f"r{r}_f{fold}.csv", index=False)
@@ -187,6 +189,7 @@ def test_main_escreve_o_resumo_do_dtsf_sem_tocar_no_resumo_historico(tmp_path, m
     resumo = (tmp_path / "modelos" / "resumo_dtsf.md").read_text()
     assert "| D | incompleto" not in resumo and "D − D_sem_mixup" in resumo
     assert "## H2" in resumo and "## H3: Mixup" in resumo and "D − D_sem_T" in resumo and "D_sem_fusao" not in resumo
-    assert "Ablações descritivas" not in resumo
-    assert "## H1" in resumo and "incompleta" in resumo            # sem permutações gravadas, a H1 não é decidida
+    assert "| D_FA − D |" in resumo and "| D − D_pequeno |" in resumo and "| D_FA − D_pequeno |" in resumo
+    assert "| D_FA | 704.769 |" in resumo and "| D_pequeno | 80.449 |" in resumo
+    assert "## H1: D_FA acima do acaso" in resumo and "incompleta" in resumo            # sem permutações gravadas, a H1 não é decidida
     assert (tmp_path / "modelos" / "resumo.md").read_text() == "histórico"

@@ -58,3 +58,33 @@ def test_runner_recusa_cuda_sem_gpu(monkeypatch):
     monkeypatch.setattr("sys.argv", ["rodar", "--dispositivo", "cuda"])
     with pytest.raises(SystemExit):
         r.main()
+
+
+def test_por_padrao_roda_os_seis_modelos_e_as_permutacoes_so_do_principal(tmp_path, monkeypatch):
+    from concurrent.futures import Future
+    pedidos = []
+
+    class _Executor:                       # não treina: só registra os pedidos
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def submit(self, f, d, m, *resto):
+            pedidos.append(m)
+            futuro = Future()
+            futuro.set_result("ok")
+            return futuro
+
+    monkeypatch.setattr(r, "ProcessPoolExecutor", _Executor)
+    monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path), "--datasets", "SZ", "--repeticoes", "0"])
+    r.main()
+    assert pedidos == [m for m in r.TIPOS_DTSF for _ in range(5)]
+    pedidos.clear()
+    monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path / "p"), "--datasets", "SZ", "--permutacoes", "1"])
+    r.main()
+    assert pedidos == ["D_FA"] * 5

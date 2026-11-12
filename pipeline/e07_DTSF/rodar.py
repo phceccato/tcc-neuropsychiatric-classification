@@ -1,16 +1,18 @@
-"""Roda os treinos do DTSF adaptado e das ablações em todas as (repetições, folds), em paralelo e com retomada.
+"""Roda os treinos dos modelos DTSF da etapa 07 em todas as (repetições, folds), em paralelo e com retomada.
 
 Cada treino é uma tarefa (dataset, modelo, repetição, fold) que grava
 outputs/07_DTSF/resultados/<dataset>/<modelo>/r<rep>_f<fold>.csv (previsões das pessoas de
-teste) e .json (época escolhida e histórico de perdas). Tarefas já gravadas são puladas, então
+teste) e .json (época escolhida, número de parâmetros e histórico de perdas). Tarefas já gravadas são puladas, então
 o comando pode ser interrompido e rodado de novo. Cada processo usa 1 thread do PyTorch.
 
-Modelos: D, D_sem_T, D_sem_E e D_sem_mixup (pipeline/e07_DTSF/redes_dtsf.py). A semente de
-cada tarefa depende só de (repetição, fold): todos os modelos veem as mesmas partições e sementes.
+Modelos (pipeline/e07_DTSF/redes_dtsf.py): D_FA (o principal), D_pequeno, D, D_sem_mixup, D_sem_T e D_sem_E;
+por padrão, os seis. A semente de cada tarefa depende só de (repetição, fold): todos os modelos veem as mesmas
+partições e sementes.
 
 Com --permutacoes N, roda o teste contra o acaso: para cada permutação k, os rótulos das pessoas
 do dataset são embaralhados e o modelo é retreinado do zero nas partições da repetição 0; grava
-outputs/07_DTSF/permutacoes/<dataset>/<modelo>/p<k>_f<fold>.csv.
+outputs/07_DTSF/permutacoes/<dataset>/<modelo>/p<k>_f<fold>.csv. Nas permutações, o padrão é só o
+modelo principal (a H1).
 
 Com --dispositivo cuda, cada processo treina na GPU (pipeline/e07_DTSF/treino.py): os processos dividem a
 mesma GPU e continuam preparando os lotes na CPU. O .json de cada tarefa registra o dispositivo, e o runner
@@ -34,7 +36,7 @@ import pandas as pd
 import torch
 
 from pipeline.e07_DTSF.dados_dtsf import FonteDTSF
-from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
+from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
 from pipeline.e07_DTSF.treino import prever, treinar
 
 SEMENTE = 20261108
@@ -108,6 +110,7 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     base = destino / (f"r{repeticao}_f{fold}" if permutacao is None else f"p{permutacao}_f{fold}")
     with open(f"{base}.json", "w") as f:
         json.dump(dict(melhor_epoca=resultado.melhor_epoca, segundos=time.time() - inicio, dispositivo=dispositivo,
+                       parametros=sum(p.numel() for p in resultado.modelo.parameters()),
                        historico=resultado.historico), f)
     pd.DataFrame([dict(repeticao=repeticao, fold=fold, subject_uid=u, y=int(y[u]), prob=p) for u, p in prob.items()]
                  ).to_csv(f"{base}.csv.tmp", index=False)
@@ -121,7 +124,8 @@ def main() -> None:
     parser.add_argument("--folds", default="outputs/05_folds/folds.csv")
     parser.add_argument("--saida", default="outputs/07_DTSF/resultados")
     parser.add_argument("--datasets", nargs="+", default=["SZ", "MDD"])
-    parser.add_argument("--modelos", nargs="+", default=["D"], choices=TIPOS_DTSF)
+    parser.add_argument("--modelos", nargs="+", default=None, choices=TIPOS_DTSF,
+                        help=f"padrão: os seis modelos; com --permutacoes, só o principal ({PRINCIPAL})")
     parser.add_argument("--repeticoes", type=int, nargs="+", default=list(range(10)))
     parser.add_argument("--folds-ids", type=int, nargs="+", default=list(range(5)))
     parser.add_argument("--processos", type=int, default=10)
@@ -129,6 +133,8 @@ def main() -> None:
                         help="roda N permutações de rótulo (repetição 0) em vez dos treinos reais")
     argumento_dispositivo(parser)
     args = parser.parse_args()
+    if args.modelos is None:
+        args.modelos = [PRINCIPAL] if args.permutacoes else list(TIPOS_DTSF)
 
     if args.permutacoes:
         saida = args.saida if args.saida != parser.get_default("saida") else "outputs/07_DTSF/permutacoes"
