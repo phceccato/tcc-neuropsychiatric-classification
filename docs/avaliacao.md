@@ -1,6 +1,6 @@
 # Avaliação — métricas e testes
 
-Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo DTSF, pelos baselines clássicos e pela LR de 76 bandas. Ela não tem execução própria: os resultados aparecem em [07_DTSF.md](07_DTSF.md), [08_classicos.md](08_classicos.md) e [06_LR.md](06_LR.md).
+Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo DTSF, pelos baselines clássicos e pela LR de 76 bandas. Ela não tem execução própria: os resultados aparecem em [07_DTSF.md](07_DTSF.md), [08_classicos.md](08_classicos.md) e [06_LR_psd.md](06_LR_psd.md).
 
 - Código: [pipeline/avaliacao/metricas.py](../pipeline/avaliacao/metricas.py)
 - Testes: `tests/avaliacao/test_metricas.py`, que confere, entre outras coisas, a AUC vetorizada contra o scikit-learn, com empates, e `tests/avaliacao/test_premissas_ranks.py`, com as simulações que sustentam o teste pareado com ranks
