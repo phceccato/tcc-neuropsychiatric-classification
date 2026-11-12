@@ -14,7 +14,7 @@ Os resultados ficam em [Resultados](#resultados).
   - `outputs/08_classicos/caracteristicas/`: o cache, com `temporais.npy`, `espectrais.npy` e `extracao.json` (todo o `outputs/` fica fora do git);
   - `outputs/08_classicos/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{csv,json}` e `resumo.md`;
   - `outputs/08_classicos/permutacoes/`, se a rodada de permutações for feita (`rodar --permutacoes 25`). **Nenhum código avalia essas permutações ainda**: rodá-las (2.250 treinos) só faz sentido se a avaliação for implementada; a decisão está nas pendências da proposta.
-  - Nada é gravado em `outputs/07_DTSF/resultados`, `outputs/07_DTSF/permutacoes` ou `outputs/06_LR`.
+  - Nada é gravado em `outputs/07_DTSF/resultados`, `outputs/07_DTSF/permutacoes` ou `outputs/06_LR_psd`.
 
 Pré-requisitos: as etapas 03 e 05 e os caches da 07 (`pipeline.e07_DTSF.dados` e `pipeline.e07_DTSF.dados_dtsf`). O `avaliar` também precisa das previsões completas do modelo principal (D_FA) em `outputs/07_DTSF/resultados`; sem elas, ele não dá erro, só marca o D_FA como incompleto e não calcula a H4.
 
@@ -75,7 +75,7 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
 - **características:** dimensões, ordem, valores contra numpy e scipy, senoide conhecida, sinal constante, valores inválidos, correspondência com a STFT do DTSF, alinhamento do cache;
 - **treino:** combinado = temporais e espectrais concatenadas; 150 janelas por pessoa só no ajuste; pesos por pessoa e classe chegando aos três classificadores em todos os ajustes; janelas de previsão independentes do sorteio; cada modelo nas duas tarefas, normalização só nas janelas de ajuste, partes internas disjuntas e com as duas classes, seleção que não muda quando se trocam as características e os rótulos do teste, agregação pela média das janelas sem overlap, reprodutibilidade, saídas separadas das históricas;
 - **avaliação:** interseção-união, Holm, comparação pareada com ranks (`comparacao_pareada`), resumo gravado só na pasta dos clássicos;
-- **integridade:** o código compartilhado (`pipeline/avaliacao`, `pipeline/e06_LR`, `pipeline/e05_folds`) inalterado.
+- **integridade:** o código compartilhado (`pipeline/avaliacao`, `pipeline/e06_LR_psd`, `pipeline/e05_folds`) inalterado.
 
 ## Resultados
 
