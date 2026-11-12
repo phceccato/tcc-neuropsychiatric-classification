@@ -12,6 +12,10 @@
 Ablações: D_sem_T e D_sem_E (o Transformer recebe só os 16 tokens de um ramo + CLS); D_sem_mixup (o D sem
 Mixup).
 
+As dimensões (filtros das convoluções, tamanho oculto do GRU e da fusão, cabeças e blocos do encoder) são
+parâmetros do `DTSF`, com os valores acima como padrão; a etapa 14 (pipeline/e14_DTSF_artigo) usa as do
+artigo original.
+
 O Mixup fica no laço de treino (pipeline/e07_DTSF/treino.py): `sortear_mixup` sorteia λ ~ Beta(1, 1)
 e a permutação do lote; `misturar` aplica os dois aos dois ramos e ao alvo.
 """
@@ -43,8 +47,9 @@ def misturar(x_t: torch.Tensor, x_e: torch.Tensor, alvo: torch.Tensor, lam: floa
 
 
 class _BlocoConv(nn.Sequential):
-    def __init__(self, entrada: int, kernel: tuple[int, int], pool: nn.Module | None, dropout: float = DROPOUT):
-        camadas = [nn.Conv2d(entrada, FILTROS, kernel, padding=(0, kernel[1] // 2)), nn.BatchNorm2d(FILTROS), nn.GELU()]
+    def __init__(self, entrada: int, kernel: tuple[int, int], pool: nn.Module | None, dropout: float = DROPOUT,
+                 filtros: int = FILTROS):
+        camadas = [nn.Conv2d(entrada, filtros, kernel, padding=(0, kernel[1] // 2)), nn.BatchNorm2d(filtros), nn.GELU()]
         super().__init__(*camadas, *([pool] if pool is not None else []), nn.Dropout(dropout))
 
 
@@ -63,10 +68,10 @@ class _GMLP(nn.Module):
 class _Encoder(nn.Module):
     """Bloco pre-LN: LN → MHSA → residual; LN → GMLP → residual."""
 
-    def __init__(self, d: int, dropout: float = DROPOUT_ENCODER):
+    def __init__(self, d: int, dropout: float = DROPOUT_ENCODER, cabecas: int = CABECAS):
         super().__init__()
         self.ln_atencao, self.ln_gmlp = nn.LayerNorm(d), nn.LayerNorm(d)
-        self.atencao = nn.MultiheadAttention(d, CABECAS, dropout=dropout, batch_first=True)
+        self.atencao = nn.MultiheadAttention(d, cabecas, dropout=dropout, batch_first=True)
         self.gmlp = _GMLP(d, dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -76,7 +81,8 @@ class _Encoder(nn.Module):
 
 
 class DTSF(nn.Module):
-    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER):
+    def __init__(self, tipo: str, dropout: float = DROPOUT, dropout_encoder: float = DROPOUT_ENCODER,
+                 filtros: int = FILTROS, oculto: int = OCULTO, cabecas: int = CABECAS, camadas: int = CAMADAS):
         super().__init__()
         if tipo not in TIPOS_DTSF:
             raise ValueError(f"tipo desconhecido: {tipo!r}")
@@ -84,22 +90,23 @@ class DTSF(nn.Module):
         self.mixup = tipo != "D_sem_mixup"
         self.usa_t, self.usa_e = tipo != "D_sem_T", tipo != "D_sem_E"
         if self.usa_t:
-            self.conv_t = nn.Sequential(_BlocoConv(N_CANAIS, (N_BANDAS, 13), nn.MaxPool2d((1, 2), (1, 2)), dropout),
-                                        _BlocoConv(FILTROS, (1, 25), nn.AdaptiveMaxPool2d((1, N_QUADROS)), dropout))
-            self.gru_t = nn.GRU(FILTROS, OCULTO, batch_first=True)
+            self.conv_t = nn.Sequential(
+                _BlocoConv(N_CANAIS, (N_BANDAS, 13), nn.MaxPool2d((1, 2), (1, 2)), dropout, filtros),
+                _BlocoConv(filtros, (1, 25), nn.AdaptiveMaxPool2d((1, N_QUADROS)), dropout, filtros))
+            self.gru_t = nn.GRU(filtros, oculto, batch_first=True)
         if self.usa_e:
-            self.conv_e = nn.Sequential(_BlocoConv(N_CANAIS, (N_FREQUENCIAS, 3), None, dropout),
-                                        _BlocoConv(FILTROS, (1, 3), None, dropout))
-            self.gru_e = nn.GRU(FILTROS, OCULTO, batch_first=True)
+            self.conv_e = nn.Sequential(_BlocoConv(N_CANAIS, (N_FREQUENCIAS, 3), None, dropout, filtros),
+                                        _BlocoConv(filtros, (1, 3), None, dropout, filtros))
+            self.gru_e = nn.GRU(filtros, oculto, batch_first=True)
         self.register_buffer("stft_media", torch.zeros(N_CANAIS, N_FREQUENCIAS))
         self.register_buffer("stft_desvio", torch.ones(N_CANAIS, N_FREQUENCIAS))
         n_tokens = N_QUADROS * (self.usa_t + self.usa_e) + 1
-        self.embedding = nn.Linear(OCULTO, OCULTO)
-        self.cls = nn.Parameter(torch.randn(1, 1, OCULTO))
-        self.posicao = nn.Parameter(torch.randn(1, n_tokens, OCULTO))
-        self.encoder = nn.ModuleList([_Encoder(OCULTO, dropout_encoder) for _ in range(CAMADAS)])
-        self.ln_final = nn.LayerNorm(OCULTO)
-        self.saida = nn.Linear(OCULTO, 1)
+        self.embedding = nn.Linear(oculto, oculto)
+        self.cls = nn.Parameter(torch.randn(1, 1, oculto))
+        self.posicao = nn.Parameter(torch.randn(1, n_tokens, oculto))
+        self.encoder = nn.ModuleList([_Encoder(oculto, dropout_encoder, cabecas) for _ in range(camadas)])
+        self.ln_final = nn.LayerNorm(oculto)
+        self.saida = nn.Linear(oculto, 1)
 
     def definir_normalizacao(self, media: torch.Tensor, desvio: torch.Tensor) -> None:
         self.stft_media.copy_(media)
@@ -107,8 +114,8 @@ class DTSF(nn.Module):
 
     @staticmethod
     def _sequencia(conv: nn.Module, gru: nn.GRU, x: torch.Tensor) -> torch.Tensor:
-        mapa = conv(x)                                   # [B, 16, 1, 16]
-        return gru(mapa.squeeze(2).transpose(1, 2))[0]   # [B, 16 passos, 32]
+        mapa = conv(x)                                   # [B, filtros, 1, 16]
+        return gru(mapa.squeeze(2).transpose(1, 2))[0]   # [B, 16 passos, oculto]
 
     def ramo_temporal(self, x_t: torch.Tensor) -> torch.Tensor:
         return self._sequencia(self.conv_t, self.gru_t, x_t)

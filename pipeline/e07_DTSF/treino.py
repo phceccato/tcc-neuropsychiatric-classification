@@ -32,7 +32,8 @@ from torch.nn import functional as F
 
 from pipeline.e07_DTSF.dados import janelas_avaliacao, sortear
 from pipeline.e07_DTSF.dados_dtsf import estatisticas_stft
-from pipeline.e07_DTSF.redes_dtsf import ALFA_MIXUP, DROPOUT, DROPOUT_ENCODER, DTSF, misturar, sortear_mixup
+from pipeline.e07_DTSF.redes_dtsf import (ALFA_MIXUP, CABECAS, CAMADAS, DROPOUT, DROPOUT_ENCODER, DTSF, FILTROS, OCULTO,
+                                          misturar, sortear_mixup)
 
 MAX_EPOCAS, PACIENCIA = 100, 10
 JANELAS_POR_PESSOA = 60
@@ -43,7 +44,7 @@ LOTE_INFERENCIA = 256
 
 @dataclass(frozen=True)
 class ConfigTreino:
-    """Hiperparâmetros de treino do DTSF; os valores padrão são os da etapa 07."""
+    """Hiperparâmetros do DTSF (treino e dimensões da rede); os valores padrão são os da etapa 07."""
     lr: float = LR
     weight_decay: float = WEIGHT_DECAY
     tamanho_lote: int = TAMANHO_LOTE
@@ -52,6 +53,10 @@ class ConfigTreino:
     dropout: float = DROPOUT
     dropout_encoder: float = DROPOUT_ENCODER
     alfa_mixup: float = ALFA_MIXUP
+    filtros: int = FILTROS
+    oculto: int = OCULTO
+    cabecas: int = CABECAS
+    camadas: int = CAMADAS
 
 
 PADRAO = ConfigTreino()
@@ -108,7 +113,8 @@ def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Ser
     torch.manual_seed(semente)
     rng = np.random.default_rng(semente)
     por_pessoa = {uid: g for uid, g in fonte.indice.groupby("subject_uid")}
-    modelo = DTSF(tipo, dropout=config.dropout, dropout_encoder=config.dropout_encoder)
+    modelo = DTSF(tipo, dropout=config.dropout, dropout_encoder=config.dropout_encoder, filtros=config.filtros,
+                  oculto=config.oculto, cabecas=config.cabecas, camadas=config.camadas)
     rng_mixup = gerador_mixup(semente)
 
     linhas_treino = np.concatenate([por_pessoa[u].loc[~por_pessoa[u]["rejeitada"], "linha"].to_numpy() for u in treino])
