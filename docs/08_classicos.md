@@ -8,7 +8,7 @@ Os resultados ficam em [Resultados](#resultados).
   - `caracteristicas.py`: 475 características temporais e 1.102 espectrais por janela;
   - `treino.py`: os 9 modelos, as grades e a seleção interna por pessoa;
   - `rodar.py`: o runner, com retomada, processos em paralelo e permutações; monta o combinado concatenando as 475 temporais e as 1.102 espectrais de cada janela (1.577);
-  - `avaliar.py`: as AUCs, as comparações D − baseline e a H4.
+  - `avaliar.py`: as AUCs, as comparações D_FA − baseline (o modelo principal da etapa 07) e a H4.
 - Testes: `tests/e08_classicos/`.
 - Saídas:
   - `outputs/08_classicos/caracteristicas/`: o cache, com `temporais.npy`, `espectrais.npy` e `extracao.json` (todo o `outputs/` fica fora do git);
@@ -16,7 +16,7 @@ Os resultados ficam em [Resultados](#resultados).
   - `outputs/08_classicos/permutacoes/`, se a rodada de permutações for feita (`rodar --permutacoes 25`). **Nenhum código avalia essas permutações ainda**: rodá-las (2.250 treinos) só faz sentido se a avaliação for implementada; a decisão está nas pendências da proposta.
   - Nada é gravado em `outputs/07_DTSF/resultados`, `outputs/07_DTSF/permutacoes` ou `outputs/06_LR`.
 
-Pré-requisitos: as etapas 03 e 05 e os caches da 07 (`pipeline.e07_DTSF.dados` e `pipeline.e07_DTSF.dados_dtsf`). O `avaliar` também precisa das previsões completas do D em `outputs/07_DTSF/resultados`; sem elas, ele não dá erro, só marca o D como incompleto e não calcula a H4.
+Pré-requisitos: as etapas 03 e 05 e os caches da 07 (`pipeline.e07_DTSF.dados` e `pipeline.e07_DTSF.dados_dtsf`). O `avaliar` também precisa das previsões completas do modelo principal (D_FA) em `outputs/07_DTSF/resultados`; sem elas, ele não dá erro, só marca o D_FA como incompleto e não calcula a H4.
 
 ```bash
 venv/bin/python -m pipeline.e08_classicos.caracteristicas                     # cache das características, uma vez (~1 min)
