@@ -13,6 +13,7 @@ Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo D
 | `avaliar` | AUC por pessoa, IC, AUC por repetição (média ± desvio) e secundárias | Tabelas de resultado |
 | `ic_bootstrap` | IC de 95% da AUC, por percentil, reamostrando pessoas dentro de cada classe (2000 vezes) | Incerteza da AUC |
 | `metricas_secundarias` | Acurácia balanceada, sensibilidade, especificidade e Macro F1 no limiar 0,5 | Métricas descritivas |
+| `metricas_por_repeticao`, `media_desvio`, `tabela_media_desvio` | AUC e secundárias de cada repetição (os 5 folds juntos) e a média ± desvio (ddof = 1) das 10 | Tabela de média ± desvio dos resumos das etapas 06, 07 e 08 |
 | `p_valor` | (nº de nulas ≥ observado + 1) / (N + 1) | Testes contra o acaso |
 | `auc_em_lote` | AUC de Mann-Whitney vetorizada, com empate valendo ½ | Base dos testes por permutação |
 | `teste_pareado` | ΔAUC = AUC(a) − AUC(b) e p unilateral, trocando os dois escores de cada pessoa ao acaso (10.000 vezes) | Base do teste com ranks |
@@ -23,6 +24,10 @@ Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo D
 | `delta_por_repeticao`, `delta_por_fold` | ΔAUC de cada repetição e de cada (repetição, fold) | Sensibilidades |
 | `t_corrigido` | t corrigido de Nadeau e Bengio (2003) sobre os ΔAUC por fold | Sensibilidade |
 
+## Média ± desvio nas repetições
+
+Em cada uma das 10 repetições, as previsões fora do fold dos 5 folds formam uma previsão para cada pessoa; sobre elas se calculam a AUC e as secundárias (limiar 0,5). Os resumos trazem a média ± desvio dessas 10. O desvio mostra quanto o resultado muda com a partição. Ele não é a incerteza sobre a população, porque as repetições reusam as mesmas pessoas; para isso vale o IC por bootstrap da AUC por pessoa.
+
 ## Hipóteses H1–H4
 
 As comparações entre dois modelos usam `comparacao_pareada` ([pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py)):
@@ -31,8 +36,8 @@ As comparações entre dois modelos usam `comparacao_pareada` ([pipeline/e07_DTS
 
 H1, H2 e H3 estão em [pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py):
 - H1: p de permutação contra o acaso em cada transtorno, a α = 0,05, sem Holm (`decidir_h1`);
-- H2 e H3: `comparacao_pareada(D, ablação)`, com ΔAUC = D − ablação; na H2, interseção-união sobre `D_sem_T` e `D_sem_E`; Holm entre SZ e MDD (`decidir_hipotese`).
+- H2 e H3: `comparacao_pareada(D_FA, ablação)`, com ΔAUC = D_FA − ablação; na H2, interseção-união sobre `D_sem_T` e `D_sem_E`; Holm entre SZ e MDD (`decidir_hipotese`).
 
-A H4 (D contra os nove baselines clássicos: LR, RF e KNN × temporal, espectral e combinado) está em [pipeline/e08_classicos/avaliar.py](../pipeline/e08_classicos/avaliar.py):
+A H4 (D_FA contra os nove baselines clássicos: LR, RF e KNN × temporal, espectral e combinado) está em [pipeline/e08_classicos/avaliar.py](../pipeline/e08_classicos/avaliar.py):
 - interseção-união das nove comparações em cada transtorno;
 - Holm entre SZ e MDD.
