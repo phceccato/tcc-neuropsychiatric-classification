@@ -7,8 +7,8 @@ Segue o protocolo estatístico de docs/00_proposta-tcc.md:
 - H1, contra o acaso, sobre o modelo principal (D_FA): AUC da repetição 0 contra as AUCs das 25 permutações
   de rótulo com retreino (outputs/07_DTSF/permutacoes), p = (nº ≥ observado + 1) / (N + 1); decidida em cada
   transtorno a α = 0,05, sem Holm (o menor p possível, 1/26, não passaria no 1º passo do Holm);
-- H2 (D > D_sem_T e D > D_sem_E, interseção-união) e H3 (D > D_sem_mixup), sobre o D (dimensões do artigo,
-  sem FA), de que as ablações derivam: ΔAUC = D − ablação com `comparacao_pareada`; decisão por Holm sobre
+- H2 (D_FA > D_sem_T e D_FA > D_sem_E, interseção-união) e H3 (D_FA > D_sem_mixup), sobre o modelo principal,
+  de que as ablações derivam: ΔAUC = D_FA − ablação com `comparacao_pareada`; decisão por Holm sobre
   {SZ, MDD}, α = 0,05, separadamente para cada hipótese;
 - comparações descritivas, sem decisão: D_FA − D (efeito da FA), D − D_pequeno (efeito do tamanho) e
   D_FA − D_pequeno.
@@ -38,13 +38,14 @@ from pipeline.e07_DTSF.redes_dtsf import DTSF, PRINCIPAL, TIPOS_DTSF
 
 ALFA = 0.05
 SEMENTE = 20261108
-REFERENCIA_ABLACOES = "D"
+REFERENCIA_ABLACOES = PRINCIPAL
 ABLACOES = ("D_sem_T", "D_sem_E", "D_sem_mixup")
 PERMUTACOES_H1 = 25
 HIPOTESES = {"H2": ("D_sem_T", "D_sem_E"), "H3": ("D_sem_mixup",)}
 DESCRITIVAS = (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
-ENUNCIADOS = {"H2": "D contra um ramo só (D > D_sem_T e D > D_sem_E; interseção-união, p = maior p)",
-              "H3": "Mixup no treino (D > D_sem_mixup)"}
+ENUNCIADOS = {"H2": f"{PRINCIPAL} contra um ramo só ({PRINCIPAL} > D_sem_T e {PRINCIPAL} > D_sem_E; interseção-união, "
+                    "p = maior p)",
+              "H3": f"Mixup no treino ({PRINCIPAL} > D_sem_mixup)"}
 
 
 def completo(predicoes: pd.DataFrame, repeticoes: int = 10) -> bool:
@@ -83,7 +84,7 @@ def comparacao_pareada(predicoes_a: pd.DataFrame, predicoes_b: pd.DataFrame, n: 
 
 def comparacoes_hipotese(predicoes: dict[str, pd.DataFrame], ablacoes: tuple[str, ...],
                          n: int = PERMUTACOES_PAREADAS, referencia: str = REFERENCIA_ABLACOES) -> dict[str, dict]:
-    """D contra cada ablação da hipótese num dataset: ΔAUC = D − ablação (`comparacao_pareada`)."""
+    """O modelo principal contra cada ablação da hipótese num dataset: ΔAUC = principal − ablação."""
     return {abl: comparacao_pareada(predicoes[referencia], predicoes[abl], n=n) for abl in ablacoes}
 
 
@@ -131,7 +132,7 @@ def linhas_hipotese(nome: str, resultados: dict[str, dict[str, dict]]) -> list[s
     ablacoes = HIPOTESES[nome]
     decisao = decidir_hipotese(resultados, ablacoes)
     linhas = [f"## {nome}: {ENUNCIADOS[nome]}", "",
-              "Cada comparação: permutação pareada sobre os ranks (10.000), unilateral D > ablação; decisão por Holm "
+              f"Cada comparação: permutação pareada sobre os ranks (10.000), unilateral {REFERENCIA_ABLACOES} > ablação; decisão por Holm "
               "sobre SZ e MDD (α = 0,05). O IC é o bootstrap estratificado e pareado, condicional às previsões obtidas.",
               "", _VALIDADE, "",
               f"| Dataset | p{' interseção-união' if len(ablacoes) > 1 else ''} | p ajustado (Holm) | {nome} |",
@@ -146,7 +147,7 @@ def linhas_hipotese(nome: str, resultados: dict[str, dict[str, dict]]) -> list[s
     for dataset, r in resultados.items():
         for abl, c in r.items():
             dr = c["delta_repeticoes"]
-            linhas.append(f"| {dataset} | D − {abl} | {c['delta']:+.3f} {formatar_ic(c['ic'])} | {c['p']:.4f} | "
+            linhas.append(f"| {dataset} | {REFERENCIA_ABLACOES} − {abl} | {c['delta']:+.3f} {formatar_ic(c['ic'])} | {c['p']:.4f} | "
                           f"{dr.min():+.3f} a {dr.max():+.3f} ({int((dr > 0).sum())}/{len(dr)}) | "
                           f"{c['t_corrigido_p']:.4f} |")
     return linhas + [""]
@@ -260,7 +261,7 @@ def main() -> None:
             linhas += linhas_hipotese(h, hipoteses[h])
         else:
             linhas += [f"## {h}: {ENUNCIADOS[h]}", "",
-                       f"{h} incompleta: precisa do D e de {', '.join(HIPOTESES[h])} completos nos dois datasets.", ""]
+                       f"{h} incompleta: precisa do {REFERENCIA_ABLACOES} e de {', '.join(HIPOTESES[h])} completos nos dois datasets.", ""]
     linhas += linhas_descritivas(descritivas)
     (args.modelos / "resumo_dtsf.md").write_text("\n".join(linhas), encoding="utf-8")
     print((args.modelos / "resumo_dtsf.md").read_text(encoding="utf-8"))

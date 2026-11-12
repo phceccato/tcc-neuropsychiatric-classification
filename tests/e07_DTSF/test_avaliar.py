@@ -125,14 +125,14 @@ def test_comparacao_pareada_traz_o_primario_e_as_sensibilidades():
 
 def test_hipoteses_h2_e_h3_comparam_o_d_com_as_ablacoes_da_proposta():
     assert a.HIPOTESES == {"H2": ("D_sem_T", "D_sem_E"), "H3": ("D_sem_mixup",)}
-    assert a.REFERENCIA_ABLACOES == "D" and set(a.ABLACOES) == {"D_sem_T", "D_sem_E", "D_sem_mixup"}
+    assert a.REFERENCIA_ABLACOES == "D_FA" and set(a.ABLACOES) == {"D_sem_T", "D_sem_E", "D_sem_mixup"}
     assert a.DESCRITIVAS == (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
 
 
 def test_comparacoes_da_hipotese_sao_d_menos_ablacao():
     d = _predicoes_cv(0, 0.5)
     ablacao = d.assign(prob=1 - d["prob"])                        # ablação anti-preditiva: AUC(D) > AUC(ablação)
-    r = a.comparacoes_hipotese({"D": d, "D_sem_T": ablacao}, ("D_sem_T",), n=500)
+    r = a.comparacoes_hipotese({"D_FA": d, "D_sem_T": ablacao}, ("D_sem_T",), n=500)
     esperado = a.comparacao_pareada(d, ablacao, n=500)
     assert r["D_sem_T"]["delta"] == esperado["delta"] > 0
     assert r["D_sem_T"]["p"] == esperado["p"]
@@ -187,8 +187,8 @@ def test_main_escreve_o_resumo_do_dtsf_sem_tocar_no_resumo_historico(tmp_path, m
     monkeypatch.setattr("sys.argv", ["avaliar", "--modelos", str(tmp_path / "modelos"), "--permutacoes", str(tmp_path / "perm")])
     a.main()
     resumo = (tmp_path / "modelos" / "resumo_dtsf.md").read_text()
-    assert "| D | incompleto" not in resumo and "D − D_sem_mixup" in resumo
-    assert "## H2" in resumo and "## H3: Mixup" in resumo and "D − D_sem_T" in resumo and "D_sem_fusao" not in resumo
+    assert "| D | incompleto" not in resumo and "D_FA − D_sem_mixup" in resumo
+    assert "## H2" in resumo and "## H3: Mixup" in resumo and "D_FA − D_sem_T" in resumo and "D_sem_fusao" not in resumo
     assert "| D_FA − D |" in resumo and "| D − D_pequeno |" in resumo and "| D_FA − D_pequeno |" in resumo
     assert "| D_FA | 704.769 |" in resumo and "| D_pequeno | 80.449 |" in resumo
     assert "## H1: D_FA acima do acaso" in resumo and "incompleta" in resumo            # sem permutações gravadas, a H1 não é decidida

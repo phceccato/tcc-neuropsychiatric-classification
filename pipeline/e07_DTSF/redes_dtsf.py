@@ -13,10 +13,11 @@ Arquitetura (F filtros, oculto H, C cabeças, 2 blocos):
 
 Modelos (`MODELOS`):
 - D_FA, o principal: dimensões do artigo (F = 64, H = 128, C = 4) e a Frequency Attention (FA);
-- D: o DTSF com as dimensões do artigo, sem FA;
+- D: o DTSF com as dimensões do artigo, sem FA (a ablação da FA);
 - D_pequeno: o D com as dimensões reduzidas (F = 16, H = 32, C = 2), sem FA;
-- D_sem_mixup, D_sem_T e D_sem_E: ablações do D (dimensões do artigo, sem FA): sem Mixup, sem o ramo
-  temporal e sem o ramo espectral (o Transformer recebe só os 16 tokens de um ramo + CLS).
+- D_sem_mixup, D_sem_T e D_sem_E: ablações do D_FA (dimensões do artigo): sem Mixup, sem o ramo
+  temporal e sem o ramo espectral; o D_sem_mixup e o D_sem_E têm a FA, e o D_sem_T não tem onde pô-la (a FA
+  fica no ramo temporal) (o Transformer recebe só os 16 tokens de um ramo + CLS).
 
 Frequency Attention (`AtencaoFrequencia`), a atenção de canal do FcaNet aplicada ao mapa [B, F, 1, 250] que
 sai do 1º bloco temporal: os F filtros são divididos em 16 grupos, cada grupo é resumido por um componente
@@ -66,9 +67,9 @@ MODELOS = {
     "D_FA": Variante(fa=True),
     "D_pequeno": Variante(filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
     "D": Variante(),
-    "D_sem_mixup": Variante(mixup=False),
-    "D_sem_T": Variante(temporal=False),
-    "D_sem_E": Variante(espectral=False),
+    "D_sem_mixup": Variante(mixup=False, fa=True),
+    "D_sem_T": Variante(temporal=False),          # sem ramo temporal, não há onde pôr a FA
+    "D_sem_E": Variante(espectral=False, fa=True),
 }
 TIPOS_DTSF = tuple(MODELOS)
 PRINCIPAL = "D_FA"
@@ -189,7 +190,7 @@ class DTSF(nn.Module):
         self.encoder = nn.ModuleList([_Encoder(oculto, dropout_encoder, cabecas) for _ in range(camadas)])
         self.ln_final = nn.LayerNorm(oculto)
         self.saida = nn.Linear(oculto, 1)
-        if self.usa_fa:                                  # por último: o resto começa igual ao do D
+        if self.usa_fa:                                  # por último: o resto começa igual ao do modelo sem FA
             self.fa = AtencaoFrequencia(canais=filtros)
 
     def definir_normalizacao(self, media: torch.Tensor, desvio: torch.Tensor) -> None:

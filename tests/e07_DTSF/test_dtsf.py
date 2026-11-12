@@ -35,7 +35,7 @@ def test_numero_de_parametros():
     assert _n(rd.DTSF("D_pequeno")) == 80_449        # o D das rodadas anteriores
     assert _n(rd.DTSF("D")) == 702_721               # dimensões do artigo
     assert _n(rd.DTSF("D_FA")) == 704_769            # + FA: FC(64 → 16) e FC(16 → 64), sem viés
-    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D"))
+    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D_FA"))
 
 
 def test_dimensoes_do_artigo_e_reduzidas():
@@ -56,8 +56,9 @@ def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
     assert modelo.tokens(x_t, x_e).shape == (3, 33, oculto)
 
 
-def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_16_grupos():
-    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "D_FA" for t in TIPOS}
+def test_fa_no_principal_e_nas_ablacoes_com_ramo_temporal_e_64_filtros_em_16_grupos():
+    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {
+        "D_FA": True, "D_pequeno": False, "D": False, "D_sem_mixup": True, "D_sem_T": False, "D_sem_E": True}
     fa = rd.DTSF("D_FA").fa
     assert fa.filtro_dct.shape == (64, 250) and fa.componentes == tuple(range(0, 226, 15))
     assert all(torch.equal(fa.filtro_dct[4 * g], fa.filtro_dct[4 * g + 3]) for g in range(16))  # 4 filtros por grupo
@@ -107,6 +108,17 @@ def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():
 
 def test_so_d_sem_mixup_desliga_o_mixup():
     assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {t: t != "D_sem_mixup" for t in TIPOS}
+
+
+def test_ablacoes_do_d_fa_mudam_uma_coisa_so():
+    v = rd.MODELOS
+    assert v["D_sem_mixup"] == rd.Variante(mixup=False, fa=True) and v["D_sem_E"] == rd.Variante(espectral=False, fa=True)
+    assert v["D"] == rd.Variante() and v["D_FA"] == rd.Variante(fa=True)
+    torch.manual_seed(2)
+    a = rd.DTSF("D_FA")
+    torch.manual_seed(2)
+    b = rd.DTSF("D_sem_mixup")
+    assert all(torch.equal(x, b.state_dict()[k]) for k, x in a.state_dict().items())   # mesma rede, só o treino muda
 
 
 def test_dimensoes_explicitas_substituem_as_do_modelo():
@@ -263,7 +275,7 @@ class _FonteSintetica:
 
     def lote(self, linhas):
         self.pedidas.append(np.array(linhas))
-        return torch.zeros(len(linhas), 19, 5, 64), torch.from_numpy(self.x_e[linhas])
+        return torch.zeros(len(linhas), 19, 5, 500), torch.from_numpy(self.x_e[linhas])
 
 
 def _papeis(fonte):
