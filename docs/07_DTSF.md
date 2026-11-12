@@ -78,7 +78,8 @@ Arquitetura comum, com F filtros, dimensão H e C cabeças:
 A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de parâmetros e 256 canais na coluna de formas): vale a coluna de parâmetros. Os kernels, os 16 passos por ramo e as entradas são os mesmos nas duas dimensões, adaptados ao EEG de escalpo de 19 canais e 4 s. O treino (abaixo) é igual para os seis modelos. Os tokens são 33 (16 + 16 + CLS) em todos, menos nas ablações de um ramo (17); o que muda entre as dimensões é o tamanho de cada token (H).
 
 **Frequency Attention (`D_FA`).** É a atenção de canal do FcaNet, como no TFST-SDKA (XU et al., 2026), aplicada ao mapa [B, 64, 1, 250] que sai do 1º bloco temporal:
-- os 64 filtros são divididos em 4 grupos de 16, e cada grupo é resumido por um componente DCT ao longo do tempo: 0, 35, 70 e 105. São os 4 de menor frequência da grade 7 do FcaNet, u · ⌊250/7⌋, fixados a priori. O componente 0 é o GAP vezes √250;
+- os 64 filtros são divididos em 16 grupos de 4, e cada grupo é resumido por um componente DCT ao longo do tempo: u · ⌊250/16⌋ = 0, 15, 30, …, 225 (u = 0, …, 15), fixados a priori. O componente 0 é o GAP vezes √250;
+- o TFST-SDKA também usa 16 componentes, mas os escolhe pelo desempenho (testa os 49 da grade 7×7 um a um e combina os 16 melhores). Aqui isso usaria o teste para escolher, então os 16 são fixos e cobrem a faixa de forma regular. Como o mapa tem altura 1, só existem componentes ao longo do tempo;
 - os 64 resumos passam por FC(64 → 16) → ReLU → FC(16 → 64) → sigmoid, e cada filtro é multiplicado pelo seu peso (2.048 parâmetros a mais);
 - as "frequências" são as do mapa de características ao longo da janela, não bandas do EEG em Hz;
 - a FA fica só no ramo temporal: a primeira convolução do ramo espectral já junta as 29 frequências;
@@ -106,7 +107,7 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 - **Equivalência com as redes anteriores,** com a mesma semente e as mesmas entradas, saídas idênticas:
   - o `D_pequeno` é o D de 80 mil parâmetros das rodadas anteriores;
-  - o `D` e o `D_FA` são os modelos gravados como D_artigo e D_artigo_FA em `outputs/14_DTSF_artigo/resultados`.
+  - o `D` é o modelo gravado como D_artigo em `outputs/14_DTSF_artigo/resultados`. O `D_FA` não tem equivalente gravado: o D_artigo_FA daquela pasta usava 4 componentes DCT, e não 16.
 
   O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Por isso, previsões já gravadas desses modelos no mesmo dispositivo podem ser copiadas para `outputs/07_DTSF/resultados/<conjunto>/<modelo>/`, e o runner pula as tarefas já gravadas.
 
