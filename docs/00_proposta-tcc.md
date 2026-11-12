@@ -120,7 +120,7 @@ Lotte et al. (2018) apontam classificadores clássicos, inclusive o Random Fores
 
 **Exposição a janelas:** os baselines ajustam com 22–25% mais pessoas que o DTSF, que reserva a validação para o early stopping.
 
-**Referência adicional:** regressão logística L2 (C = 1) sobre a média por pessoa de 76 potências de banda (Welch; WELCH, 1967), como em Mumtaz et al. (2017) (docs/06_LR.md). Ela não entra na H4.
+**Referência adicional:** regressão logística L2 (C = 1) sobre a média por pessoa de 76 potências de banda (Welch; WELCH, 1967), como em Mumtaz et al. (2017) (docs/06_LR_psd.md). Ela não entra na H4.
 
 ## Protocolo estatístico
 
@@ -168,7 +168,7 @@ Comparações descritivas, sem decisão: `D_FA` − `D` (efeito da FA), `D` − 
 
 ## Resultados
 
-Pendentes da rodada completa com a semente 20261108. Os resultados de cada etapa ficam nos docs da etapa (docs/06_LR.md, docs/07_DTSF.md e docs/08_classicos.md).
+Pendentes da rodada completa com a semente 20261108. Os resultados de cada etapa ficam nos docs da etapa (docs/06_LR_psd.md, docs/07_DTSF.md e docs/08_classicos.md).
 
 ## Resumo das pendências
 
