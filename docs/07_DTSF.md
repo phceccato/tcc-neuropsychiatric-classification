@@ -35,7 +35,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.csv`: previsões das pessoas de teste;
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.json`: época escolhida, dispositivo, número de parâmetros e histórico de perdas;
   - `permutacoes/<conjunto>/<modelo>/p<k>_f<fold>.{csv,json}`: o mesmo para cada permutação de rótulos (só a repetição 0);
-  - `resultados/resumo_dtsf.md`: o resumo gerado por `avaliar`.
+  - `resultados/resumo_dtsf.md`: o resumo gerado por `avaliar`. Para cada dataset, ele traz a AUC por pessoa com IC e uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições)).
 
 ```bash
 venv/bin/python -m pipeline.e07_DTSF.dados                                                      # cache a 125 Hz, uma vez
