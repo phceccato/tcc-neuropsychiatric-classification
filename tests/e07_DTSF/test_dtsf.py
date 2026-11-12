@@ -56,10 +56,11 @@ def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
     assert modelo.tokens(x_t, x_e).shape == (3, 33, oculto)
 
 
-def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_4_grupos():
+def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_16_grupos():
     assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "D_FA" for t in TIPOS}
     fa = rd.DTSF("D_FA").fa
-    assert fa.filtro_dct.shape == (64, 250) and fa.componentes == (0, 35, 70, 105)
+    assert fa.filtro_dct.shape == (64, 250) and fa.componentes == tuple(range(0, 226, 15))
+    assert all(torch.equal(fa.filtro_dct[4 * g], fa.filtro_dct[4 * g + 3]) for g in range(16))  # 4 filtros por grupo
 
 
 def test_d_fa_comeca_com_os_pesos_do_d():
@@ -83,10 +84,15 @@ def test_fa_reescala_cada_filtro_do_mapa_temporal():
 
 
 def test_fa_componente_zero_e_o_gap_escalado():
-    fa = rd.AtencaoFrequencia(canais=8)
-    mapa = torch.randn(2, 8, 1, 250)
+    fa = rd.AtencaoFrequencia(canais=64)
+    mapa = torch.randn(2, 64, 1, 250)
     freq = (mapa[:, :, 0, :] * fa.filtro_dct).sum(-1)
-    assert torch.allclose(freq[:, :2], mapa.mean(-1)[:, :2, 0] * 250 ** 0.5, atol=1e-4)
+    assert torch.allclose(freq[:, :4], mapa.mean(-1)[:, :4, 0] * 250 ** 0.5, atol=1e-4)
+
+
+def test_fa_exige_filtros_divisiveis_pelos_16_componentes():
+    with pytest.raises(ValueError):
+        rd.AtencaoFrequencia(canais=24)
 
 
 def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():

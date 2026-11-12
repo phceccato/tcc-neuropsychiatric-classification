@@ -19,8 +19,9 @@ Modelos (`MODELOS`):
   temporal e sem o ramo espectral (o Transformer recebe só os 16 tokens de um ramo + CLS).
 
 Frequency Attention (`AtencaoFrequencia`), a atenção de canal do FcaNet aplicada ao mapa [B, F, 1, 250] que
-sai do 1º bloco temporal: os F filtros são divididos em 4 grupos, cada grupo é resumido por um componente
-DCT ao longo do tempo (0, 35, 70 e 105: os 4 de menor frequência da grade 7 do FcaNet, u · ⌊250/7⌋), e os F
+sai do 1º bloco temporal: os F filtros são divididos em 16 grupos, cada grupo é resumido por um componente
+DCT ao longo do tempo (os 16 componentes u · ⌊250/16⌋ = 0, 15, 30, …, 225, fixados a priori, sem seleção pelo
+resultado; o TFST-SDKA usa 16 componentes escolhidos pelo desempenho), e os F
 resumos passam por FC(F → F/4) → ReLU → FC(F/4 → F) → sigmoid, que reescala cada filtro. A FA é criada por
 último: na mesma semente, o D_FA começa com os mesmos pesos do D, e D_FA − D isola o efeito da FA.
 
@@ -42,8 +43,8 @@ FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2              # dimensões reduz
 FILTROS_ARTIGO, OCULTO_ARTIGO, CABECAS_ARTIGO = 64, 128, 4     # dimensões do artigo (Tabela 1)
 DROPOUT, DROPOUT_ENCODER = 0.5, 0.1
 ALFA_MIXUP = 1.0
-GRADE_FCANET = 7
-COMPONENTES_FA = (0, 1, 2, 3)       # índices na grade 7, um por grupo
+GRADE_FA = 16
+COMPONENTES_FA = tuple(range(16))   # índices na grade de 16, um por grupo: 0, 15, …, 225
 REDUCAO_FA = 4
 LARGURA_MAPA = 250                  # 500 amostras → MaxPool (1, 2)
 
@@ -135,7 +136,7 @@ class AtencaoFrequencia(nn.Module):
         super().__init__()
         if canais % len(componentes):
             raise ValueError(f"{canais} canais não se dividem em {len(componentes)} grupos")
-        passo = largura // GRADE_FCANET
+        passo = largura // GRADE_FA
         por_grupo = canais // len(componentes)
         filtro = torch.stack([base_dct(largura, u * passo) for u in componentes for _ in range(por_grupo)])
         self.register_buffer("filtro_dct", filtro)                     # [C, W]
