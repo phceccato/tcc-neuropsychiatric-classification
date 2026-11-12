@@ -78,3 +78,38 @@ def test_runner_recusa_cuda_sem_gpu(monkeypatch):
     monkeypatch.setattr("sys.argv", ["rodar", "--dispositivo", "cuda"])
     with pytest.raises(SystemExit):
         r14.main()
+
+
+# ---------- D_artigo_FA ----------
+
+def test_d_artigo_fa_tem_a_fa_com_64_filtros_e_comeca_igual_ao_d_artigo():
+    torch.manual_seed(3)
+    a = r14.construtor("D_artigo_FA")()
+    torch.manual_seed(3)
+    cfg = r14.ARTIGO
+    b = rd.DTSF("D", filtros=cfg.filtros, oculto=cfg.oculto, cabecas=cfg.cabecas, camadas=cfg.camadas)
+    assert _n(a) == 704_769 and _n(a) - _n(b) == 64 * 16 * 2
+    assert a.fa.filtro_dct.shape == (64, 250) and a.fa.componentes == (0, 35, 70, 105)
+    comuns = {k: v for k, v in a.state_dict().items() if not k.startswith("fa.")}
+    assert all(torch.equal(v, b.state_dict()[k]) for k, v in comuns.items())
+
+
+def test_construtor_do_d_artigo_e_o_padrao_e_modelo_desconhecido_falha():
+    assert r14.construtor("D_artigo") is None
+    with pytest.raises(ValueError):
+        r14.construtor("D_artigo_X")
+
+
+def test_treino_curto_do_d_artigo_fa():
+    torch.set_num_threads(1)
+    uids = [f"p{i}" for i in range(8)]
+    fonte = _FonteFalsa(uids)
+    res = t.treinar("D", fonte, uids[:4], uids[4:6], pd.Series(fonte.y), semente=1, max_epocas=1, paciencia=1,
+                    config=r14.ARTIGO, construir=r14.construtor("D_artigo_FA"))
+    assert _n(res.modelo) == 704_769 and hasattr(res.modelo, "fa")
+
+
+def test_runner_so_aceita_os_modelos_da_etapa(monkeypatch):
+    monkeypatch.setattr("sys.argv", ["rodar", "--modelos", "D_FA"])
+    with pytest.raises(SystemExit):
+        r14.main()

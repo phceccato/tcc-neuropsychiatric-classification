@@ -1,15 +1,18 @@
-"""Resultados exploratórios da etapa 14: o D_artigo (dimensões do artigo) contra o D da etapa 07.
+"""Resultados exploratórios da etapa 14: D_artigo e D_artigo_FA contra o D da etapa 07.
 
 - AUC por pessoa, IC e secundárias de cada modelo (`avaliar`), como na etapa 07;
-- D_artigo − D com `comparacao_pareada` (pipeline/e07_DTSF/avaliar.py): permutação pareada sobre os ranks,
-  unilateral D_artigo > D, IC do Δ e as sensibilidades (Δ por repetição, t corrigido);
+- comparações com `comparacao_pareada` (pipeline/e07_DTSF/avaliar.py): permutação pareada sobre os ranks,
+  unilateral, IC do Δ e as sensibilidades (Δ por repetição, t corrigido):
+  - D_artigo − D e D_artigo_FA − D;
+  - D_artigo_FA − D_artigo, que isola o efeito da FA no modelo grande;
 - p contra o acaso de cada modelo, quando houver permutações.
 
-Nada aqui decide hipótese: os p são descritivos. O resumo registra o dispositivo dos treinos do D e do
-D_artigo e avisa se forem diferentes.
+Nada aqui decide hipótese: os p são descritivos e não corrigem a multiplicidade das variantes exploratórias
+comparadas com o mesmo D. O resumo registra o dispositivo dos treinos e avisa se o D e as
+variantes foram treinados em dispositivos diferentes.
 
-Lê outputs/07_DTSF/resultados/<dataset>/D e outputs/14_DTSF_artigo/resultados/<dataset>/D_artigo; grava
-outputs/14_DTSF_artigo/resultados/resumo.md.
+Lê outputs/07_DTSF/resultados/<dataset>/D e outputs/14_DTSF_artigo/resultados/<dataset>/<modelo>; grava
+outputs/14_DTSF_artigo/resultados/resumo.md. Modelos ainda sem previsões completas aparecem como incompletos.
 """
 from __future__ import annotations
 
@@ -21,7 +24,9 @@ from pipeline.avaliacao.metricas import avaliar
 from pipeline.e07_DTSF.avaliar import (SEMENTE, _epocas, comparacao_pareada, completo, formatar_ic, ler_modelo,
                                        p_acaso)
 from pipeline.e07_DTSF.rodar import dispositivos_gravados
-from pipeline.e14_DTSF_artigo.rodar import MODELO
+from pipeline.e14_DTSF_artigo.rodar import MODELOS
+
+COMPARACOES = (("D_artigo", "D"), ("D_artigo_FA", "D"), ("D_artigo_FA", "D_artigo"))
 
 
 def _parametros(pasta: Path) -> str:
@@ -38,18 +43,19 @@ def main() -> None:
     args = parser.parse_args()
 
     disp_d = dispositivos_gravados([args.d / d / "D" for d in ("SZ", "MDD")])
-    disp_a = dispositivos_gravados([args.modelos / d / MODELO for d in ("SZ", "MDD")])
+    disp_v = dispositivos_gravados([args.modelos / d / m for d in ("SZ", "MDD") for m in MODELOS])
     linhas = ["# Etapa 14 (exploratória) — DTSF com as dimensões do artigo", "",
               "AUC por pessoa: média da probabilidade fora do fold nas 10 repetições; IC de 95% por bootstrap "
               "estratificado. Secundárias no limiar 0,5. Época: mediana (mín–máx) do early stopping. Os p são "
-              "descritivos: nenhuma comparação decide hipótese.", "",
-              f"Dispositivo dos treinos: D {', '.join(sorted(disp_d)) or '—'}; {MODELO} {', '.join(sorted(disp_a)) or '—'}."
-              + (" **Atenção: dispositivos diferentes; a comparação mistura o efeito do dispositivo com o do tamanho.**"
-                 if disp_d and disp_a and disp_d != disp_a else ""), ""]
+              "descritivos: nenhuma comparação decide hipótese, e não há correção para as várias variantes "
+              "exploratórias comparadas com o mesmo D.", "",
+              f"Dispositivo dos treinos: D {', '.join(sorted(disp_d)) or '—'}; variantes {', '.join(sorted(disp_v)) or '—'}."
+              + (" **Atenção: dispositivos diferentes; a comparação mistura o efeito do dispositivo com o da variante.**"
+                 if disp_d and disp_v and disp_d != disp_v else ""), ""]
     comparacoes = []
     for dataset in ("SZ", "MDD"):
-        pastas = {"D": (args.d / dataset / "D", args.permutacoes_d / dataset / "D"),
-                  MODELO: (args.modelos / dataset / MODELO, args.permutacoes / dataset / MODELO)}
+        pastas = {"D": (args.d / dataset / "D", args.permutacoes_d / dataset / "D")}
+        pastas |= {m: (args.modelos / dataset / m, args.permutacoes / dataset / m) for m in MODELOS}
         predicoes = {m: ler_modelo(p) for m, (p, _) in pastas.items()}
         linhas += [f"## {dataset}", "",
                    "| Modelo | Parâmetros | AUC por pessoa [IC 95%] | AUC por repetição | Acurácia balanceada | "
@@ -68,17 +74,18 @@ def main() -> None:
                           f"{r['auc_rep_media']:.3f} ± {r['auc_rep_desvio']:.3f} | {r['acuracia_balanceada']:.3f} | "
                           f"{r['sensibilidade']:.3f} | {r['especificidade']:.3f} | {r['macro_f1']:.3f} | "
                           f"{_epocas(pasta)} | {acaso} |")
-        if all(completo(p) for p in predicoes.values()):
-            comparacoes.append((dataset, comparacao_pareada(predicoes[MODELO], predicoes["D"])))
+        for a, b in COMPARACOES:
+            if completo(predicoes[a]) and completo(predicoes[b]):
+                comparacoes.append((dataset, a, b, comparacao_pareada(predicoes[a], predicoes[b])))
         linhas.append("")
-    linhas += [f"## {MODELO} − D", "",
-               f"Permutação pareada sobre os ranks (10.000), unilateral {MODELO} > D; IC por bootstrap pareado. "
-               "Sensibilidades: ΔAUC por repetição e t corrigido de Nadeau e Bengio.", "",
-               "| Dataset | ΔAUC [IC 95%] | p (ranks) | ΔAUC por repetição: mín–máx (positivos) | t corrigido p |",
-               "| --- | --- | --- | --- | --- |"]
-    for dataset, c in comparacoes:
+    linhas += ["## Comparações", "",
+               "Permutação pareada sobre os ranks (10.000), unilateral (o primeiro modelo maior que o segundo); IC por "
+               "bootstrap pareado. Sensibilidades: ΔAUC por repetição e t corrigido de Nadeau e Bengio.", "",
+               "| Dataset | Comparação | ΔAUC [IC 95%] | p (ranks) | ΔAUC por repetição: mín–máx (positivos) | "
+               "t corrigido p |", "| --- | --- | --- | --- | --- | --- |"]
+    for dataset, a, b, c in comparacoes:
         dr = c["delta_repeticoes"]
-        linhas.append(f"| {dataset} | {c['delta']:+.3f} {formatar_ic(c['ic'])} | {c['p']:.4f} | "
+        linhas.append(f"| {dataset} | {a} − {b} | {c['delta']:+.3f} {formatar_ic(c['ic'])} | {c['p']:.4f} | "
                       f"{dr.min():+.3f} a {dr.max():+.3f} ({int((dr > 0).sum())}/{len(dr)}) | {c['t_corrigido_p']:.4f} |")
     args.modelos.mkdir(parents=True, exist_ok=True)
     (args.modelos / "resumo.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
