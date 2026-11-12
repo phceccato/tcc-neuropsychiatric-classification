@@ -13,7 +13,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
 - Código: [pipeline/e07_DTSF/](../pipeline/e07_DTSF/)
   - `dados.py`: cache do sinal a 125 Hz e seleção das janelas (também usados pelos baselines clássicos);
   - `dados_dtsf.py`: cache multibanda e STFT;
-  - `redes_dtsf.py`: o D e as ablações;
+  - `redes_dtsf.py`: o D e as ablações (as dimensões da rede são parâmetros, com as do D como padrão; a etapa 14 usa as do artigo);
   - `treino.py`: o treino de um fold;
   - `rodar.py`: o runner;
   - `avaliar.py`: o resumo do DTSF, as decisões de H1, H2 e H3 (`decidir_h1`, `decidir_hipotese`) e a comparação pareada por pessoa (`comparacao_pareada`), usada por H2, H3 e pela H4.
