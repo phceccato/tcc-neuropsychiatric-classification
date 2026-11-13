@@ -7,8 +7,8 @@ Segue o protocolo estatístico de docs/00_proposta-tcc.md:
 - H1, contra o acaso, sobre o modelo principal (D_FA): AUC da repetição 0 contra as AUCs das 25 permutações
   de rótulo com retreino (outputs/07_DTSF/permutacoes), p = (nº ≥ observado + 1) / (N + 1); decidida em cada
   transtorno a α = 0,05, sem Holm (o menor p possível, 1/26, não passaria no 1º passo do Holm);
-- H2 (D_FA > D_sem_T e D_FA > D_sem_E, interseção-união) e H3 (D_FA > D_sem_mixup), sobre o modelo principal,
-  de que as ablações derivam: ΔAUC = D_FA − ablação com `comparacao_pareada`; decisão por Holm sobre
+- H2 (D_pequeno > D_sem_T e D_pequeno > D_sem_E, interseção-união) e H3 (D_pequeno > D_sem_mixup), sobre o
+  D_pequeno, de que as ablações derivam: ΔAUC = D_pequeno − ablação com `comparacao_pareada`; decisão por Holm sobre
   {SZ, MDD}, α = 0,05, separadamente para cada hipótese;
 - comparações descritivas, sem decisão: D_FA − D (efeito da FA), D − D_pequeno (efeito do tamanho) e
   D_FA − D_pequeno.
@@ -38,14 +38,14 @@ from pipeline.e07_DTSF.redes_dtsf import DTSF, PRINCIPAL, TIPOS_DTSF
 
 ALFA = 0.05
 SEMENTE = 20261108
-REFERENCIA_ABLACOES = PRINCIPAL
+REFERENCIA_ABLACOES = "D_pequeno"
 ABLACOES = ("D_sem_T", "D_sem_E", "D_sem_mixup")
 PERMUTACOES_H1 = 25
 HIPOTESES = {"H2": ("D_sem_T", "D_sem_E"), "H3": ("D_sem_mixup",)}
 DESCRITIVAS = (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
-ENUNCIADOS = {"H2": f"{PRINCIPAL} contra um ramo só ({PRINCIPAL} > D_sem_T e {PRINCIPAL} > D_sem_E; interseção-união, "
+ENUNCIADOS = {"H2": f"{REFERENCIA_ABLACOES} contra um ramo só ({REFERENCIA_ABLACOES} > D_sem_T e {REFERENCIA_ABLACOES} > D_sem_E; interseção-união, "
                     "p = maior p)",
-              "H3": f"Mixup no treino ({PRINCIPAL} > D_sem_mixup)"}
+              "H3": f"Mixup no treino ({REFERENCIA_ABLACOES} > D_sem_mixup)"}
 
 
 def completo(predicoes: pd.DataFrame, repeticoes: int = 10) -> bool:
@@ -84,7 +84,7 @@ def comparacao_pareada(predicoes_a: pd.DataFrame, predicoes_b: pd.DataFrame, n: 
 
 def comparacoes_hipotese(predicoes: dict[str, pd.DataFrame], ablacoes: tuple[str, ...],
                          n: int = PERMUTACOES_PAREADAS, referencia: str = REFERENCIA_ABLACOES) -> dict[str, dict]:
-    """O modelo principal contra cada ablação da hipótese num dataset: ΔAUC = principal − ablação."""
+    """O modelo de referência (D_pequeno) contra cada ablação da hipótese num dataset: ΔAUC = referência − ablação."""
     return {abl: comparacao_pareada(predicoes[referencia], predicoes[abl], n=n) for abl in ablacoes}
 
 
