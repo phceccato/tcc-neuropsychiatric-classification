@@ -38,6 +38,7 @@ H1, H2 e H3 estão em [pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avalia
 - H1: p de permutação contra o acaso em cada transtorno, a α = 0,05, sem Holm (`decidir_h1`);
 - H2 e H3: `comparacao_pareada(D_pequeno, ablação)`, com ΔAUC = D_pequeno − ablação; na H2, interseção-união sobre `D_sem_T` e `D_sem_E`; Holm entre SZ e MDD (`decidir_hipotese`).
 
-A H4 (D_FA contra os nove baselines clássicos: LR, RF e KNN × temporal, espectral e combinado) está em [pipeline/e08_classicos/avaliar.py](../pipeline/e08_classicos/avaliar.py):
-- interseção-união das nove comparações em cada transtorno;
-- Holm entre SZ e MDD.
+A H4 (D_FA contra os três baselines clássicos combinados: LR, RF e KNN sobre as características temporais e espectrais concatenadas, `BASELINES_H4`) está em [pipeline/e08_classicos/avaliar.py](../pipeline/e08_classicos/avaliar.py):
+- interseção-união das três comparações em cada transtorno;
+- Holm entre SZ e MDD;
+- os 6 baselines de uma modalidade só entram como descritivos (Δ, IC e p, sem decisão).
