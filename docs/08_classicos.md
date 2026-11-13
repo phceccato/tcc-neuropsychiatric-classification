@@ -1,6 +1,6 @@
 # Baselines clássicos por modalidade — resultados
 
-Nove baselines clássicos para comparar com o DTSF adaptado: regressão logística, Random Forest e KNN × características temporais, espectrais e combinadas (as duas concatenadas), extraídas das mesmas entradas do DTSF. O plano e a hipótese H4 estão em [00_proposta-tcc.md](00_proposta-tcc.md).
+Nove baselines clássicos para comparar com o DTSF adaptado: regressão logística, Random Forest e KNN × características temporais, espectrais e combinadas (as duas concatenadas), extraídas das mesmas entradas do DTSF. O plano e a hipótese H4 estão em [00_proposta-tcc.md](00_proposta-tcc.md): a H4 compara o D_FA só com os 3 baselines combinados, e os 6 de uma modalidade só são descritivos.
 
 Os resultados ficam em [Resultados](#resultados).
 
@@ -8,7 +8,7 @@ Os resultados ficam em [Resultados](#resultados).
   - `caracteristicas.py`: 475 características temporais e 1.102 espectrais por janela;
   - `treino.py`: os 9 modelos, as grades e a seleção interna por pessoa;
   - `rodar.py`: o runner, com retomada, processos em paralelo e permutações; monta o combinado concatenando as 475 temporais e as 1.102 espectrais de cada janela (1.577);
-  - `avaliar.py`: as AUCs, as comparações D_FA − baseline (o modelo principal da etapa 07) e a H4.
+  - `avaliar.py`: as AUCs, as comparações D_FA − baseline (o modelo principal da etapa 07), a H4 sobre os 3 combinados (`BASELINES_H4`) e as comparações descritivas com os 6 de uma modalidade.
 - Testes: `tests/e08_classicos/`.
 - Saídas:
   - `outputs/08_classicos/caracteristicas/`: o cache, com `temporais.npy`, `espectrais.npy` e `extracao.json` (todo o `outputs/` fica fora do git);
