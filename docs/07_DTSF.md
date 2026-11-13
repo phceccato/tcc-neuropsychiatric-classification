@@ -11,13 +11,13 @@ A etapa roda seis modelos ([Modelos](#modelos)):
 | Modelo | O que é | Parâmetros | Uso |
 | --- | --- | --- | --- |
 | `D_FA` | **Principal.** DTSF com as dimensões do artigo e a Frequency Attention (FA) no ramo temporal | 704.769 | H1, H4 |
-| `D_pequeno` | DTSF com as dimensões reduzidas (16 filtros, dimensão 32), sem FA | 80.449 | descritivo (efeito do tamanho) |
+| `D_pequeno` | DTSF com as dimensões reduzidas (16 filtros, dimensão 32), sem FA | 80.449 | H2, H3 (referência das ablações); descritivo (efeito do tamanho) |
 | `D` | O `D_FA` sem a FA (DTSF com as dimensões do artigo) | 702.721 | descritivo (efeito da FA) |
-| `D_sem_mixup` | O `D_FA` sem Mixup | 704.769 | H3 |
-| `D_sem_T` | O `D_FA` só com o ramo espectral (sem ramo temporal, fica sem FA) | 444.353 | H2 |
-| `D_sem_E` | O `D_FA` só com o ramo temporal (com FA) | 509.761 | H2 |
+| `D_sem_mixup` | O `D_pequeno` sem Mixup | 80.449 | H3 |
+| `D_sem_T` | O `D_pequeno` só com o ramo espectral | 48.881 | H2 |
+| `D_sem_E` | O `D_pequeno` só com o ramo temporal | 47.825 | H2 |
 
-Todas as hipóteses são sobre o `D_FA`, e cada ablação muda uma coisa só em relação a ele. A FA fica no ramo temporal, então o `D_sem_T` não tem onde pô-la: é a mesma rede que seria a ablação do `D`.
+H1 e H4 são sobre o `D_FA`. As ablações derivam do `D_pequeno` (dimensões reduzidas, sem FA), e cada uma muda uma coisa só em relação a ele; por isso H2 e H3 comparam o `D_pequeno` com as ablações.
 
 Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados)). A comparação com os baselines clássicos (H4) está em [08_classicos.md](08_classicos.md).
 
@@ -29,7 +29,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
   - `redes_dtsf.py`: os seis modelos (`MODELOS`, com o principal em `PRINCIPAL`) e a Frequency Attention (`AtencaoFrequencia`);
   - `treino.py`: o treino de um fold;
   - `rodar.py`: o runner;
-  - `avaliar.py`: o resumo do DTSF, as decisões de H1, H2 e H3 (`decidir_h1`, `decidir_hipotese`), as comparações descritivas (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`), usada por H2, H3 e pela H4.
+  - `avaliar.py`: o resumo do DTSF, as decisões de H1 (`D_FA`), H2 e H3 (`D_pequeno` contra as ablações) (`decidir_h1`, `decidir_hipotese`), as comparações descritivas (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`), usada por H2, H3 e pela H4.
 - Saídas em `outputs/07_DTSF/`:
   - `cache/` e `cache_dtsf/`: o sinal a 125 Hz e o cache multibanda com a STFT;
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.csv`: previsões das pessoas de teste;
@@ -72,24 +72,24 @@ Arquitetura comum, com F filtros, dimensão H e C cabeças:
 
 | Dimensões | F | H | C | Blocos | Modelos |
 | --- | --- | --- | --- | --- | --- |
-| Do artigo (WANG et al., 2026, Tabela 1) | 64 | 128 | 4 | 2 | `D_FA`, `D`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` |
-| Reduzidas | 16 | 32 | 2 | 2 | `D_pequeno` |
+| Do artigo (WANG et al., 2026, Tabela 1) | 64 | 128 | 4 | 2 | `D_FA`, `D` |
+| Reduzidas | 16 | 32 | 2 | 2 | `D_pequeno`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` |
 
 A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de parâmetros e 256 canais na coluna de formas): vale a coluna de parâmetros. Os kernels, os 16 passos por ramo e as entradas são os mesmos nas duas dimensões, adaptados ao EEG de escalpo de 19 canais e 4 s. O treino (abaixo) é igual para os seis modelos. Os tokens são 33 (16 + 16 + CLS) em todos, menos nas ablações de um ramo (17); o que muda entre as dimensões é o tamanho de cada token (H).
 
 **Frequency Attention (`D_FA`).** É a atenção de canal do FcaNet, como no TFST-SDKA (XU et al., 2026), aplicada ao mapa [B, 64, 1, 250] que sai do 1º bloco temporal:
-- os 64 filtros são divididos em 16 grupos de 4, e cada grupo é resumido por um componente DCT ao longo do tempo: u · ⌊250/16⌋ = 0, 15, 30, …, 225 (u = 0, …, 15), fixados a priori. O componente 0 é o GAP vezes √250;
-- o TFST-SDKA também usa 16 componentes, mas os escolhe pelo desempenho (testa os 49 da grade 7×7 um a um e combina os 16 melhores). Aqui isso usaria o teste para escolher, então os 16 são fixos e cobrem a faixa de forma regular. Como o mapa tem altura 1, só existem componentes ao longo do tempo;
+- os 64 filtros são divididos em 4 grupos de 16, e cada grupo é resumido por um componente DCT ao longo do tempo: 0, 35, 70 e 105, os 4 de menor frequência da grade 7 do FcaNet (u · ⌊250/7⌋, u = 0, …, 3), fixados a priori. O componente 0 é o GAP vezes √250;
+- o TFST-SDKA usa 16 componentes escolhidos pelo desempenho (testa os 49 da grade 7×7 um a um e combina os 16 melhores). Aqui isso usaria o teste para escolher, então os componentes são fixos. Como o mapa tem altura 1, só existem componentes ao longo do tempo;
 - os 64 resumos passam por FC(64 → 16) → ReLU → FC(16 → 64) → sigmoid, e cada filtro é multiplicado pelo seu peso (2.048 parâmetros a mais);
 - as "frequências" são as do mapa de características ao longo da janela, não bandas do EEG em Hz;
 - a FA fica só no ramo temporal: a primeira convolução do ramo espectral já junta as 29 frequências;
 - a FA é criada por último, então, na mesma semente, o `D_FA` começa com os mesmos pesos do `D`, e `D_FA` − `D` isola a FA.
 
-| Ablação do `D_FA` | O que muda |
+| Ablação do `D_pequeno` | O que muda |
 | --- | --- |
 | D_sem_T | Sem o ramo temporal: o Transformer recebe só os 16 tokens espectrais e o CLS |
-| D_sem_E | Sem o ramo espectral (com FA no ramo temporal) |
-| D_sem_mixup | Sem Mixup (com FA) |
+| D_sem_E | Sem o ramo espectral: o Transformer recebe só os 16 tokens temporais e o CLS |
+| D_sem_mixup | Sem Mixup |
 
 **Entradas.**
 - **Ramo temporal:** o sinal de 2–30 Hz com z-score por canal da própria pessoa, reamostrado para 125 Hz, e as 4 bandas (Butterworth de ordem 4, `sosfiltfilt`) filtradas na gravação inteira.
@@ -107,7 +107,8 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 - **Equivalência com as redes anteriores,** com a mesma semente e as mesmas entradas, saídas idênticas:
   - o `D_pequeno` é o D de 80 mil parâmetros das rodadas anteriores;
-  - o `D` é o modelo gravado como D_artigo em `outputs/14_DTSF_artigo/resultados`. O `D_FA` não tem equivalente gravado: o D_artigo_FA daquela pasta usava 4 componentes DCT, e não 16.
+  - o `D_sem_mixup`, o `D_sem_T` e o `D_sem_E` são as ablações de 80 mil parâmetros (ou menos) das rodadas anteriores;
+  - o `D` e o `D_FA` são os modelos gravados como D_artigo e D_artigo_FA em `outputs/14_DTSF_artigo/resultados`.
 
   O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Por isso, previsões já gravadas desses modelos no mesmo dispositivo podem ser copiadas para `outputs/07_DTSF/resultados/<conjunto>/<modelo>/`, e o runner pula as tarefas já gravadas.
 
