@@ -15,14 +15,12 @@ Modelos (`MODELOS`):
 - D_FA, o principal: dimensões do artigo (F = 64, H = 128, C = 4) e a Frequency Attention (FA);
 - D: o DTSF com as dimensões do artigo, sem FA (a ablação da FA);
 - D_pequeno: o D com as dimensões reduzidas (F = 16, H = 32, C = 2), sem FA;
-- D_sem_mixup, D_sem_T e D_sem_E: ablações do D_FA (dimensões do artigo): sem Mixup, sem o ramo
-  temporal e sem o ramo espectral; o D_sem_mixup e o D_sem_E têm a FA, e o D_sem_T não tem onde pô-la (a FA
-  fica no ramo temporal) (o Transformer recebe só os 16 tokens de um ramo + CLS).
+- D_sem_mixup, D_sem_T e D_sem_E: ablações do D_pequeno (dimensões reduzidas, sem FA): sem Mixup, sem o
+  ramo temporal e sem o ramo espectral (o Transformer recebe só os 16 tokens de um ramo + CLS).
 
 Frequency Attention (`AtencaoFrequencia`), a atenção de canal do FcaNet aplicada ao mapa [B, F, 1, 250] que
-sai do 1º bloco temporal: os F filtros são divididos em 16 grupos, cada grupo é resumido por um componente
-DCT ao longo do tempo (os 16 componentes u · ⌊250/16⌋ = 0, 15, 30, …, 225, fixados a priori, sem seleção pelo
-resultado; o TFST-SDKA usa 16 componentes escolhidos pelo desempenho), e os F
+sai do 1º bloco temporal: os F filtros são divididos em 4 grupos, cada grupo é resumido por um componente
+DCT ao longo do tempo (0, 35, 70 e 105: os 4 de menor frequência da grade 7 do FcaNet, u · ⌊250/7⌋), e os F
 resumos passam por FC(F → F/4) → ReLU → FC(F/4 → F) → sigmoid, que reescala cada filtro. A FA é criada por
 último: na mesma semente, o D_FA começa com os mesmos pesos do D, e D_FA − D isola o efeito da FA.
 
@@ -44,8 +42,8 @@ FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2              # dimensões reduz
 FILTROS_ARTIGO, OCULTO_ARTIGO, CABECAS_ARTIGO = 64, 128, 4     # dimensões do artigo (Tabela 1)
 DROPOUT, DROPOUT_ENCODER = 0.5, 0.1
 ALFA_MIXUP = 1.0
-GRADE_FA = 16
-COMPONENTES_FA = tuple(range(16))   # índices na grade de 16, um por grupo: 0, 15, …, 225
+GRADE_FA = 7                        # grade do FcaNet
+COMPONENTES_FA = (0, 1, 2, 3)       # índices na grade 7, um por grupo: 0, 35, 70, 105
 REDUCAO_FA = 4
 LARGURA_MAPA = 250                  # 500 amostras → MaxPool (1, 2)
 
@@ -67,9 +65,9 @@ MODELOS = {
     "D_FA": Variante(fa=True),
     "D_pequeno": Variante(filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
     "D": Variante(),
-    "D_sem_mixup": Variante(mixup=False, fa=True),
-    "D_sem_T": Variante(temporal=False),          # sem ramo temporal, não há onde pôr a FA
-    "D_sem_E": Variante(espectral=False, fa=True),
+    "D_sem_mixup": Variante(mixup=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "D_sem_T": Variante(temporal=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "D_sem_E": Variante(espectral=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
 }
 TIPOS_DTSF = tuple(MODELOS)
 PRINCIPAL = "D_FA"

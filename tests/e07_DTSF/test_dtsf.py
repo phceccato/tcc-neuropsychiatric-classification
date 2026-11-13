@@ -35,13 +35,13 @@ def test_numero_de_parametros():
     assert _n(rd.DTSF("D_pequeno")) == 80_449        # o D das rodadas anteriores
     assert _n(rd.DTSF("D")) == 702_721               # dimensões do artigo
     assert _n(rd.DTSF("D_FA")) == 704_769            # + FA: FC(64 → 16) e FC(16 → 64), sem viés
-    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D_FA"))
+    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D_pequeno"))
 
 
 def test_dimensoes_do_artigo_e_reduzidas():
     for tipo in TIPOS:
         v = rd.MODELOS[tipo]
-        esperado = (16, 32, 2, 2) if tipo == "D_pequeno" else (64, 128, 4, 2)
+        esperado = (64, 128, 4, 2) if tipo in ("D_FA", "D") else (16, 32, 2, 2)
         assert (v.filtros, v.oculto, v.cabecas, v.camadas) == esperado
     m = rd.DTSF("D_FA")
     assert m.encoder[0].atencao.num_heads == 4 and len(m.encoder) == 2
@@ -56,12 +56,11 @@ def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
     assert modelo.tokens(x_t, x_e).shape == (3, 33, oculto)
 
 
-def test_fa_no_principal_e_nas_ablacoes_com_ramo_temporal_e_64_filtros_em_16_grupos():
-    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {
-        "D_FA": True, "D_pequeno": False, "D": False, "D_sem_mixup": True, "D_sem_T": False, "D_sem_E": True}
+def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_4_grupos():
+    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "D_FA" for t in TIPOS}
     fa = rd.DTSF("D_FA").fa
-    assert fa.filtro_dct.shape == (64, 250) and fa.componentes == tuple(range(0, 226, 15))
-    assert all(torch.equal(fa.filtro_dct[4 * g], fa.filtro_dct[4 * g + 3]) for g in range(16))  # 4 filtros por grupo
+    assert fa.filtro_dct.shape == (64, 250) and fa.componentes == (0, 35, 70, 105)
+    assert all(torch.equal(fa.filtro_dct[16 * g], fa.filtro_dct[16 * g + 15]) for g in range(4))  # 16 filtros por grupo
 
 
 def test_d_fa_comeca_com_os_pesos_do_d():
@@ -91,9 +90,9 @@ def test_fa_componente_zero_e_o_gap_escalado():
     assert torch.allclose(freq[:, :4], mapa.mean(-1)[:, :4, 0] * 250 ** 0.5, atol=1e-4)
 
 
-def test_fa_exige_filtros_divisiveis_pelos_16_componentes():
+def test_fa_exige_filtros_divisiveis_pelos_4_componentes():
     with pytest.raises(ValueError):
-        rd.AtencaoFrequencia(canais=24)
+        rd.AtencaoFrequencia(canais=18)
 
 
 def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():
@@ -110,12 +109,13 @@ def test_so_d_sem_mixup_desliga_o_mixup():
     assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {t: t != "D_sem_mixup" for t in TIPOS}
 
 
-def test_ablacoes_do_d_fa_mudam_uma_coisa_so():
-    v = rd.MODELOS
-    assert v["D_sem_mixup"] == rd.Variante(mixup=False, fa=True) and v["D_sem_E"] == rd.Variante(espectral=False, fa=True)
+def test_ablacoes_do_d_pequeno_mudam_uma_coisa_so():
+    v, pequeno = rd.MODELOS, dict(filtros=rd.FILTROS, oculto=rd.OCULTO, cabecas=rd.CABECAS)
+    assert v["D_sem_mixup"] == rd.Variante(mixup=False, **pequeno) and v["D_sem_E"] == rd.Variante(espectral=False, **pequeno)
+    assert v["D_sem_T"] == rd.Variante(temporal=False, **pequeno) and v["D_pequeno"] == rd.Variante(**pequeno)
     assert v["D"] == rd.Variante() and v["D_FA"] == rd.Variante(fa=True)
     torch.manual_seed(2)
-    a = rd.DTSF("D_FA")
+    a = rd.DTSF("D_pequeno")
     torch.manual_seed(2)
     b = rd.DTSF("D_sem_mixup")
     assert all(torch.equal(x, b.state_dict()[k]) for k, x in a.state_dict().items())   # mesma rede, só o treino muda
