@@ -35,14 +35,25 @@ def test_comparacoes_usam_a_comparacao_pareada_por_ranks():
     assert r["delta"] > 0
 
 
-def test_h4_exige_os_seis_baselines():
+def test_h4_e_so_com_os_tres_combinados():
+    assert ca.BASELINES_H4 == ("LR_combinado", "RF_combinado", "KNN_combinado")
+    assert ca.MODALIDADES_DESCRITIVAS == ("temporal", "espectral")
+
+
+def test_h4_exige_os_tres_combinados():
     with pytest.raises(ValueError):
-        ca.decidir_h4({"SZ": {"LR_temporal": dict(p=0.01)}})
+        ca.decidir_h4({"SZ": {"LR_temporal": dict(p=0.01), "LR_combinado": dict(p=0.01)}})
+
+
+def test_h4_ignora_os_baselines_de_uma_modalidade():
+    todos = {m: dict(p=0.001) for m in MODELOS}
+    d = ca.decidir_h4({"SZ": {**todos, "RF_espectral": dict(p=0.9)}, "MDD": todos})
+    assert d["SZ"]["p"] == 0.001 and d["SZ"]["rejeita"]
 
 
 def test_h4_rejeita_so_se_d_vencer_todos_e_passar_no_holm():
     todos = lambda p: {m: dict(p=p) for m in MODELOS}
-    um_ruim = {**todos(0.001), "RF_espectral": dict(p=0.3)}
+    um_ruim = {**todos(0.001), "RF_combinado": dict(p=0.3)}
     d = ca.decidir_h4({"SZ": um_ruim, "MDD": todos(0.01)})
     assert d["SZ"]["p"] == 0.3 and not d["SZ"]["rejeita"]
     assert d["MDD"]["p"] == 0.01 and d["MDD"]["p_ajustado"] == pytest.approx(0.02) and d["MDD"]["rejeita"]
@@ -76,6 +87,7 @@ def test_main_grava_so_o_resumo_dos_classicos(tmp_path, monkeypatch):
     assert set(depois) - set(antes) == {classicos.relative_to(tmp_path) / "resumo.md"}
     texto = (classicos / "resumo.md").read_text()
     assert "## H4" in texto and "interseção-união" in texto and texto.count("| SZ | ") >= 6
+    assert "supera os 3 baselines combinados" in texto and "Descritivo (sem decisão): D_FA contra os 6 baselines" in texto
     assert "**Validade.**" in texto and "não garante" in texto
     assert '{"C": 0.1} ×40' in texto
     assert "Média ± desvio nas 10 repetições" in texto and "| Acurácia balanceada | Sensibilidade |" in texto

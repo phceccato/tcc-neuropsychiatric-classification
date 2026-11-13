@@ -5,12 +5,14 @@ Plano em docs/00_proposta-tcc.md:
 - AUC por pessoa (média da probabilidade fora do fold nas 10 repetições), IC por bootstrap estratificado
   e secundárias descritivas, como em pipeline/e07_DTSF/avaliar.py;
 - D é o modelo principal da etapa 07 (D_FA, `PRINCIPAL` em pipeline/e07_DTSF/redes_dtsf.py);
-- comparação D − baseline, para cada um dos 9 baselines, sobre os escores por pessoa: permutação pareada
+- comparação D − baseline, para cada um dos 9 baselines (os 3 combinados na H4, os outros 6 descritivos), sobre os escores por pessoa: permutação pareada
   sobre os ranks (10.000), unilateral D > baseline, com IC do Δ e as sensibilidades (Δ por
   repetição, t corrigido), com `comparacao_pareada` (pipeline/e07_DTSF/avaliar.py);
-- H4 num dataset: D supera os 9 baselines (interseção-união; p = maior dos 9 p); decisão por Holm sobre
+- H4 num dataset: D supera os 3 baselines combinados (`BASELINES_H4`: LR, RF e KNN sobre as características
+  temporais e espectrais concatenadas; interseção-união, p = maior dos 3 p); decisão por Holm sobre
   {SZ, MDD}, α = 0,05;
-- exploratório (sem decisão): interseção-união por modalidade (3 temporais, 3 espectrais, 3 combinados).
+- descritivo (sem decisão): D contra os 6 baselines de uma modalidade só (temporais e espectrais), com Δ, IC e
+  p, e a interseção-união por modalidade.
 
 Lê outputs/08_classicos/resultados/<dataset>/<modelo>/r*_f*.{csv,json} e
 outputs/07_DTSF/resultados/<dataset>/<modelo principal> (D_FA); grava só outputs/08_classicos/resultados/resumo.md.
@@ -31,17 +33,23 @@ from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL
 
 REFERENCIA = PRINCIPAL
 PLURAL = {"temporal": "temporais", "espectral": "espectrais", "combinado": "combinados"}
+MODALIDADE_H4 = "combinado"
+BASELINES_H4 = tuple(f"{c}_{MODALIDADE_H4}" for c in CLASSIFICADORES)
+MODALIDADES_DESCRITIVAS = tuple(m for m in MODALIDADES if m != MODALIDADE_H4)
 
 def comparacoes(predicoes_d: pd.DataFrame, baselines: dict[str, pd.DataFrame]) -> dict[str, dict]:
     """O modelo principal contra cada baseline: Δ, IC, p (ranks) e sensibilidades (`comparacao_pareada`)."""
     return {m: comparacao_pareada(predicoes_d, p) for m, p in baselines.items()}
 
 def decidir_h4(resultados: dict[str, dict[str, dict]], alfa: float = ALFA) -> dict[str, dict]:
-    """H4 por dataset: p de interseção-união sobre os baselines (`MODELOS`) e Holm sobre os datasets."""
+    """H4 por dataset: p de interseção-união sobre os baselines combinados (`BASELINES_H4`) e Holm sobre os datasets.
+
+    Os outros baselines que estiverem em `resultados` são ignorados: eles são só descritivos.
+    """
     for dataset, r in resultados.items():
-        if set(r) != set(MODELOS):
-            raise ValueError(f"{dataset}: a H4 precisa dos {len(MODELOS)} baselines completos, tem {sorted(r)}")
-    p_iu = {dataset: p_interseccao_uniao([c["p"] for c in r.values()]) for dataset, r in resultados.items()}
+        if not set(BASELINES_H4) <= set(r):
+            raise ValueError(f"{dataset}: a H4 precisa dos {len(BASELINES_H4)} baselines combinados, tem {sorted(r)}")
+    p_iu = {dataset: p_interseccao_uniao([r[m]["p"] for m in BASELINES_H4]) for dataset, r in resultados.items()}
     return holm(p_iu, alfa=alfa)
 
 def _hiperparametros(pasta: Path) -> str:
@@ -55,7 +63,8 @@ def linhas_h4(resultados: dict[str, dict[str, dict]]) -> list[str]:
     decisao = decidir_h4(resultados)
     linhas = [f"## H4: {REFERENCIA} contra os baselines clássicos (condicional às previsões fora do fold)", "",
               f"Cada comparação: permutação pareada sobre os ranks (10.000), unilateral {REFERENCIA} > baseline. H4 num "
-              f"dataset: {REFERENCIA} supera os {len(MODELOS)} baselines (interseção-união, p = maior p); decisão por Holm sobre SZ e MDD (α = 0,05). "
+              f"dataset: {REFERENCIA} supera os {len(BASELINES_H4)} baselines {PLURAL[MODALIDADE_H4]} ({', '.join(BASELINES_H4)}; interseção-união, "
+              "p = maior p); decisão por Holm sobre SZ e MDD (α = 0,05). "
               "O IC é o bootstrap estratificado e pareado, condicional às previsões obtidas.", "",
               "**Validade.** A interseção-união e o Holm controlam só a multiplicidade. Eles supõem que cada teste "
               "componente tem nível α, e a validação cruzada não garante isso: as pessoas de um fold de teste "
@@ -68,22 +77,32 @@ def linhas_h4(resultados: dict[str, dict[str, dict]]) -> list[str]:
         d = decisao[dataset]
         linhas.append(f"| {dataset} | {d['p']:.4f} | {d['p_ajustado']:.4f} | "
                       f"{'rejeita H0' if d['rejeita'] else 'não rejeita H0'} |")
-    linhas += ["", "Comparações componentes e sensibilidades (as sensibilidades não mudam a decisão):", "",
-               f"| Dataset | Baseline | ΔAUC {REFERENCIA} − baseline [IC 95%] | p (ranks) | "
-               "ΔAUC por repetição: mín–máx (positivos) | t corrigido p |",
-               "| --- | --- | --- | --- | --- | --- |"]
+    linhas += ["", "Comparações componentes e sensibilidades (as sensibilidades não mudam a decisão):", ""]
+    linhas += _tabela_comparacoes(resultados, BASELINES_H4)
+    descritivos = tuple(m for m in MODELOS if m not in BASELINES_H4)
+    linhas += ["", f"Descritivo (sem decisão): {REFERENCIA} contra os {len(descritivos)} baselines de uma modalidade só.", ""]
+    linhas += _tabela_comparacoes(resultados, descritivos)
+    linhas += ["", "Descritivo (sem decisão): interseção-união por modalidade.", "",
+               "| Dataset | " + " | ".join(f"p {REFERENCIA} > os {len(CLASSIFICADORES)} {PLURAL[m]}"
+                                      for m in MODALIDADES_DESCRITIVAS) + " |",
+               "| --- |" + " --- |" * len(MODALIDADES_DESCRITIVAS)]
     for dataset, r in resultados.items():
-        for m, c in r.items():
+        ps = [p_interseccao_uniao([r[f"{c}_{m}"]["p"] for c in CLASSIFICADORES]) for m in MODALIDADES_DESCRITIVAS]
+        linhas.append(f"| {dataset} | " + " | ".join(f"{p:.4f}" for p in ps) + " |")
+    return linhas
+
+
+def _tabela_comparacoes(resultados: dict[str, dict[str, dict]], baselines: tuple[str, ...]) -> list[str]:
+    linhas = [f"| Dataset | Baseline | ΔAUC {REFERENCIA} − baseline [IC 95%] | p (ranks) | "
+              "ΔAUC por repetição: mín–máx (positivos) | t corrigido p |",
+              "| --- | --- | --- | --- | --- | --- |"]
+    for dataset, r in resultados.items():
+        for m in baselines:
+            c = r[m]
             dr = c["delta_repeticoes"]
             linhas.append(f"| {dataset} | {m} | {c['delta']:+.3f} {formatar_ic(c['ic'])} | {c['p']:.4f} | "
                           f"{dr.min():+.3f} a {dr.max():+.3f} ({int((dr > 0).sum())}/{len(dr)}) | "
                           f"{c['t_corrigido_p']:.4f} |")
-    linhas += ["", "Exploratório (sem decisão): interseção-união por modalidade.", "",
-               "| Dataset | " + " | ".join(f"p {REFERENCIA} > os {len(CLASSIFICADORES)} {PLURAL[m]}" for m in MODALIDADES) + " |",
-               "| --- |" + " --- |" * len(MODALIDADES)]
-    for dataset, r in resultados.items():
-        ps = [p_interseccao_uniao([r[f"{c}_{m}"]["p"] for c in CLASSIFICADORES]) for m in MODALIDADES]
-        linhas.append(f"| {dataset} | " + " | ".join(f"{p:.4f}" for p in ps) + " |")
     return linhas
 
 def main() -> None:
