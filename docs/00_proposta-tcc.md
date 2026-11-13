@@ -7,7 +7,7 @@
 O TCC classifica EEG de repouso com olhos fechados em dois problemas binários independentes: **esquizofrenia × controles** e **depressão maior × controles**.
 
 - A arquitetura principal é o **DTSF** (WANG et al., 2026). Ele tem dois ramos CNN-GRU, um sobre o sinal em bandas de frequência e outro sobre a STFT, fundidos por um Transformer, e treina com Mixup.
-- A pergunta principal é se o DTSF discrimina pacientes e controles e de onde vem o seu desempenho: das duas modalidades juntas (temporal e espectral) e do Mixup, e se ele supera **classificadores clássicos aplicados à sua própria entrada** (regressão logística, Random Forest e KNN sobre resumos temporais, espectrais ou os dois juntos). As hipóteses H1–H4 estão em [Pergunta científica e hipóteses](#pergunta-científica-e-hipóteses).
+- A pergunta principal é se o DTSF discrimina pacientes e controles e de onde vem o seu desempenho: das duas modalidades juntas (temporal e espectral) e do Mixup, e se ele supera **classificadores clássicos aplicados à sua própria entrada** (regressão logística, Random Forest e KNN sobre os resumos temporais e espectrais juntos; os de uma modalidade só são descritivos). As hipóteses H1–H4 estão em [Pergunta científica e hipóteses](#pergunta-científica-e-hipóteses).
 
 O que vale para todo o trabalho:
 
@@ -137,7 +137,35 @@ Lotte et al. (2018) apontam classificadores clássicos, inclusive o Random Fores
 
 ## Pergunta científica e hipóteses
 
-> Nas previsões fora do fold, o DTSF adaptado discrimina pacientes e controles acima do acaso? As duas modalidades juntas e o Mixup contribuem para isso? E ele discrimina melhor do que classificadores clássicos aplicados a resumos temporais, espectrais ou combinados da sua própria entrada?
+> Nas previsões fora do fold, o DTSF adaptado discrimina pacientes e controles acima do acaso? As duas modalidades juntas e o Mixup contribuem para isso? E ele discrimina melhor do que classificadores clássicos que, como ele, veem as duas modalidades da sua própria entrada ao mesmo tempo?
+
+### Comparações
+
+Os modelos se dividem em dois grupos. "Dimensão" é o tamanho de cada token (H): os três DTSF têm 33 tokens (16 temporais, 16 espectrais e o CLS), de dimensão 128 com as dimensões do artigo e 32 com as reduzidas.
+
+**Comparações principais**
+
+| Modelo | O que é | Papel |
+| --- | --- | --- |
+| `D_FA` | **Principal.** DTSF (dois ramos, temporal e espectral) com as dimensões do artigo (dimensão 128) e a Frequency Attention | H1 e H4 |
+| `D_pequeno` | DTSF adaptado do artigo com as dimensões reduzidas (dimensão 32), sem FA | Referência de H2 e H3; descritivo |
+| `D` | DTSF com as dimensões do artigo (dimensão 128), sem FA | Descritivo |
+| `KNN_combinado`, `LR_combinado`, `RF_combinado` | KNN, regressão logística e Random Forest sobre as características temporais e espectrais concatenadas ("dual branch") | H4 |
+
+Comparações descritivas entre os DTSF, sem decisão: `D_FA` − `D` (efeito da FA), `D` − `D_pequeno` (efeito do tamanho) e `D_FA` − `D_pequeno`.
+
+**Ablações e referências secundárias**
+
+As ablações do DTSF são pré-fixadas nas dimensões reduzidas (dimensão 32) e derivam do `D_pequeno`, sem FA:
+
+| Modelo | O que é | Papel |
+| --- | --- | --- |
+| `D_sem_mixup` | `D_pequeno` sem Mixup | H3 |
+| `D_sem_T` | `D_pequeno` só com o ramo espectral | H2 |
+| `D_sem_E` | `D_pequeno` só com o ramo temporal | H2 |
+| `LR_psd_absolutas`, `LR_psd_relativas` | Regressão logística sobre as 76 features de potência absoluta ou relativa (19 canais × 4 bandas; etapa 06) | Referência, com o próprio teste contra o acaso |
+| `KNN_temporal`, `LR_temporal`, `RF_temporal` | Clássicos sobre as 475 características temporais | Descritivo: Δ, IC e p contra o `D_FA`, sem decisão |
+| `KNN_espectral`, `LR_espectral`, `RF_espectral` | Clássicos sobre as 1.102 características espectrais | Descritivo: Δ, IC e p contra o `D_FA`, sem decisão |
 
 Todas as hipóteses são avaliadas **em cada transtorno separadamente** (SZ × HC e MDD × HC), nas mesmas pessoas e partições, sobre a AUC por pessoa.
 
@@ -146,7 +174,7 @@ Todas as hipóteses são avaliadas **em cada transtorno separadamente** (SZ × H
 | H1 — acima do acaso                    | O DTSF adaptado discrimina pacientes e controles acima do acaso                                                        | AUC do `D_FA` contra 25 AUCs com rótulos permutados e retreino | p de permutação ≤ 0,05               |
 | H2 — complementaridade das modalidades | O DTSF com os dois ramos discrimina melhor do que com um ramo só                                                      | `D_pequeno` > `D_sem_T` **e** `D_pequeno` > `D_sem_E` | Interseção-união das 2 comparações |
 | H3 — Mixup                             | O Mixup no treino melhora a discriminação do DTSF                                                                    | `D_pequeno` > `D_sem_mixup`                              | Uma comparação                        |
-| H4 — DTSF × baselines clássicos      | O DTSF discrimina melhor do que **cada um** dos nove baselines clássicos (LR, RF e KNN × temporal, espectral e combinado) | `D_FA` > cada baseline                                     | Interseção-união das 9 comparações |
+| H4 — DTSF × baselines clássicos      | O DTSF discrimina melhor do que **cada um** dos três baselines clássicos combinados (LR, RF e KNN sobre as características temporais e espectrais concatenadas) | `D_FA` > cada baseline combinado                             | Interseção-união das 3 comparações |
 
 H1 e H4 são sobre o modelo principal, o `D_FA`. As ablações derivam do `D_pequeno`, e cada uma muda uma coisa só em relação a ele; por isso H2 e H3 comparam o `D_pequeno` com elas. Formalmente, em H2–H4, cada comparação testa H₀: ΔAUC ≤ 0 contra H₁: ΔAUC > 0, com ΔAUC = AUC(referência) − AUC(outro modelo), sendo a referência o `D_pequeno` em H2 e H3 e o `D_FA` em H4. Em H1, H₀ é que a AUC do `D_FA` é compatível com a distribuição de AUCs com rótulos permutados.
 
@@ -162,7 +190,7 @@ Comparações descritivas, sem decisão: `D_FA` − `D` (efeito da FA), `D` − 
 - **Ablações que mudam mais de uma coisa:** `D_sem_T` e `D_sem_E` mudam também o número de tokens e de parâmetros. Por isso a H2 compara a arquitetura com e sem o ramo, e não isola o ramo puro. O `D_sem_mixup` muda só o Mixup.
 - **IC do ΔAUC:** bootstrap estratificado e pareado, condicional às previsões obtidas.
 - **Sensibilidades**, que nunca decidem: o Δ por repetição e o t corrigido de Nadeau e Bengio (2003), que leva em conta a dependência entre os folds.
-- **Exploratório:** a interseção-união por modalidade.
+- **Descritivo:** o `D_FA` contra os 6 baselines de uma modalidade só (temporais e espectrais), com Δ, IC e p, e a interseção-união por modalidade; nada disso decide a H4.
 - **Validade:** a interseção-união e o Holm controlam só a multiplicidade. A validade de cada permutação **não está garantida**, porque a validação cruzada introduz dependência: as pessoas de um fold compartilham o modelo, os treinos se sobrepõem e o escore é a média de repetições com partições sobrepostas. O p vale condicionado às previsões obtidas; para a afirmação sobre o método, o erro tipo I real pode passar de α (\~10–13% numa simulação com dois algoritmos equivalentes).
 - **Leitura:** um resultado não significativo é inconclusivo e não demonstra equivalência. O poder é baixo, sobretudo na SZ, com 28 pessoas.
 
