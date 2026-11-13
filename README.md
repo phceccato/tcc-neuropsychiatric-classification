@@ -63,7 +63,7 @@ venv/bin/python -m pipeline.e07_DTSF.rodar --permutacoes 25 2>&1 | tee -a output
 venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt   # AUCs, ablações e H1–H3 → outputs/07_DTSF/resultados/resumo_dtsf.md
 venv/bin/python -m pipeline.e08_classicos.caracteristicas   # 475 + 1102 características por janela → outputs/08_classicos/caracteristicas/
 venv/bin/python -m pipeline.e08_classicos.rodar 2>&1 | tee -a outputs/08_classicos/log_classicos.txt   # 9 baselines clássicos (retoma) → outputs/08_classicos/resultados/
-venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e H4 (D_FA × 9 baselines) → outputs/08_classicos/resultados/resumo.md
+venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e H4 (D_FA × 3 baselines combinados) → outputs/08_classicos/resultados/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.datas        # data de gravação × diagnóstico → outputs/09_investigacao/datas/
 venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # D retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/
 venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/resumo.md
