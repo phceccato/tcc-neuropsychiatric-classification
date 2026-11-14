@@ -84,6 +84,10 @@ A etapa 12 (topomapas) fica só na máquina do autor, fora do git. A etapa 11 l�
 
 A especificação do experimento está em [docs/00_proposta-tcc.md](docs/00_proposta-tcc.md). Pastas de `docs/` e `outputs/` levam o número da etapa (`01_`…`12_`), e os pacotes de `pipeline/` e `tests/` o mesmo número com o prefixo `e` (`e01_`…), porque um módulo Python não pode começar com dígito; `pipeline/avaliacao` é a biblioteca de métricas usada pelas etapas 06–08 e não tem número. `outputs/` não é versionado, com duas exceções: `outputs/10_resultados/`, com as previsões de todos os modelos, para reproduzir os resultados sem treinar ([docs/10_resultados.md](docs/10_resultados.md)), e `outputs/11_graficos/`, com os gráficos principais e suplementares ([docs/11_graficos.md](docs/11_graficos.md)).
 
+## Estado da rodada oficial (14/11/2026)
+
+Os resultados do TCC dependem de uma rodada completa, feita numa GPU, a partir de uma pasta `outputs/` vazia. Nesta máquina (CPU), os baselines clássicos (etapa 08), a LR de 76 bandas (etapa 06) e as ablações do `D_pequeno` (etapa 07) estão completos, mas `D_FA` e `D` não foram treinados e `outputs/10_resultados/` e `outputs/11_graficos/` não foram gerados. As pastas de experimentos antigos (`12_FA_SDKA`, `12_figuras_rodada2`, `13_graficos_rodada2`) foram arquivadas fora do repositório. O estado de cada etapa está no doc dela. Os hiperparâmetros e as sementes ficam em constantes do código e, a cada tarefa, no `.json` de `outputs/07_DTSF/resultados` e de `outputs/08_classicos/resultados`; não há arquivo de configuração separado.
+
 ## Resultados por etapa
 
 Cada pasta de `pipeline/` tem um doc em `docs/` com os resultados da última execução:

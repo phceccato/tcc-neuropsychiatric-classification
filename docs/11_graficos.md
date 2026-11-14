@@ -95,4 +95,6 @@ Copie os `.tex` para a pasta do projeto e use `\input{fig_h1_nula}`, `\input{fig
 
 ## Resultados
 
-Pendentes da rodada oficial: as figuras são geradas a partir de `outputs/10_resultados/` depois que a etapa 10 exportar os resultados.
+Pendentes da rodada oficial: as figuras são geradas a partir de `outputs/10_resultados/` depois que a etapa 10 exportar os resultados, e `outputs/11_graficos/` ainda não existe. As figuras de rodadas anteriores (`12_figuras_rodada2` e `13_graficos_rodada2`) e o experimento exploratório de FA e SDKA (`12_FA_SDKA`) foram arquivados fora do repositório, em `~/Documentos/TCC/arquivo_outputs_antigos/`, e não valem para esta rodada.
+
+Ainda não há figura com as curvas de loss (treino e validação interna) do D_FA nem uma curva ROC com todos os modelos (`p1` tem 6, `s1` tem as 4 do `D_pequeno` e `fig_roc` tem 4).

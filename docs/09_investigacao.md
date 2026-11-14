@@ -12,6 +12,7 @@ Os resultados das seções 2–4 dependem dos modelos treinados e estão pendent
   - `erros.py`: experimento 2;
   - `explicar.py` e `relatorio_explicacao.py`: experimento 3 (retreino com pesos gravados, SHAP e resumo);
   - `lote.py`: experimento 4.
+- **Estado:** o código desta etapa investiga o D_FA, mas as saídas que estão em `outputs/09_investigacao/explicacao/D_pequeno/` e `lote/resultados/MDD/D_pequeno/` são de uma rodada anterior, em que o modelo principal era o `D_pequeno`; os números abaixo vêm dela. Depois que a etapa 07 tiver o `D_FA` completo (rodada oficial), rode `explicar`, `relatorio_explicacao` e `lote` de novo, no mesmo dispositivo da etapa 07, e atualize este doc. `datas` e `erros` (a parte sem retreino) também dependem das previsões do D_FA.
 - Modelo investigado: o principal da etapa 07, o D_FA (`PRINCIPAL` em [pipeline/e07_DTSF/redes_dtsf.py](../pipeline/e07_DTSF/redes_dtsf.py)). Os retreinos usam a mesma rede, as mesmas partições e as mesmas sementes da etapa 07.
 - Testes: `tests/e09_investigacao/`.
 - Saídas em `outputs/09_investigacao/`: `datas/`, `erros/`, `explicacao/D_FA/` e `lote/` (com o retreino em `lote/resultados/MDD/D_FA/`), cada uma com `resumo.md`; logs `log_explicacao.txt` e `log_lote.txt`. A explicação e o retreino ficam numa pasta por modelo, porque pesos de redes diferentes não se misturam.

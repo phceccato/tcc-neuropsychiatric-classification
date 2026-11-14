@@ -33,7 +33,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
 - Saídas em `outputs/07_DTSF/`:
   - `cache/` e `cache_dtsf/`: o sinal a 125 Hz e o cache multibanda com a STFT;
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.csv`: previsões das pessoas de teste;
-  - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.json`: época escolhida, dispositivo, número de parâmetros e histórico de perdas;
+  - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.json`: época escolhida, dispositivo, número de parâmetros, a configuração que reproduz o treino (modelo, semente, variante com ramos, Mixup, FA e dimensões, hiperparâmetros de treino, janelas por pessoa, versões do PyTorch e da CUDA; `configuracao_tarefa` em `rodar.py`) e o histórico de perdas (treino e validação interna, por época). Os `.json` gravados antes de 14/11/2026 (rodada em CPU de 9/11) não têm a configuração, só época, tempo e histórico;
   - `permutacoes/<conjunto>/<modelo>/p<k>_f<fold>.{csv,json}`: o mesmo para cada permutação de rótulos (só a repetição 0);
   - `resultados/resumo_dtsf.md`: o resumo gerado por `avaliar`. Para cada dataset, ele traz a AUC por pessoa com IC e uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições)).
 
@@ -108,9 +108,9 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 - **Equivalência com as redes anteriores,** com a mesma semente e as mesmas entradas, saídas idênticas:
   - o `D_pequeno` é o D de 80 mil parâmetros das rodadas anteriores;
   - o `D_sem_mixup`, o `D_sem_T` e o `D_sem_E` são as ablações de 80 mil parâmetros (ou menos) das rodadas anteriores;
-  - o `D` e o `D_FA` são os modelos gravados como D_artigo e D_artigo_FA em `outputs/14_DTSF_artigo/resultados`.
+  - o `D` e o `D_FA` são os modelos que as rodadas anteriores gravaram como D_artigo e D_artigo_FA (pasta `14_DTSF_artigo`, que não existe mais nesta máquina).
 
-  O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Por isso, previsões já gravadas desses modelos no mesmo dispositivo podem ser copiadas para `outputs/07_DTSF/resultados/<conjunto>/<modelo>/`, e o runner pula as tarefas já gravadas.
+  O treino também é o mesmo (mesma configuração e sementes por repetição e fold). Na rodada oficial (GPU), nada disso é copiado: todas as tarefas são treinadas de novo no mesmo dispositivo, numa pasta de saídas vazia.
 
 - Com dados reais, a linha 0 do cache multibanda é idêntica ao cache a 125 Hz nas 84 pessoas.
 - A STFT da fonte bate com a STFT do sinal em µV reamostrado diretamente, com erro máximo de 1e-4 em log10.
@@ -124,7 +124,18 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 ## Resultados
 
-Pendentes da rodada com a semente 20261108.
+Pendentes da rodada oficial, com a semente 20261108, que será feita numa GPU. Estado em 14/11/2026, nesta máquina (CPU):
+
+| Modelo | Treinos reais (de 100 por dataset) | Permutações da H1 |
+| --- | --- | --- |
+| `D_FA` (principal) | 0 | 22 de 250 (interrompidas) |
+| `D` | 0 | não se aplica |
+| `D_pequeno`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` | 100 (CPU, rodada de 9/11, sem a configuração no `.json`) | não se aplica |
+
+- `outputs/07_DTSF/resultados/resumo_dtsf.md` não existe, e a H1–H3 ainda não foi calculada.
+- Para a rodada oficial, use uma cópia do repositório com `outputs/` vazio e o mesmo `--dispositivo` em todos os modelos: o runner recusa misturar CPU e GPU numa pasta, e os `.json` antigos contam como CPU. Faça o commit do código antes de rodar, porque o manifesto da etapa 10 grava o commit.
+- Ordem: `rodar` (treinos), `rodar --permutacoes 25`, `avaliar`, etapa 08 e etapa 10.
+- Os hiperparâmetros ficam em constantes do código (`ConfigTreino` em `treino.py`, `MODELOS` em `redes_dtsf.py`) e, a cada tarefa, no `.json`; não há arquivo de configuração separado.
 
 ## Análise anterior
 

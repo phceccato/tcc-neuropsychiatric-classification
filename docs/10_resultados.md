@@ -45,4 +45,4 @@ Com treino, do zero: os dados são públicos e a etapa 00 baixa e confere cada a
 
 ## Execução
 
-Testado com as saídas desta máquina (rodada em CPU, com os nomes de modelo anteriores à etapa 07 de seis modelos): 30 pares (dataset, modelo) exportados, todos conferidos contra os resumos, 852 KB no total. A exportação da rodada oficial é feita na máquina em que ela roda.
+A exportação ainda **não foi feita**: `outputs/10_resultados/` não existe. Ela depende da rodada oficial (GPU) e das etapas anteriores, nesta ordem: `e07_DTSF.rodar`, `rodar --permutacoes 25`, `e07_DTSF.avaliar`, `e08_classicos.rodar` e `avaliar`. O `exportar` para com `Divergencia` se o `resumo_dtsf.md` da etapa 07 não existir, e deixa `D_FA` e `D` fora (listados como incompletos no manifesto) se eles não tiverem as 10 repetições. Depois da exportação, faça o commit da pasta. O teste da exportação (`tests/e10_resultados`, 5 testes) usa dados sintéticos.

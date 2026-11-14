@@ -71,7 +71,7 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
 
 ## Testes
 
-70 testes em `tests/e08_classicos/` (206 no repositório inteiro depois que `outputs/` deixou de ser versionado, H1–H3 ganharam testes e o DeLong e a ablação de 1–40 Hz saíram):
+72 testes em `tests/e08_classicos/` (301 no repositório inteiro, todos passando em 14/11/2026):
 - **características:** dimensões, ordem, valores contra numpy e scipy, senoide conhecida, sinal constante, valores inválidos, correspondência com a STFT do DTSF, alinhamento do cache;
 - **treino:** combinado = temporais e espectrais concatenadas; 150 janelas por pessoa só no ajuste; pesos por pessoa e classe chegando aos três classificadores em todos os ajustes; janelas de previsão independentes do sorteio; cada modelo nas duas tarefas, normalização só nas janelas de ajuste, partes internas disjuntas e com as duas classes, seleção que não muda quando se trocam as características e os rótulos do teste, agregação pela média das janelas sem overlap, reprodutibilidade, saídas separadas das históricas;
 - **avaliação:** interseção-união, Holm, comparação pareada com ranks (`comparacao_pareada`), resumo gravado só na pasta dos clássicos;
@@ -79,5 +79,7 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
 
 ## Resultados
 
-Pendentes da rodada com a semente 20261108.
+Os 9 baselines estão completos nos dois datasets (50 tarefas por modelo e dataset, rodada em CPU de 9/11, semente 20261108), mas o `resumo.md` que está em `outputs/08_classicos/resultados/` é **anterior à etapa 07 de seis modelos**: ele compara com o `D` antigo (o de 80 mil parâmetros, hoje `D_pequeno`) e fala em "9 baselines" na H4. Descarte-o: depois que o `D_FA` estiver completo em `outputs/07_DTSF/resultados` (rodada oficial), rode o `avaliar` de novo para gerar a H4 com o `D_FA` contra os 3 combinados.
+
+Cada `.json` grava, além dos hiperparâmetros escolhidos, o modelo, a semente, a grade de candidatos, o número de árvores, as partes internas e as janelas por pessoa. Os `.json` de 9/11 não têm os campos novos.
 
