@@ -2,7 +2,7 @@
 
 Duas análises, com as sessões reconstruídas pela data de gravação (pipeline/e09_investigacao/datas.py):
 
-1. **Subconjuntos, sem retreino.** As previsões fora do fold já gravadas (D da etapa 07, os 9
+1. **Subconjuntos, sem retreino.** As previsões fora do fold já gravadas (o modelo principal, D_FA, da etapa 07, os 9
    baselines da 08 e a LR de 76 bandas da 06) são reavaliadas só nas pessoas de um subconjunto em
    que a data se confunde menos com o diagnóstico. O modelo continua treinado com todas as pessoas.
    - SZ: os 3 pacientes gravados em 2003 contra os 14 HC (todos de 2003), e os 11 pacientes de
@@ -10,14 +10,14 @@ Duas análises, com as sessões reconstruídas pela data de gravação (pipeline
    - MDD: sem o lote de jan/2013; só a sessão de abr–jul/2013, a única com as duas classes (4 HC);
      e cada sessão de HC separada contra todos os pacientes.
 2. **Retreino sem o lote de jan/2013 (MDD).** Novas partições 5 × 10 (mesmo procedimento de
-   pipeline/e05_folds) nas 42 pessoas restantes e o D treinado do zero com
+   pipeline/e05_folds) nas 42 pessoas restantes e o D_FA treinado do zero com
    pipeline/e07_DTSF/rodar.py. Na SZ não há retreino equivalente: os 14 HC estão numa sessão só.
 
 Validação por sessão (deixar uma sessão de fora) não é possível: quase todas as sessões têm uma
 classe só (ver outputs/09_investigacao/datas/resumo.md).
 
 Grava em outputs/09_investigacao/lote/: subconjuntos.csv, folds_mdd_sem_jan2013.csv,
-resultados/MDD/D/r<rep>_f<fold>.{csv,json} e resumo.md.
+resultados/MDD/D_FA/r<rep>_f<fold>.{csv,json} e resumo.md.
 """
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ from pipeline.e05_folds.folds import gerar
 from pipeline.e07_DTSF.avaliar import SEMENTE, completo, ler_modelo
 from pipeline.e07_DTSF.rodar import (_iniciar, argumento_dispositivo, conferir_dispositivo, contexto_processos,
                                      rodar_tarefa)
+from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS  # os 9 baselines da etapa 08 (LR, RF e KNN × 3 modalidades)
 from pipeline.e09_investigacao.datas import pessoas_por_dataset
 
@@ -69,7 +70,7 @@ def auc_subconjunto(predicoes: pd.DataFrame, uids: set[str], semente: int = SEME
 
 
 def predicoes_por_modelo(dataset: str, lr: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    modelos = {"D": ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / "D")}
+    modelos = {PRINCIPAL: ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / PRINCIPAL)}
     modelos |= {c: ler_modelo(Path("outputs/08_classicos/resultados") / dataset / c) for c in CLASSICOS}
     modelos["LR de 76 bandas"] = lr[(lr["dataset"] == dataset) & (lr["features"] == "absolutas")]
     return modelos
@@ -116,17 +117,17 @@ def main() -> None:
         folds_sem_lote(manifesto, lote).to_csv(folds_csv, index=False)
     resultados = args.saida / "resultados"
     if not args.sem_retreino:
-        tarefas = [(r, f) for r in range(10) for f in range(5) if not (resultados / "MDD" / "D" / f"r{r}_f{f}.csv").exists()]
-        conferir_dispositivo(parser, args.dispositivo, [resultados / "MDD" / "D"])
+        tarefas = [(r, f) for r in range(10) for f in range(5) if not (resultados / "MDD" / PRINCIPAL / f"r{r}_f{f}.csv").exists()]
+        conferir_dispositivo(parser, args.dispositivo, [resultados / "MDD" / PRINCIPAL])
         print(f"{len(tarefas)} treinos pendentes ({args.dispositivo})", flush=True)
         with ProcessPoolExecutor(args.processos, initializer=_iniciar,
                                  mp_context=contexto_processos(args.dispositivo)) as executor:
-            futuros = [executor.submit(rodar_tarefa, "MDD", "D", r, f, str(folds_csv), str(resultados), None,
+            futuros = [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados), None,
                                        args.dispositivo) for r, f in tarefas]
             for i, futuro in enumerate(as_completed(futuros), 1):
                 print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 
-    texto = "\n".join(linhas_resumo(tabela, ler_modelo(resultados / "MDD" / "D"), subs)) + "\n"
+    texto = "\n".join(linhas_resumo(tabela, ler_modelo(resultados / "MDD" / PRINCIPAL), subs)) + "\n"
     (args.saida / "resumo.md").write_text(texto)
     print(texto)
 
@@ -145,15 +146,15 @@ def linhas_resumo(tabela: pd.DataFrame, retreino: pd.DataFrame, subs: dict) -> l
             g = g.set_index("modelo")
             linhas.append(f"| {nome} | {g['hc'].iloc[0]} | {g['pacientes'].iloc[0]} | "
                           + " | ".join(f"{g.at[m, 'auc']:.3f}" for m in modelos) + " |")
-        linhas += ["", "IC de 95% do D:", ""]
-        for nome, g in t[t["modelo"] == "D"].groupby("subconjunto", sort=False):
+        linhas += ["", f"IC de 95% do {PRINCIPAL}:", ""]
+        for nome, g in t[t["modelo"] == PRINCIPAL].groupby("subconjunto", sort=False):
             linhas.append(f"- {nome}: {g['auc'].iloc[0]:.3f} {formatar_ic((g['ic_baixo'].iloc[0], g['ic_alto'].iloc[0]))}")
         linhas.append("")
-    linhas += ["## Retreino do D no MDD sem o lote de jan/2013", ""]
+    linhas += [f"## Retreino do {PRINCIPAL} no MDD sem o lote de jan/2013", ""]
     if retreino.empty or not completo(retreino):
-        return linhas + ["Incompleto: faltam previsões em `resultados/MDD/D`."]
+        return linhas + [f"Incompleto: faltam previsões em `resultados/MDD/{PRINCIPAL}`."]
     r = auc_subconjunto(retreino, subs[("MDD", "sem o lote de jan/2013")])
-    posthoc = tabela[(tabela["dataset"] == "MDD") & (tabela["subconjunto"] == "sem o lote de jan/2013") & (tabela["modelo"] == "D")].iloc[0]
+    posthoc = tabela[(tabela["dataset"] == "MDD") & (tabela["subconjunto"] == "sem o lote de jan/2013") & (tabela["modelo"] == PRINCIPAL)].iloc[0]
     linhas += ["| Treino | HC | Pacientes | AUC por pessoa [IC 95%] |", "| --- | --- | --- | --- |",
                f"| Com o lote (etapa 07), avaliado sem ele | {posthoc['hc']} | {posthoc['pacientes']} | "
                f"{posthoc['auc']:.3f} {formatar_ic((posthoc['ic_baixo'], posthoc['ic_alto']))} |",

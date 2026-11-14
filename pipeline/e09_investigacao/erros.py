@@ -1,7 +1,7 @@
 """Experimento 2: perfil das pessoas que o DTSF classifica errado, com foco em s06, h10 e MDD S27.
 
 Para cada pessoa, junta:
-- do D (etapa 07): a probabilidade média nas 10 repetições, o desvio entre repetições e em quantas
+- do modelo principal, o D_FA (etapa 07): a probabilidade média nas 10 repetições, o desvio entre repetições e em quantas
   repetições a previsão (limiar 0,5) erra;
 - da qualidade do sinal: fração de janelas rejeitadas (etapa 03), duração e canal interpolado (02);
 - da data: data e sessão de gravação (outputs/09_investigacao/datas/pessoas.csv);
@@ -33,6 +33,7 @@ from scipy.stats import percentileofscore
 
 from pipeline.e04_features.psd import BANDAS, LIMITES_HZ, TAMANHO_JANELA, cortar, welch_janelas
 from pipeline.e07_DTSF.avaliar import ler_modelo
+from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL
 
 FOCO = ("SZ-SZ-s06", "SZ-HC-h10", "MDD-MDD-S27")
 PICO_HZ = (6.0, 14.0)
@@ -64,7 +65,7 @@ def espectro_pessoa(caminho_npz: Path, janelas: pd.DataFrame) -> tuple[np.ndarra
 
 
 def previsoes_d(dataset: str) -> pd.DataFrame:
-    p = ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / "D")
+    p = ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / PRINCIPAL)
     p["erro"] = (p["prob"] >= LIMIAR).astype(int) != p["y"]
     return p.groupby("subject_uid").agg(y=("y", "first"), prob_media=("prob", "mean"), prob_dp=("prob", "std"),
                                          repeticoes_erradas=("erro", "sum"))
@@ -102,7 +103,7 @@ def figura_janelas(janelas: pd.DataFrame, destino: Path) -> None:
         j = janelas[janelas["subject_uid"] == uid].sort_values("inicio_s")
         eixo.plot(j["inicio_s"], j["prob"], ".-", ms=3, lw=0.6)
         eixo.axhline(LIMIAR, color="gray", ls="--", lw=0.8)
-        eixo.set(title=f"{uid}: probabilidade de paciente por janela (D retreinado, repetição 0)", ylabel="prob", ylim=(0, 1))
+        eixo.set(title=f"{uid}: probabilidade de paciente por janela ({PRINCIPAL} retreinado, repetição 0)", ylabel="prob", ylim=(0, 1))
     eixos[-1].set_xlabel("início da janela (s)")
     fig.tight_layout()
     fig.savefig(destino, dpi=120)
@@ -112,7 +113,7 @@ def figura_janelas(janelas: pd.DataFrame, destino: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--saida", type=Path, default=Path("outputs/09_investigacao/erros"))
-    parser.add_argument("--explicacao", type=Path, default=Path("outputs/09_investigacao/explicacao"))
+    parser.add_argument("--explicacao", type=Path, default=Path("outputs/09_investigacao/explicacao") / PRINCIPAL)
     args = parser.parse_args()
     args.saida.mkdir(parents=True, exist_ok=True)
 

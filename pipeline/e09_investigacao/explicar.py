@@ -1,7 +1,7 @@
 """Experimento 3: explicações SHAP do DTSF (expected gradients) nas pessoas de teste da repetição 0.
 
-As previsões da etapa 07 não guardam os pesos. Aqui o D é retreinado nos 5 folds da repetição 0 de
-cada dataset, com as mesmas partições e sementes de pipeline/e07_DTSF/rodar.py, e os pesos ficam
+As previsões da etapa 07 não guardam os pesos. Aqui o modelo principal (D_FA, `PRINCIPAL` em
+pipeline/e07_DTSF/redes_dtsf.py) é retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes de pipeline/e07_DTSF/rodar.py, e os pesos ficam
 gravados. Para cada pessoa de teste:
 - a probabilidade de cada janela aceita sem overlap (as mesmas que formam a previsão da pessoa);
 - os valores SHAP do logit em relação às duas entradas, calculados por expected gradients
@@ -18,11 +18,11 @@ Os φ não são gravados inteiros. Por pessoa, a média nas janelas de:
   (canal, frequência), e soma de |φ| por quadro.
 Por janela: o logit, a probabilidade e a soma de φ de cada ramo.
 
-Grava em outputs/09_investigacao/explicacao/:
+Grava em outputs/09_investigacao/explicacao/D_FA/ (uma pasta por modelo: pesos de modelos diferentes não se misturam):
 - modelos/<dataset>/f<fold>.pt e .json (época escolhida);
 - janelas/<dataset>/f<fold>.csv (uma linha por janela de teste);
 - atribuicoes/<dataset>/f<fold>.npz (agregados por pessoa).
-Tarefas já gravadas são puladas. Com --dispositivo cuda, só o treino do D roda na GPU; o modelo volta para
+Tarefas já gravadas são puladas. Com --dispositivo cuda, só o treino roda na GPU; o modelo volta para
 a CPU antes do SHAP, que continua na CPU. O .json de cada modelo registra o dispositivo do treino. O resumo e as figuras ficam em pipeline/e09_investigacao/relatorio_explicacao.py.
 """
 from __future__ import annotations
@@ -38,12 +38,13 @@ import pandas as pd
 import torch
 
 from pipeline.e07_DTSF.dados import janelas_avaliacao
-from pipeline.e07_DTSF.redes_dtsf import DTSF
+from pipeline.e07_DTSF.redes_dtsf import DTSF, PRINCIPAL
 from pipeline.e07_DTSF.rodar import (SEMENTE, _fonte, _iniciar, argumento_dispositivo, conferir_dispositivo,
                                      contexto_processos)
 from pipeline.e07_DTSF.treino import treinar
 
-MODELO, REPETICAO = "D", 0
+MODELO, REPETICAO = PRINCIPAL, 0
+SAIDA = Path("outputs/09_investigacao/explicacao") / MODELO
 FUNDO_POR_CLASSE = 100
 AMOSTRAS = 50
 JANELAS_POR_PASSO = 4
@@ -108,7 +109,7 @@ def rodar_tarefa(dataset: str, fold: int, folds_csv: str, saida: str, dispositiv
                             dispositivo=dispositivo)
         modelo = resultado.modelo.cpu()
         torch.save(modelo.state_dict(), caminho_modelo)
-        caminho_modelo.with_suffix(".json").write_text(json.dumps(dict(melhor_epoca=resultado.melhor_epoca,
+        caminho_modelo.with_suffix(".json").write_text(json.dumps(dict(modelo=MODELO, melhor_epoca=resultado.melhor_epoca,
                                                                         dispositivo=dispositivo)))
     for p in modelo.parameters():
         p.requires_grad_(False)
@@ -144,7 +145,7 @@ def rodar_tarefa(dataset: str, fold: int, folds_csv: str, saida: str, dispositiv
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--folds", default="outputs/05_folds/folds.csv")
-    parser.add_argument("--saida", default="outputs/09_investigacao/explicacao")
+    parser.add_argument("--saida", default=str(SAIDA))
     parser.add_argument("--datasets", nargs="+", default=["SZ", "MDD"])
     parser.add_argument("--processos", type=int, default=10)
     argumento_dispositivo(parser)

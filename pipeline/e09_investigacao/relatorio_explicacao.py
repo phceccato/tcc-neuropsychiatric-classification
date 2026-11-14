@@ -1,6 +1,6 @@
-"""Experimento 3, resumo: o que os valores SHAP do D (pipeline/e09_investigacao/explicar.py) mostram.
+"""Experimento 3, resumo: o que os valores SHAP do modelo principal, o D_FA (pipeline/e09_investigacao/explicar.py), mostram.
 
-Lê outputs/09_investigacao/explicacao/{janelas,atribuicoes}/ e grava, na mesma pasta, resumo.md e as
+Lê outputs/09_investigacao/explicacao/D_FA/{janelas,atribuicoes}/ e grava, na mesma pasta, resumo.md e as
 figuras frequencias.png, canais.png e tempo.png.
 
 - **Conferências:** a previsão da pessoa no modelo retreinado contra a da etapa 07 na repetição 0, e
@@ -37,6 +37,7 @@ import pandas as pd
 from pipeline.e01_auditoria.auditar_ec import CANAIS
 from pipeline.e07_DTSF.avaliar import ler_modelo
 from pipeline.e07_DTSF.dados_dtsf import FREQUENCIAS
+from pipeline.e09_investigacao.explicar import MODELO, SAIDA as EXPLICACAO
 from pipeline.e09_investigacao.erros import FOCO, LIMIAR
 
 TRECHOS = 10
@@ -78,7 +79,7 @@ def perfis(atrib: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
 
 
 def conferencias(dataset: str, janelas: pd.DataFrame, pessoas: pd.DataFrame) -> dict[str, float]:
-    original = ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / "D")
+    original = ler_modelo(Path("outputs/07_DTSF/resultados") / dataset / MODELO)
     original = original[original["repeticao"] == 0].set_index("subject_uid")["prob"].loc[pessoas.index]
     soma = janelas["phi_temporal"] + janelas["phi_espectral"]
     alvo = janelas["logit"] - janelas["logit_fundo"]
@@ -149,10 +150,10 @@ def figura_tempo(dados: dict, destino: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--pasta", type=Path, default=Path("outputs/09_investigacao/explicacao"))
+    parser.add_argument("--pasta", type=Path, default=EXPLICACAO)
     args = parser.parse_args()
 
-    dados, conf, linhas = {}, {}, ["# Explicações SHAP do D (repetição 0, retreinada)", ""]
+    dados, conf, linhas = {}, {}, [f"# Explicações SHAP do {MODELO} (repetição 0, retreinada)", ""]
     for dataset in ("SZ", "MDD"):
         janelas, pessoas, atrib = carregar(args.pasta, dataset)
         dados[dataset] = (pessoas, perfis(atrib))
