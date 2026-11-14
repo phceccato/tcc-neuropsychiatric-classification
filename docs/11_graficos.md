@@ -2,23 +2,23 @@
 
 Gráficos do TCC e do material suplementar, em dois formatos: imagens prontas (matplotlib: PDF vetorial para `\includegraphics` e PNG de conferência) e figuras em pgfplots (`.tex` para dar `\input` no Overleaf, com um PNG de prévia). Esta etapa não treina nem testa nada: lê a pasta versionada da etapa 10 (`outputs/10_resultados/`), recalcula os números a partir das previsões, confere cada um contra o resumo da etapa e desenha. Por isso, qualquer pessoa com o repositório gera os mesmos gráficos sem treinar nenhum modelo. A única exceção é a linha do tempo das gravações (`fig_sessoes`), que precisa das datas dos EDF (etapa 02).
 
-- Código: [pipeline/e12_graficos/](../pipeline/e12_graficos/)
+- Código: [pipeline/e11_graficos/](../pipeline/e11_graficos/)
   - `numeros.py`: lê as previsões (`previsoes/<dataset>/<modelo>.csv`), as permutações do D_FA e os resumos de `outputs/10_resultados/`; recalcula, com as mesmas funções e sementes das etapas, a AUC por pessoa com IC, a AUC de cada repetição, a média ± desvio de todas as métricas nas 10 repetições, as secundárias por pessoa, a matriz de confusão, os escores por pessoa (rótulo e escore médio, sem identificador) para as curvas ROC, as comparações (H2 e H3 sobre o D_pequeno, H4 e as descritivas com os baselines sobre o D_FA, e as descritivas entre os DTSF), as decisões das hipóteses e a distribuição nula da H1; confere contra os resumos e grava `numeros.json`;
   - `graficos.py`: as figuras em matplotlib;
   - `comum.py`, `h1_nula.py`, `roc.py` e `sessoes.py`: as figuras em pgfplots (ambiente `figure` completo, com `\caption` e `\label` em português e os dados embutidos em `coordinates`). `h1_nula` e `roc` leem o `numeros.json`; `sessoes` lê o manifesto da etapa 02 e confere as contagens por sessão contra [09_investigacao.md](09_investigacao.md);
   - `previa.py`: compila cada `.tex` num documento mínimo, recortado na figura e com 16 cm de largura de texto, e grava um PNG ao lado, só para conferência.
-- Testes: `tests/e12_graficos/`, com uma pasta `10_resultados` sintética que passa por `numeros`, `graficos` e pgfplots de ponta a ponta (com a compilação no pdflatex, quando ele está instalado).
-- Saídas em `outputs/12_graficos/` (versionada, como `outputs/10_resultados/`): `numeros.json`; `principais/` e `suplementares/`, com um `.pdf` e um `.png` de cada figura; e `pgfplots/`, com os `.tex` e as prévias em `.png`.
+- Testes: `tests/e11_graficos/`, com uma pasta `10_resultados` sintética que passa por `numeros`, `graficos` e pgfplots de ponta a ponta (com a compilação no pdflatex, quando ele está instalado).
+- Saídas em `outputs/11_graficos/` (versionada, como `outputs/10_resultados/`): `numeros.json`; `principais/` e `suplementares/`, com um `.pdf` e um `.png` de cada figura; e `pgfplots/`, com os `.tex` e as prévias em `.png`.
 
 Pré-requisitos: `outputs/10_resultados/` completa (etapa 10), com as previsões dos 20 modelos, as permutações do D_FA e os resumos; para `sessoes`, o manifesto da etapa 02; para a prévia, o pdflatex com pgfplots e o pdftocairo (`sudo apt install texlive-latex-extra texlive-pictures poppler-utils`).
 
 ```bash
-venv/bin/python -m pipeline.e12_graficos.numeros    # recalcula e confere → outputs/12_graficos/numeros.json
-venv/bin/python -m pipeline.e12_graficos.graficos   # → outputs/12_graficos/principais/ e suplementares/
-venv/bin/python -m pipeline.e12_graficos.h1_nula    # → outputs/12_graficos/pgfplots/fig_h1_nula.tex
-venv/bin/python -m pipeline.e12_graficos.roc        # → outputs/12_graficos/pgfplots/fig_roc.tex
-venv/bin/python -m pipeline.e12_graficos.sessoes    # → outputs/12_graficos/pgfplots/fig_sessoes.tex (precisa da etapa 02)
-venv/bin/python -m pipeline.e12_graficos.previa     # PNG de cada .tex → outputs/12_graficos/pgfplots/*.png
+venv/bin/python -m pipeline.e11_graficos.numeros    # recalcula e confere → outputs/11_graficos/numeros.json
+venv/bin/python -m pipeline.e11_graficos.graficos   # → outputs/11_graficos/principais/ e suplementares/
+venv/bin/python -m pipeline.e11_graficos.h1_nula    # → outputs/11_graficos/pgfplots/fig_h1_nula.tex
+venv/bin/python -m pipeline.e11_graficos.roc        # → outputs/11_graficos/pgfplots/fig_roc.tex
+venv/bin/python -m pipeline.e11_graficos.sessoes    # → outputs/11_graficos/pgfplots/fig_sessoes.tex (precisa da etapa 02)
+venv/bin/python -m pipeline.e11_graficos.previa     # PNG de cada .tex → outputs/11_graficos/pgfplots/*.png
 ```
 
 O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com o resumo da etapa: |diferença| ≤ 0,0005 em AUC, IC e ΔAUC, e ≤ 0,00005 em p.
