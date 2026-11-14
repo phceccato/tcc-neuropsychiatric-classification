@@ -23,8 +23,10 @@ com os de uma rodada em CPU.
 from __future__ import annotations
 
 import copy
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -160,6 +162,31 @@ def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Ser
     modelo.load_state_dict(melhor_estado)
     modelo.eval()
     return Resultado(modelo, melhor_epoca, historico)
+
+
+def salvar_checkpoint(caminho: Path, modelo: DTSF, melhor_epoca: int, **metadados) -> None:
+    """Grava os pesos do melhor modelo (os da época escolhida pelo early stopping, já restaurados em `treinar`).
+
+    Os tensores vão para a CPU, então o arquivo abre em qualquer máquina. A STFT normalizada e os componentes da FA
+    são buffers, e ficam no `state_dict`. O arquivo é gravado inteiro ou não aparece (escrita em .tmp e `os.replace`).
+    `metadados` (semente, dispositivo, configuração) devem ser tipos simples, para `carregar_checkpoint` abrir com
+    `weights_only=True`.
+    """
+    caminho = Path(caminho)
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    temporario = caminho.with_name(caminho.name + ".tmp")
+    torch.save(dict(modelo=modelo.tipo, melhor_epoca=melhor_epoca,
+                    estado={k: v.detach().cpu() for k, v in modelo.state_dict().items()}, **metadados), temporario)
+    os.replace(temporario, caminho)
+
+
+def carregar_checkpoint(caminho: Path) -> tuple[DTSF, dict]:
+    """(modelo em modo de avaliação, metadados) de um checkpoint de `salvar_checkpoint`."""
+    ck = torch.load(caminho, map_location="cpu", weights_only=True)
+    modelo = DTSF(ck["modelo"])
+    modelo.load_state_dict(ck["estado"])
+    modelo.eval()
+    return modelo, {k: v for k, v in ck.items() if k != "estado"}
 
 
 def prever(modelo: DTSF, fonte, uids: list[str]) -> dict[str, float]:

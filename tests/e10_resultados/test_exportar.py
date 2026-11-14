@@ -115,3 +115,17 @@ def test_aucs_do_resumo_le_as_tabelas_por_dataset_com_e_sem_parametros():
           "| D_FA | 0.781 ± 0.058 | x |\n## H2\n| SZ | D_FA − D_sem_T | +0.000 [-0.087, +0.087] |\n"
           "## MDD\n\n| D_FA | 704.769 | 0.958 [0.897, 0.995] | x |\n")
     assert ex.aucs_do_resumo(md) == {("SZ", "D_FA"): 0.827, ("SZ", "LR_temporal"): 0.602, ("MDD", "D_FA"): 0.958}
+
+
+def test_exporta_o_historico_de_perdas_so_do_modelo_principal(tmp_path):
+    raiz, saida = _outputs(tmp_path), tmp_path / "10_resultados"
+    hist = [dict(epoca=1, perda_treino=0.7, perda_validacao=0.6), dict(epoca=2, perda_treino=0.5, perda_validacao=0.8)]
+    for a in (raiz / "07_DTSF/resultados/SZ/D_FA").glob("r*_f*.json"):
+        a.write_text(json.dumps(dict(dispositivo="cuda", parametros=704_769, melhor_epoca=1, historico=hist)))
+    ex.exportar(raiz, saida)
+    p = pd.read_csv(saida / "perdas/SZ/D_FA.csv")
+    assert list(p.columns) == ["repeticao", "fold", "epoca", "perda_treino", "perda_validacao", "melhor"]
+    assert len(p) == 2 * len(list((raiz / "07_DTSF/resultados/SZ/D_FA").glob("r*_f*.json")))
+    assert p.groupby(["repeticao", "fold"])["melhor"].sum().eq(1).all() and set(p.loc[p["melhor"] == 1, "epoca"]) == {1}
+    assert not (saida / "perdas/MDD").exists()          # sem histórico nos .json: nada a exportar
+    assert not list((saida / "perdas").rglob("LR*"))

@@ -8,6 +8,9 @@ Lê as saídas das etapas 05 (partições), 06 (LR_psd), 07 (DTSF) e 08 (clássi
 - permutacoes/<dataset>/<modelo>.csv: o mesmo para as permutações de rótulo com retreino (coluna permutacao em vez
   de repeticao; y_true é o rótulo permutado), base da H1; e permutacoes/<dataset>/LR_psd_absolutas_nulas.csv, as
   AUCs nulas da etapa 06 (ela grava só as AUCs);
+- perdas/<dataset>/<modelo>.csv, só do modelo principal (D_FA): a perda de treino e a de validação interna de cada
+  época de cada (repetição, fold), com a época escolhida (`melhor`); a validação é o split interno do treino, nunca o
+  teste, e a perda de treino é a do lote com Mixup;
 - folds.csv: as partições (dataset, repetição, fold, pessoa, grupo, papel), cópia de outputs/05_folds/folds.csv;
 - metricas.csv: AUC por pessoa com IC, média ± desvio nas repetições e secundárias, recalculadas das previsões
   exportadas com pipeline/avaliacao/metricas.py;
@@ -33,7 +36,7 @@ import pandas as pd
 
 from pipeline.avaliacao.metricas import LIMIAR, METRICAS_REPETICAO, avaliar, media_desvio
 from pipeline.e07_DTSF.avaliar import SEMENTE, completo, ler_modelo
-from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
+from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS
 
 DATASETS = ("SZ", "MDD")
@@ -91,6 +94,20 @@ def aucs_do_resumo_06(md: str) -> dict[tuple[str, str], float]:
     return saida
 
 
+def ler_perdas(pasta: Path) -> pd.DataFrame:
+    """Histórico de perdas de cada fold de um modelo: uma linha por (repetição, fold, época)."""
+    linhas = []
+    for a in sorted(pasta.glob("r*_f*.json")):
+        j = json.load(open(a))
+        if "historico" not in j:
+            continue
+        r, f = (int(x[1:]) for x in a.stem.split("_"))
+        linhas += [dict(repeticao=r, fold=f, epoca=h["epoca"], perda_treino=h["perda_treino"],
+                        perda_validacao=h["perda_validacao"], melhor=int(h["epoca"] == j["melhor_epoca"]))
+                   for h in j["historico"]]
+    return pd.DataFrame(linhas, columns=["repeticao", "fold", "epoca", "perda_treino", "perda_validacao", "melhor"])
+
+
 def coletar(raiz: Path) -> dict:
     """Previsões, permutações e metadados de cada (dataset, modelo) completo."""
     modelos, incompletos = {}, []
@@ -106,7 +123,8 @@ def coletar(raiz: Path) -> dict:
             js = _jsons(pasta)
             dispositivos = sorted({j.get("dispositivo", "cpu") for j in js}) if etapa == "07" else ["cpu"]
             parametros = sorted({j["parametros"] for j in js if isinstance(j.get("parametros"), int)})
-            modelos[(d, m)] = dict(etapa=etapa, previsoes=p, dispositivo=dispositivos, parametros=parametros,
+            perdas = ler_perdas(pasta) if etapa == "07" and m == PRINCIPAL else pd.DataFrame()
+            modelos[(d, m)] = dict(etapa=etapa, previsoes=p, dispositivo=dispositivos, parametros=parametros, perdas=perdas,
                                    permutacoes=ler_permutacoes(raiz / "07_DTSF/permutacoes" / d / m)
                                    if etapa == "07" else pd.DataFrame())
         for nome in ("absolutas", "relativas"):
@@ -116,7 +134,7 @@ def coletar(raiz: Path) -> dict:
                 incompletos.append(f"{d}/LR_psd_{nome}")
                 continue
             modelos[(d, f"LR_psd_{nome}")] = dict(etapa="06", previsoes=p, dispositivo=["cpu"], parametros=[],
-                                                   permutacoes=pd.DataFrame())
+                                                   permutacoes=pd.DataFrame(), perdas=pd.DataFrame())
     return dict(modelos=modelos, incompletos=incompletos)
 
 
@@ -165,6 +183,7 @@ treinar nada. Gerado por `python -m pipeline.e10_resultados.exportar`; o método
 | `previsoes/<dataset>/<modelo>.csv` | uma linha por (repetição, fold, pessoa de teste): `y_true` (1 = paciente), `y_prob` (probabilidade de paciente), `y_pred` (`y_prob` ≥ 0,5) |
 | `permutacoes/<dataset>/<modelo>.csv` | o mesmo nas permutações de rótulo com retreino (repetição 0); `y_true` é o rótulo permutado |
 | `permutacoes/<dataset>/LR_psd_absolutas_nulas.csv` | as AUCs nulas da LR_psd (1000 permutações) |
+| `perdas/<dataset>/D_FA.csv` | perda de treino e de validação interna por época, em cada (repetição, fold), do modelo principal; `melhor` marca a época escolhida |
 | `folds.csv` | as partições: 5 folds × 10 repetições, por pessoa, com o papel (treino, validação, teste) |
 | `metricas.csv` | AUC por pessoa com IC de 95%; acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1 no limiar 0,5; e a média ± desvio de todas nas 10 repetições, recalculadas destes arquivos |
 | `resumos/` | os resumos das etapas 06, 07 e 08, com os testes das hipóteses |
@@ -197,6 +216,9 @@ def exportar(raiz: Path = Path("outputs"), saida: Path = SAIDA) -> dict:
         if len(info["permutacoes"]):
             (saida / "permutacoes" / d).mkdir(parents=True, exist_ok=True)
             padronizar(info["permutacoes"], "permutacao").to_csv(saida / "permutacoes" / d / f"{m}.csv", index=False)
+        if len(info["perdas"]):
+            (saida / "perdas" / d).mkdir(parents=True, exist_ok=True)
+            info["perdas"].to_csv(saida / "perdas" / d / f"{m}.csv", index=False)
     nulas = raiz / "06_LR_psd/permutacoes.csv"
     if nulas.exists():
         n = pd.read_csv(nulas)

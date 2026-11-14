@@ -71,7 +71,7 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
 
 ## Testes
 
-72 testes em `tests/e08_classicos/` (301 no repositório inteiro, todos passando em 14/11/2026):
+72 testes em `tests/e08_classicos/` (308 no repositório inteiro, todos passando em 14/11/2026):
 - **características:** dimensões, ordem, valores contra numpy e scipy, senoide conhecida, sinal constante, valores inválidos, correspondência com a STFT do DTSF, alinhamento do cache;
 - **treino:** combinado = temporais e espectrais concatenadas; 150 janelas por pessoa só no ajuste; pesos por pessoa e classe chegando aos três classificadores em todos os ajustes; janelas de previsão independentes do sorteio; cada modelo nas duas tarefas, normalização só nas janelas de ajuste, partes internas disjuntas e com as duas classes, seleção que não muda quando se trocam as características e os rótulos do teste, agregação pela média das janelas sem overlap, reprodutibilidade, saídas separadas das históricas;
 - **avaliação:** interseção-união, Holm, comparação pareada com ranks (`comparacao_pareada`), resumo gravado só na pasta dos clássicos;

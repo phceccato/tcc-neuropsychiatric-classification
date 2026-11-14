@@ -349,3 +349,30 @@ def test_gerador_do_mixup_e_derivado_da_semente_mas_independente_do_sorteio():
     a, b = t.gerador_mixup(7), t.gerador_mixup(7)
     assert a.random() == b.random()  # reprodutível
     assert t.gerador_mixup(7).random() != np.random.default_rng(7).random()  # não repete o fluxo do sorteio
+
+
+# ---------- checkpoint e histórico de perdas ----------
+
+def test_checkpoint_guarda_o_melhor_modelo_e_reproduz_as_previsoes(tmp_path):
+    fonte = _FonteSintetica()
+    treino, validacao, teste = _papeis(fonte)
+    resultado = t.treinar("D_FA", fonte, treino, validacao, fonte.y, semente=5, max_epocas=2)
+    caminho = tmp_path / "SZ" / "D_FA" / "r0_f0.pt"
+    t.salvar_checkpoint(caminho, resultado.modelo, resultado.melhor_epoca, semente=5, configuracao=dict(a=1))
+    assert caminho.exists() and not list(tmp_path.rglob("*.tmp"))
+    modelo, meta = t.carregar_checkpoint(caminho)
+    assert meta["modelo"] == "D_FA" and meta["melhor_epoca"] == resultado.melhor_epoca and meta["semente"] == 5
+    assert not modelo.training and modelo.usa_fa
+    for k, v in resultado.modelo.state_dict().items():        # inclui a STFT normalizada e os componentes da FA
+        assert torch.equal(modelo.state_dict()[k], v.cpu())
+    assert t.prever(modelo, fonte, teste) == t.prever(resultado.modelo, fonte, teste)
+
+
+def test_historico_tem_treino_e_validacao_de_cada_epoca_e_a_melhor_e_a_de_menor_validacao():
+    fonte = _FonteSintetica()
+    treino, validacao, _ = _papeis(fonte)
+    r = t.treinar("D_pequeno", fonte, treino, validacao, fonte.y, semente=1, max_epocas=4, paciencia=2)
+    h = r.historico
+    assert [x["epoca"] for x in h] == list(range(1, len(h) + 1)) and 2 <= len(h) <= 4
+    assert all(set(x) == {"epoca", "perda_treino", "perda_validacao"} and np.isfinite(list(x.values())).all() for x in h)
+    assert r.melhor_epoca == 1 + int(np.argmin([x["perda_validacao"] for x in h]))

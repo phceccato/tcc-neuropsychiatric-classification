@@ -101,3 +101,46 @@ def test_configuracao_tarefa_registra_dispositivo_variante_e_hiperparametros():
     import json
     json.dumps(c)  # serializável
     assert r.configuracao_tarefa("D_FA", 1, "cpu")["variante"]["fa"] is True
+
+
+# ---------- checkpoints do modelo principal ----------
+
+def test_checkpoint_so_do_principal_por_padrao():
+    assert r.modelos_com_checkpoint("principal", list(r.TIPOS_DTSF)) == {"D_FA"}
+    assert r.modelos_com_checkpoint("principal", ["D_pequeno"]) == set()
+    assert r.modelos_com_checkpoint("todos", ["D_FA", "D"]) == {"D_FA", "D"}
+    assert r.modelos_com_checkpoint("nenhum", list(r.TIPOS_DTSF)) == set()
+
+
+def _tarefa_sintetica(monkeypatch, tmp_path, modelo, permutacao=None):
+    import json
+    from pipeline.e07_DTSF import treino as t
+    from tests.e07_DTSF.test_dtsf import _FonteSintetica, _papeis
+    fonte = _FonteSintetica()
+    treino, validacao, teste = _papeis(fonte)
+    linhas = [(u, "treino") for u in treino] + [(u, "validacao") for u in validacao] + [(u, "teste") for u in teste]
+    pd.DataFrame([dict(dataset="SZ", repeticao=0, fold=0, subject_uid=u, grupo="SZ" if u[0] == "P" else "HC", papel=p)
+                  for u, p in linhas]).to_csv(tmp_path / "folds.csv", index=False)
+    monkeypatch.setattr(r, "_fonte", lambda dataset, folds: fonte)
+    monkeypatch.setattr(r, "treinar", lambda *a, **k: t.treinar(*a, max_epocas=2, **k))
+    r.rodar_tarefa("SZ", modelo, 0, 0, str(tmp_path / "folds.csv"), str(tmp_path / "res"), permutacao,
+                   pasta_checkpoints=str(tmp_path / "ck"))
+    base = "r0_f0" if permutacao is None else f"p{permutacao}_f0"
+    return json.load(open(tmp_path / "res" / "SZ" / modelo / f"{base}.json")), base
+
+
+def test_tarefa_grava_checkpoint_e_historico_completo(monkeypatch, tmp_path):
+    from pipeline.e07_DTSF import treino as t
+    j, base = _tarefa_sintetica(monkeypatch, tmp_path, "D_FA")
+    ck = tmp_path / "ck" / "SZ" / "D_FA" / "r0_f0.pt"
+    assert ck.exists() and not list(tmp_path.rglob("*.tmp"))
+    assert j["epocas_executadas"] == len(j["historico"]) and j["dispositivo"] == "cpu" and j["variante"]["fa"]
+    assert j["perda_validacao_melhor"] == j["historico"][j["melhor_epoca"] - 1]["perda_validacao"]
+    modelo, meta = t.carregar_checkpoint(ck)
+    assert meta["melhor_epoca"] == j["melhor_epoca"] and meta["configuracao"]["semente"] == j["semente"]
+    assert sum(p.numel() for p in modelo.parameters()) == j["parametros"] == 704_769
+
+
+def test_permutacao_nao_grava_checkpoint(monkeypatch, tmp_path):
+    j, _ = _tarefa_sintetica(monkeypatch, tmp_path, "D_FA", permutacao=0)
+    assert len(j["historico"]) >= 1 and not (tmp_path / "ck").exists()

@@ -11,6 +11,7 @@ Esta etapa junta as previsões fora do fold de todos os modelos numa pasta versi
 | Arquivo | Conteúdo |
 | --- | --- |
 | `previsoes/<dataset>/<modelo>.csv` | uma linha por (repetição, fold, pessoa de teste): `repeticao`, `fold`, `subject_uid`, `y_true` (1 = paciente), `y_pred` (`y_prob` ≥ 0,5) e `y_prob` (probabilidade de paciente, fora do fold) |
+| `perdas/<dataset>/D_FA.csv` | só do modelo principal: perda de treino e perda de validação interna (nunca o teste) de cada época de cada (repetição, fold), de `outputs/07_DTSF/resultados/*/D_FA/*.json`; `melhor` marca a época escolhida. A perda de treino é a do lote com Mixup |
 | `permutacoes/<dataset>/<modelo>.csv` | o mesmo para as 25 permutações de rótulo com retreino da H1 (coluna `permutacao`; `y_true` é o rótulo permutado) |
 | `permutacoes/<dataset>/LR_psd_absolutas_nulas.csv` | as 1000 AUCs nulas da etapa 06, que grava só as AUCs |
 | `folds.csv` | as partições da etapa 05: dataset, repetição, fold, pessoa, grupo e papel (treino, validação, teste) |
