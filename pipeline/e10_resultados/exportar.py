@@ -31,7 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from pipeline.avaliacao.metricas import LIMIAR, avaliar, media_desvio
+from pipeline.avaliacao.metricas import LIMIAR, METRICAS_REPETICAO, avaliar, media_desvio
 from pipeline.e07_DTSF.avaliar import SEMENTE, completo, ler_modelo
 from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS
@@ -132,7 +132,7 @@ def conferir(modelos: dict, raiz: Path) -> None:
         if (d, m) not in esperado:
             raise Divergencia(f"{d} {m}: não aparece no resumo da etapa {info['etapa']}; rode o avaliar da etapa antes")
         auc = avaliar(para_avaliacao(padronizar(info["previsoes"])), semente=SEMENTE)["auc"]
-        if abs(auc - esperado[(d, m)]) > TOLERANCIA:
+        if abs(auc - esperado[(d, m)]) > TOLERANCIA + 1e-9:   # 0,0005 exato (arredondamento do resumo) passa
             raise Divergencia(f"{d} {m}: AUC {auc:.4f} recalculada, {esperado[(d, m)]:.3f} no resumo")
 
 
@@ -142,9 +142,8 @@ def metricas(modelos: dict) -> pd.DataFrame:
         p = para_avaliacao(padronizar(info["previsoes"]))
         r, md = avaliar(p, semente=SEMENTE), media_desvio(p)
         linha = dict(dataset=d, modelo=m, etapa=info["etapa"], auc_pessoa=r["auc"], ic_baixo=r["ic_baixo"],
-                     ic_alto=r["ic_alto"], acuracia_balanceada_pessoa=r["acuracia_balanceada"],
-                     sensibilidade_pessoa=r["sensibilidade"], especificidade_pessoa=r["especificidade"],
-                     macro_f1_pessoa=r["macro_f1"])
+                     ic_alto=r["ic_alto"])
+        linha |= {f"{k}_pessoa": r[k] for k in METRICAS_REPETICAO if k != "auc"}
         for k, (media, desvio) in md.items():
             linha[f"{k}_rep_media"], linha[f"{k}_rep_desvio"] = media, desvio
         linhas.append(linha)
@@ -167,7 +166,7 @@ treinar nada. Gerado por `python -m pipeline.e10_resultados.exportar`; o método
 | `permutacoes/<dataset>/<modelo>.csv` | o mesmo nas permutações de rótulo com retreino (repetição 0); `y_true` é o rótulo permutado |
 | `permutacoes/<dataset>/LR_psd_absolutas_nulas.csv` | as AUCs nulas da LR_psd (1000 permutações) |
 | `folds.csv` | as partições: 5 folds × 10 repetições, por pessoa, com o papel (treino, validação, teste) |
-| `metricas.csv` | AUC por pessoa com IC de 95%, secundárias e média ± desvio nas 10 repetições, recalculadas destes arquivos |
+| `metricas.csv` | AUC por pessoa com IC de 95%; acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1 no limiar 0,5; e a média ± desvio de todas nas 10 repetições, recalculadas destes arquivos |
 | `resumos/` | os resumos das etapas 06, 07 e 08, com os testes das hipóteses |
 | `manifesto.json` | semente, commit do código, dispositivo e parâmetros de cada modelo, modelos incompletos |
 
