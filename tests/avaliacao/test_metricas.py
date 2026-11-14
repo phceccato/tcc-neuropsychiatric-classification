@@ -266,3 +266,24 @@ def test_tabela_media_desvio_tem_uma_coluna_por_metrica_e_marca_incompletos():
                     "Especificidade | F1 | Macro F1 |")
     assert t[2].startswith("| X | ") and t[2].count("±") == 8
     assert t[3].startswith("| Y | incompleto |")
+
+
+# ---------- bootstrap das curvas ROC ----------
+
+def test_bootstrap_roc_repete_as_reamostragens_do_ic_bootstrap():
+    import numpy as np
+    from pipeline.avaliacao import metricas as m
+    rng = np.random.default_rng(3)
+    y = np.r_[np.ones(9), np.zeros(11)].astype(int)
+    escore = rng.normal(size=20) + y
+    b = m.bootstrap_roc(y, escore, reamostragens=300, semente=7)
+    assert tuple(np.percentile(b["aucs"], [2.5, 97.5])) == pytest.approx(m.ic_bootstrap(y, escore, 300, semente=7), abs=1e-12)
+    assert b["tpr"].shape == (300, 101) and (b["tpr"][:, -1] == 1).all()
+
+
+def test_tpr_na_grade_e_a_curva_em_degraus():
+    import numpy as np
+    from pipeline.avaliacao import metricas as m
+    y, escore = np.array([0, 0, 1, 1]), np.array([0.1, 0.4, 0.35, 0.8])
+    t = m.tpr_na_grade(y, escore, np.array([0.0, 0.25, 0.5, 1.0]))
+    assert t.tolist() == [0.5, 0.5, 1.0, 1.0]

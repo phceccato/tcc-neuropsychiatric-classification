@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.stats import t as dist_t
-from sklearn.metrics import f1_score, precision_score, roc_auc_score
+from sklearn.metrics import f1_score, precision_score, roc_auc_score, roc_curve
 
 LIMIAR = 0.5
 REAMOSTRAGENS = 2000
@@ -57,6 +57,33 @@ def ic_bootstrap(y: np.ndarray, escore: np.ndarray, reamostragens: int = REAMOST
         aucs[i] = roc_auc_score(y[idx], escore[idx])
     baixo, alto = np.percentile(aucs, [2.5, 97.5])
     return float(baixo), float(alto)
+
+
+GRADE_FPR = np.linspace(0, 1, 101)
+
+
+def tpr_na_grade(y: np.ndarray, escore: np.ndarray, grade: np.ndarray = GRADE_FPR) -> np.ndarray:
+    """Sensibilidade da curva ROC empírica em cada 1 − especificidade da grade (degrau: o maior TPR com FPR ≤ x)."""
+    fpr, tpr, _ = roc_curve(y, escore)
+    return tpr[np.searchsorted(fpr, grade, side="right") - 1]
+
+
+def bootstrap_roc(y: np.ndarray, escore: np.ndarray, reamostragens: int = REAMOSTRAGENS, semente: int = 0,
+                  grade: np.ndarray = GRADE_FPR) -> dict[str, np.ndarray]:
+    """AUC e curva ROC (na `grade`) de cada reamostra bootstrap estratificada por pessoa.
+
+    Faz as mesmas reamostragens de `ic_bootstrap` (mesma semente, mesma ordem das pessoas, mesmas chamadas do
+    gerador), então o percentil 2,5–97,5 das `aucs` é o IC de `ic_bootstrap`.
+    """
+    y, escore = np.asarray(y), np.asarray(escore)
+    rng = np.random.default_rng(semente)
+    pacientes, controles = np.flatnonzero(y == 1), np.flatnonzero(y == 0)
+    aucs, curvas = np.empty(reamostragens), np.empty((reamostragens, len(grade)))
+    for i in range(reamostragens):
+        idx = np.concatenate([rng.choice(pacientes, len(pacientes)), rng.choice(controles, len(controles))])
+        aucs[i] = roc_auc_score(y[idx], escore[idx])
+        curvas[i] = tpr_na_grade(y[idx], escore[idx], grade)
+    return dict(aucs=aucs, tpr=curvas)
 
 
 def metricas_secundarias(y: np.ndarray, prob: np.ndarray) -> dict[str, float]:
