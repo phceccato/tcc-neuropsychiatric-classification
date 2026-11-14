@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pipeline.e12_graficos import graficos as g
-from pipeline.e12_graficos import numeros as n
-from tests.e12_graficos.conftest import PESSOAS, _resultados_sinteticos
+from pipeline.e11_graficos import graficos as g
+from pipeline.e11_graficos import numeros as n
+from tests.e11_graficos.conftest import PESSOAS, _resultados_sinteticos
 
 MD_MODELOS = """# x
 

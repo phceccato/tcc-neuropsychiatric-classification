@@ -5,8 +5,8 @@ Modelos (`MODELOS`): o D_FA e os 3 baselines combinados (LR, RF e KNN sobre as c
 espectrais), os que a H4 compara. ROC empírica em degraus (`roc_curve` sem descartar pontos intermediários),
 com a área conferida contra `roc_auc_score` e contra a AUC de numeros.json.
 
-Lê outputs/12_graficos/numeros.json (`numeros.py`: rótulo e escore médio de cada pessoa, sem identificador).
-Grava outputs/12_graficos/pgfplots/fig_roc.tex.
+Lê outputs/11_graficos/numeros.json (`numeros.py`: rótulo e escore médio de cada pessoa, sem identificador).
+Grava outputs/11_graficos/pgfplots/fig_roc.tex.
 """
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.metrics import roc_auc_score, roc_curve
 
-from pipeline.e12_graficos.comum import ESTILO_EIXOS, SAIDA, conferir, coordenadas, figura, gravar, virgula
-from pipeline.e12_graficos.numeros import SAIDA as NUMEROS
+from pipeline.e11_graficos.comum import ESTILO_EIXOS, SAIDA, conferir, coordenadas, figura, gravar, virgula
+from pipeline.e11_graficos.numeros import SAIDA as NUMEROS
 
 DATASETS = ("SZ", "MDD")
 # (rótulo na legenda, modelo, estilo pgfplots)

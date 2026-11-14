@@ -1,9 +1,9 @@
 """Prévia em PNG das figuras em pgfplots, para conferir sem abrir o Overleaf.
 
-Para cada .tex de outputs/12_graficos/pgfplots/ (ou os indicados em --figuras), monta um documento mínimo com o
+Para cada .tex de outputs/11_graficos/pgfplots/ (ou os indicados em --figuras), monta um documento mínimo com o
 `PREAMBULO` das figuras, largura de texto de 16 cm (a das margens ABNT, como no texto do TCC) e o
 pacote `preview`, que recorta a página na figura; compila com pdflatex numa pasta temporária e converte
-o PDF em PNG com pdftocairo. Grava outputs/12_graficos/pgfplots/<nome>.png ao lado do .tex.
+o PDF em PNG com pdftocairo. Grava outputs/11_graficos/pgfplots/<nome>.png ao lado do .tex.
 
 O PNG é só para conferência: no texto do TCC, a figura continua entrando pelo `\\input` do .tex.
 Precisa do pdflatex com pgfplots (pacotes texlive-latex-extra e texlive-pictures) e do pdftocairo (poppler-utils).
@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from pipeline.e12_graficos.comum import PREAMBULO, SAIDA
+from pipeline.e11_graficos.comum import PREAMBULO, SAIDA
 
 RESOLUCAO = 200  # dpi
 LARGURA_TEXTO = "16cm"

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pipeline.e12_graficos import numeros as n
+from pipeline.e11_graficos import numeros as n
 
 PESSOAS = 16
 

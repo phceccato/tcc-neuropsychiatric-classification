@@ -1,7 +1,7 @@
 """Gráficos de resultados do TCC, em PDF vetorial (para `\\includegraphics`) e PNG de conferência.
 
-Lê outputs/12_graficos/numeros.json (pipeline/e12_graficos/numeros.py, já conferido contra os resumos das
-etapas) e grava em duas pastas de outputs/12_graficos/.
+Lê outputs/11_graficos/numeros.json (pipeline/e11_graficos/numeros.py, já conferido contra os resumos das
+etapas) e grava em duas pastas de outputs/11_graficos/.
 
 principais/ — os gráficos do texto:
   p1_roc_principais: curvas ROC por pessoa dos 6 modelos principais (D_FA, D, D_pequeno e LR, RF e KNN combinados);
@@ -44,7 +44,7 @@ from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MultipleLocator  # noqa: E402
 from sklearn.metrics import roc_curve  # noqa: E402
 
-SAIDA = Path("outputs/12_graficos")
+SAIDA = Path("outputs/11_graficos")
 PRINCIPAIS, SUPLEMENTARES = "principais", "suplementares"
 LARGURA = 16 / 2.54
 PRETO, CINZA, CINZA_CLARO = "#000000", "#6e6e6e", "#bdbdbd"

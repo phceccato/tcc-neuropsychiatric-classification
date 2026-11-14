@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SAIDA = Path("outputs/12_graficos/pgfplots")
+SAIDA = Path("outputs/11_graficos/pgfplots")
 PREAMBULO = "\\usepackage{pgfplots}\n\\usepgfplotslibrary{groupplots}\n\\pgfplotsset{compat=1.18}"
 ESTILO_EIXOS = ("/pgf/number format/use comma, /pgf/number format/1000 sep={.}, "
                 "tick label style={font=\\footnotesize}, label style={font=\\footnotesize}, "

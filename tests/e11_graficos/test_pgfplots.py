@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from sklearn.metrics import roc_auc_score
 
-from pipeline.e12_graficos import comum, h1_nula, previa, roc, sessoes
+from pipeline.e11_graficos import comum, h1_nula, previa, roc, sessoes
 
 MANIFESTO = Path("outputs/02_harmonizacao/manifesto.csv")
 

@@ -3,8 +3,8 @@
 Dois painéis (SZ e MDD): dot plot das AUCs do modelo principal (D_FA) retreinado com rótulos permutados, a AUC
 observada que a H1 compara com elas (AUC da repetição 0, a mesma de `p_acaso`) e o acaso (0,5).
 
-Lê outputs/12_graficos/numeros.json (`numeros.py`, já conferido contra os resumos das etapas): as AUCs nulas, a
-AUC observada e o p de cada dataset. Grava outputs/12_graficos/pgfplots/fig_h1_nula.tex.
+Lê outputs/11_graficos/numeros.json (`numeros.py`, já conferido contra os resumos das etapas): as AUCs nulas, a
+AUC observada e o p de cada dataset. Grava outputs/11_graficos/pgfplots/fig_h1_nula.tex.
 """
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-from pipeline.e12_graficos.comum import ESTILO_EIXOS, SAIDA, coordenadas, figura, gravar, virgula
-from pipeline.e12_graficos.numeros import SAIDA as NUMEROS
+from pipeline.e11_graficos.comum import ESTILO_EIXOS, SAIDA, coordenadas, figura, gravar, virgula
+from pipeline.e11_graficos.numeros import SAIDA as NUMEROS
 
 DATASETS = ("SZ", "MDD")
 LARGURA_CLASSE = 0.02

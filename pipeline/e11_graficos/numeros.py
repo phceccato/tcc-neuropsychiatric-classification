@@ -15,7 +15,7 @@ Recalcula, com as mesmas funções e sementes dessas etapas:
 
 Cada AUC, IC, ΔAUC e p é conferido contra a tabela correspondente do resumo da etapa (|diferença| ≤ 0,0005 para AUC
 e Δ, ≤ 0,00005 para p); se algum não bater, o script para com `Divergencia` e não grava.
-Grava outputs/12_graficos/numeros.json, que `pipeline/e12_graficos/graficos.py` lê.
+Grava outputs/11_graficos/numeros.json, que `pipeline/e11_graficos/graficos.py` lê.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ MODELOS = (*TIPOS_DTSF, *CLASSICOS, *LR_PSD)
 TOL_AUC, TOL_P = 5e-4, 5e-5
 FOLGA = 1e-9  # um valor como 0,4375 sai "0.438" no resumo: a diferença é 0,0005 exato, mais o erro do ponto flutuante
 RESULTADOS = Path("outputs/10_resultados")
-SAIDA = Path("outputs/12_graficos")
+SAIDA = Path("outputs/11_graficos")
 
 
 class Divergencia(ValueError):

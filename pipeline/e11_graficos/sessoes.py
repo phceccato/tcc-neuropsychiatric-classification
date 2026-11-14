@@ -10,7 +10,7 @@ vertical determinístico (0, +d, −d, +2d, ...), sem sorteio.
 Antes de gravar, confere as contagens por sessão contra docs/09_investigacao.md, seção 1
 (`CONTAGENS_DOCS`). Nenhum identificador vai para o .tex: só a posição de cada ponto.
 
-Grava outputs/12_graficos/pgfplots/fig_sessoes.tex.
+Grava outputs/11_graficos/pgfplots/fig_sessoes.tex.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from pipeline.e09_investigacao.datas import INTERVALO_SESSAO_DIAS, pessoas_por_dataset
-from pipeline.e12_graficos.comum import ESTILO_EIXOS, SAIDA, coordenadas, figura, gravar
+from pipeline.e11_graficos.comum import ESTILO_EIXOS, SAIDA, coordenadas, figura, gravar
 
 # (HC, pacientes) por sessão; na SZ, as sessões 4–9 aparecem somadas no doc
 CONTAGENS_DOCS = {"SZ": {1: (0, 1), 2: (14, 0), 3: (0, 2), (4, 9): (0, 11)},
