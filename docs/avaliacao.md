@@ -12,7 +12,7 @@ Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo D
 | `escores_por_pessoa` | Média da probabilidade fora do fold de cada pessoa nas repetições | Todas as avaliações |
 | `avaliar` | AUC por pessoa, IC, AUC por repetição (média ± desvio) e secundárias | Tabelas de resultado |
 | `ic_bootstrap` | IC de 95% da AUC, por percentil, reamostrando pessoas dentro de cada classe (2000 vezes) | Incerteza da AUC |
-| `metricas_secundarias` | Acurácia balanceada, sensibilidade, especificidade e Macro F1 no limiar 0,5 | Métricas descritivas |
+| `metricas_secundarias` | Acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 (paciente como classe positiva) e Macro F1 no limiar 0,5 | Métricas descritivas |
 | `metricas_por_repeticao`, `media_desvio`, `tabela_media_desvio` | AUC e secundárias de cada repetição (os 5 folds juntos) e a média ± desvio (ddof = 1) das 10 | Tabela de média ± desvio dos resumos das etapas 06, 07 e 08 |
 | `p_valor` | (nº de nulas ≥ observado + 1) / (N + 1) | Testes contra o acaso |
 | `auc_em_lote` | AUC de Mann-Whitney vetorizada, com empate valendo ½ | Base dos testes por permutação |
