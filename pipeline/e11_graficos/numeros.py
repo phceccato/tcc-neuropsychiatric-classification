@@ -11,7 +11,13 @@ Recalcula, com as mesmas funções e sementes dessas etapas:
 - as comparações, com `comparacao_pareada`, guardadas como "A − B": D_pequeno − ablação (H2, H3), D_FA −
   baseline (os 3 combinados na H4 e os 6 de uma modalidade, descritivos) e as descritivas entre os DTSF
   (D_FA − D, D − D_pequeno, D_FA − D_pequeno); e a decisão de cada hipótese (interseção-união e Holm);
-- H1: as AUCs nulas das permutações do D_FA, a AUC observada (repetição 0) e o p contra o acaso.
+- H1: as AUCs nulas das permutações do D_FA, a AUC observada (repetição 0) e o p contra o acaso;
+- bootstrap do modelo principal: as curvas ROC de reamostras bootstrap estratificadas por pessoa (as mesmas
+  reamostragens do IC de 95% da AUC, que é conferido), numa grade de 1 − especificidade; só as primeiras
+  N_CURVAS_BOOTSTRAP curvas vão para o json;
+- perdas: o histórico de perda de treino e de validação interna do D_FA em cada (repetição, fold)
+  (perdas/<dataset>/D_FA.csv, se existir), conferido (50 folds, épocas 1, 2, …, e a época escolhida é a de menor
+  perda de validação).
 
 Cada AUC, IC, ΔAUC e p é conferido contra a tabela correspondente do resumo da etapa (|diferença| ≤ 0,0005 para AUC
 e Δ, ≤ 0,00005 para p); se algum não bater, o script para com `Divergencia` e não grava.
@@ -27,8 +33,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pipeline.avaliacao.metricas import (auc_por_repeticao, avaliar, escores_por_pessoa, media_desvio,
-                                         metricas_secundarias, p_valor, roc_auc_score)
+from pipeline.avaliacao.metricas import (GRADE_FPR, auc_por_repeticao, avaliar, bootstrap_roc, escores_por_pessoa,
+                                         media_desvio, metricas_secundarias, p_valor, roc_auc_score)
 from pipeline.e07_DTSF.avaliar import (DESCRITIVAS, HIPOTESES, REFERENCIA_ABLACOES, SEMENTE, comparacao_pareada,
                                        completo, decidir_h1, decidir_hipotese)
 from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
@@ -39,6 +45,7 @@ DATASETS = ("SZ", "MDD")
 LR_PSD = ("LR_psd_absolutas", "LR_psd_relativas")
 MODELOS = (*TIPOS_DTSF, *CLASSICOS, *LR_PSD)
 TOL_AUC, TOL_P = 5e-4, 5e-5
+N_CURVAS_BOOTSTRAP = 500
 FOLGA = 1e-9  # um valor como 0,4375 sai "0.438" no resumo: a diferença é 0,0005 exato, mais o erro do ponto flutuante
 RESULTADOS = Path("outputs/10_resultados")
 SAIDA = Path("outputs/11_graficos")
@@ -130,12 +137,42 @@ def h1(real: pd.DataFrame, permutacoes: pd.DataFrame) -> dict:
     return dict(nulas=nulas.tolist(), observada=observada, p=p_valor(observada, nulas))
 
 
+def bootstrap_principal(predicoes: pd.DataFrame, ic_resumo: list[float]) -> dict:
+    """Reamostras bootstrap da AUC do modelo principal; confere o IC contra o `avaliar` (mesmas reamostragens)."""
+    e = escores_por_pessoa(predicoes)          # a mesma ordem das pessoas que `avaliar` usa
+    b = bootstrap_roc(e["y"].to_numpy(), e["prob"].to_numpy(), semente=SEMENTE)
+    ic = np.percentile(b["aucs"], [2.5, 97.5])
+    for nome_ic, calculado, esperado in (("baixo", ic[0], ic_resumo[0]), ("alto", ic[1], ic_resumo[1])):
+        conferir(f"bootstrap IC {nome_ic}", float(calculado), float(esperado), 1e-9)
+    return dict(reamostragens=len(b["aucs"]), grade=GRADE_FPR.tolist(), ic=ic.tolist(),
+                auc_media=float(b["aucs"].mean()), curvas=np.round(b["tpr"][:N_CURVAS_BOOTSTRAP], 4).tolist())
+
+
+def perdas_folds(caminho: Path) -> list[dict]:
+    """Uma entrada por (repetição, fold): perda de treino e de validação interna por época e a época escolhida."""
+    t = pd.read_csv(caminho)
+    folds = []
+    for (r, f), g in t.sort_values("epoca").groupby(["repeticao", "fold"]):
+        if (g["epoca"].to_numpy() != np.arange(1, len(g) + 1)).any():
+            raise Divergencia(f"{caminho}: repetição {r} fold {f} sem as épocas 1, 2, … em sequência")
+        validacao = g["perda_validacao"].to_numpy()
+        melhor = g.loc[g["melhor"] == 1, "epoca"].tolist()
+        if melhor != [1 + int(np.argmin(validacao))]:
+            raise Divergencia(f"{caminho}: repetição {r} fold {f}: a época escolhida {melhor} não é a de menor "
+                              f"perda de validação ({1 + int(np.argmin(validacao))})")
+        folds.append(dict(repeticao=int(r), fold=int(f), melhor=melhor[0], treino=g["perda_treino"].tolist(),
+                          validacao=validacao.tolist()))
+    if len(folds) != 50:
+        raise Divergencia(f"{caminho}: {len(folds)} folds em vez de 50 (10 repetições × 5 folds)")
+    return folds
+
+
 def calcular(raiz: Path = RESULTADOS) -> dict:
     md = {e: (raiz / "resumos" / f"{e}.md").read_text(encoding="utf-8") for e in ("06_LR_psd", "07_DTSF", "08_classicos")}
     esperado_aucs = tabela_modelos(md["07_DTSF"]) | tabela_modelos(md["08_classicos"]) | tabela_lr_psd(md["06_LR_psd"])
     esperado_deltas = tabela_deltas(md["07_DTSF"], REFERENCIA_ABLACOES) | tabela_deltas(md["08_classicos"], REFERENCIA_H4)
 
-    numeros = dict(modelos={}, comparacoes={}, hipoteses={}, h1={}, h1_distribuicao={})
+    numeros = dict(modelos={}, comparacoes={}, hipoteses={}, h1={}, h1_distribuicao={}, perdas={}, bootstrap={})
     acaso, por_hipotese, h4 = {}, {h: {} for h in HIPOTESES}, {}
     for d in DATASETS:
         pred = {m: ler_previsoes(raiz / "previsoes" / d / f"{m}.csv") for m in MODELOS}
@@ -172,6 +209,9 @@ def calcular(raiz: Path = RESULTADOS) -> dict:
         dist = h1(pred[PRINCIPAL], ler_previsoes(caminho))
         numeros["h1_distribuicao"][d] = dist
         acaso[d] = (dist["p"], len(dist["nulas"]))
+        numeros["bootstrap"][d] = bootstrap_principal(pred[PRINCIPAL], numeros["modelos"][d][PRINCIPAL]["ic"])
+        if (raiz / "perdas" / d / f"{PRINCIPAL}.csv").exists():
+            numeros["perdas"][d] = perdas_folds(raiz / "perdas" / d / f"{PRINCIPAL}.csv")
 
     for h, ablacoes in HIPOTESES.items():
         numeros["hipoteses"][h] = decidir_hipotese(por_hipotese[h], ablacoes)

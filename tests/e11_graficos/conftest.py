@@ -26,16 +26,34 @@ def _previsoes(semente: int, sinal: float, chave: str = "repeticao", n_chave: in
     return pd.DataFrame(linhas)
 
 
+def _perdas(semente: int) -> pd.DataFrame:
+    """Histórico de perdas de 10 repetições × 5 folds: a validação cai até a melhor época e sobe; o treino só cai."""
+    rng = np.random.default_rng(semente)
+    linhas = []
+    for r in range(10):
+        for f in range(5):
+            melhor = int(rng.integers(1, 6))
+            for e in range(1, melhor + 11):               # paciência 10 depois da melhor época
+                val = 0.6 + 0.05 * abs(e - melhor) + 0.01 * rng.random()
+                linhas.append(dict(repeticao=r, fold=f, epoca=e, perda_treino=0.7 * 0.9 ** e, perda_validacao=val,
+                                   melhor=0))
+            g = [l for l in linhas if l["repeticao"] == r and l["fold"] == f]
+            g[int(np.argmin([l["perda_validacao"] for l in g]))]["melhor"] = 1
+    return pd.DataFrame(linhas)
+
+
 def _resultados_sinteticos(raiz, comparar) -> None:
     previsoes = {}
     for k, d in enumerate(n.DATASETS):
         (raiz / "previsoes" / d).mkdir(parents=True)
         (raiz / "permutacoes" / d).mkdir(parents=True)
+        (raiz / "perdas" / d).mkdir(parents=True)
         for i, m in enumerate(n.MODELOS):
             p = _previsoes(10 * k + i, 0.4 + 0.05 * (i % 5))
             p.to_csv(raiz / "previsoes" / d / f"{m}.csv", index=False)
             previsoes[(d, m)] = n.ler_previsoes(raiz / "previsoes" / d / f"{m}.csv")
         _previsoes(500 + k, 0.0, "permutacao", 25).to_csv(raiz / "permutacoes" / d / "D_FA.csv", index=False)
+        _perdas(k).to_csv(raiz / "perdas" / d / "D_FA.csv", index=False)
 
     md07, md08, md06 = ["# 07"], ["# 08"], ["# 06"]
     for d in n.DATASETS:
