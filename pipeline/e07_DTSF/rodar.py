@@ -2,7 +2,7 @@
 
 Cada treino é uma tarefa (dataset, modelo, repetição, fold) que grava
 outputs/07_DTSF/resultados/<dataset>/<modelo>/r<rep>_f<fold>.csv (previsões das pessoas de
-teste) e .json (época escolhida, número de parâmetros e histórico de perdas). Tarefas já gravadas são puladas, então
+teste) e .json (época escolhida, dispositivo, número de parâmetros, configuração do treino e histórico de perdas). Tarefas já gravadas são puladas, então
 o comando pode ser interrompido e rodado de novo. Cada processo usa 1 thread do PyTorch.
 
 Modelos (pipeline/e07_DTSF/redes_dtsf.py): D_FA (o principal), D_pequeno, D, D_sem_mixup, D_sem_T e D_sem_E;
@@ -28,6 +28,7 @@ import json
 import multiprocessing
 import os
 import time
+from dataclasses import asdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -36,8 +37,8 @@ import pandas as pd
 import torch
 
 from pipeline.e07_DTSF.dados_dtsf import FonteDTSF
-from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
-from pipeline.e07_DTSF.treino import prever, treinar
+from pipeline.e07_DTSF.redes_dtsf import MODELOS, PRINCIPAL, TIPOS_DTSF
+from pipeline.e07_DTSF.treino import JANELAS_POR_PESSOA, PADRAO, prever, treinar
 
 SEMENTE = 20261108
 SEMENTE_PERMUTACAO = 1_108_000
@@ -90,6 +91,14 @@ def contexto_processos(dispositivo: str):
     return multiprocessing.get_context("spawn" if dispositivo == "cuda" else None)
 
 
+def configuracao_tarefa(modelo: str, semente: int, dispositivo: str) -> dict:
+    """O que reproduz o treino de uma tarefa, gravado no .json: modelo, dispositivo, semente, a variante
+    (ramos, Mixup, FA e dimensões) e os hiperparâmetros de treino (`ConfigTreino`), mais as versões do PyTorch e da CUDA."""
+    return dict(modelo=modelo, dispositivo=dispositivo, semente=semente, variante=asdict(MODELOS[modelo]),
+                hiperparametros=asdict(PADRAO), janelas_por_pessoa=JANELAS_POR_PESSOA,
+                torch=torch.__version__, cuda=torch.version.cuda)
+
+
 def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv: str, saida: str,
                  permutacao: int | None = None, dispositivo: str = "cpu") -> str:
     folds = pd.read_csv(folds_csv)
@@ -101,8 +110,8 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     fonte = _fonte(dataset, folds)
 
     inicio = time.time()
-    resultado = treinar(modelo, fonte, papel["treino"], papel["validacao"], y, semente=SEMENTE + 1000 * repeticao + fold,
-                        dispositivo=dispositivo)
+    semente = SEMENTE + 1000 * repeticao + fold
+    resultado = treinar(modelo, fonte, papel["treino"], papel["validacao"], y, semente=semente, dispositivo=dispositivo)
     prob = prever(resultado.modelo, fonte, papel["teste"])
 
     destino = Path(saida) / dataset / modelo
@@ -111,7 +120,7 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     with open(f"{base}.json", "w") as f:
         json.dump(dict(melhor_epoca=resultado.melhor_epoca, segundos=time.time() - inicio, dispositivo=dispositivo,
                        parametros=sum(p.numel() for p in resultado.modelo.parameters()),
-                       historico=resultado.historico), f)
+                       **configuracao_tarefa(modelo, semente, dispositivo), historico=resultado.historico), f)
     pd.DataFrame([dict(repeticao=repeticao, fold=fold, subject_uid=u, y=int(y[u]), prob=p) for u, p in prob.items()]
                  ).to_csv(f"{base}.csv.tmp", index=False)
     os.replace(f"{base}.csv.tmp", f"{base}.csv")  # o .csv só aparece completo

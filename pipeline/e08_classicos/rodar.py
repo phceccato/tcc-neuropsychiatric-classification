@@ -31,7 +31,7 @@ import sklearn
 from threadpoolctl import threadpool_limits
 
 from pipeline.e08_classicos.caracteristicas import carregar
-from pipeline.e08_classicos.treino import MODELOS, separar, treinar_e_prever
+from pipeline.e08_classicos.treino import ARVORES, GRADES, JANELAS_POR_PESSOA, MODELOS, PARTES_INTERNAS, separar, treinar_e_prever
 from pipeline.e07_DTSF.rodar import JANELAS_CSV, SEMENTE, rotulos_permutados
 
 CARACTERISTICAS = Path("outputs/08_classicos/caracteristicas")
@@ -69,8 +69,9 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     indice = indice[indice["dataset"] == dataset]
 
     inicio = time.time()
+    semente = SEMENTE + 1000 * repeticao + fold
     r = treinar_e_prever(modelo, x[separar(modelo)[1]], indice, papel["treino"] + papel["validacao"],
-                         papel["teste"], y, semente=SEMENTE + 1000 * repeticao + fold)
+                         papel["teste"], y, semente=semente)
 
     destino = Path(saida) / dataset / modelo
     destino.mkdir(parents=True, exist_ok=True)
@@ -78,7 +79,9 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     with open(f"{base}.json", "w") as f:
         json.dump(dict(parametros=r.parametros, auc_interna=r.auc_interna, partes_internas=r.partes_internas,
                        janelas_ajuste=r.janelas_ajuste, segundos=time.time() - inicio,
-                       sklearn=sklearn.__version__), f)
+                       sklearn=sklearn.__version__, modelo=modelo, dispositivo="cpu", semente=semente,
+                       grade=GRADES[separar(modelo)[0]], arvores=ARVORES, partes_internas_n=PARTES_INTERNAS,
+                       janelas_por_pessoa=JANELAS_POR_PESSOA), f)
     pd.DataFrame([dict(repeticao=repeticao, fold=fold, subject_uid=u, y=int(y[u]), prob=p) for u, p in r.prob.items()]
                  ).to_csv(f"{base}.csv.tmp", index=False)
     os.replace(f"{base}.csv.tmp", f"{base}.csv")  # o .csv só aparece completo

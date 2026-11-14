@@ -88,3 +88,16 @@ def test_por_padrao_roda_os_seis_modelos_e_as_permutacoes_so_do_principal(tmp_pa
     monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path / "p"), "--datasets", "SZ", "--permutacoes", "1"])
     r.main()
     assert pedidos == ["D_FA"] * 5
+
+
+# ---------- configuração gravada no .json ----------
+
+def test_configuracao_tarefa_registra_dispositivo_variante_e_hiperparametros():
+    c = r.configuracao_tarefa("D_sem_mixup", 20261108, "cuda")
+    assert c["modelo"] == "D_sem_mixup" and c["dispositivo"] == "cuda" and c["semente"] == 20261108
+    assert c["variante"]["mixup"] is False and c["variante"]["filtros"] == 16 and c["variante"]["oculto"] == 32
+    assert c["hiperparametros"]["lr"] == 1e-3 and c["hiperparametros"]["paciencia"] == 10
+    assert c["janelas_por_pessoa"] == 60 and "torch" in c and "cuda" in c
+    import json
+    json.dumps(c)  # serializável
+    assert r.configuracao_tarefa("D_FA", 1, "cpu")["variante"]["fa"] is True
