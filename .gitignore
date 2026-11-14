@@ -1,15 +1,10 @@
 dados/
 outputs/*
 !outputs/10_resultados/
+!outputs/12_graficos/
 artigos/
 venv/
 __pycache__/
 pipeline/e11_topomapa/
 tests/e11_topomapa/
 docs/11_topomapa.md
-pipeline/e12_figuras/
-tests/e12_figuras/
-docs/12_figuras.md
-pipeline/e13_graficos/
-tests/e13_graficos/
-docs/13_graficos.md
