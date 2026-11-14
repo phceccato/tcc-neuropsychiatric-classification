@@ -39,7 +39,7 @@ venv/bin/python -m pipeline.e10_resultados.exportar     # → outputs/10_resulta
 Sem treinar, a partir da pasta exportada:
 - **AUC por pessoa:** média de `y_prob` de cada pessoa nas 10 repetições e uma AUC sobre as pessoas (o código está no `LEIAME.md` da pasta);
 - **métricas e testes:** as funções de [pipeline/avaliacao/metricas.py](../pipeline/avaliacao/metricas.py) e `comparacao_pareada` ([pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py)) recebem as previsões com as colunas `y` e `prob`; basta renomear `y_true` → `y` e `y_prob` → `prob`;
-- **gráficos:** a etapa 12 lê esta pasta e gera os gráficos principais e suplementares ([12_graficos.md](12_graficos.md)).
+- **gráficos:** a etapa 11 lê esta pasta e gera os gráficos principais e suplementares ([11_graficos.md](11_graficos.md)).
 
 Com treino, do zero: os dados são públicos e a etapa 00 baixa e confere cada arquivo pelo MD5 ([00_download-dados.md](00_download-dados.md)); as etapas 01 a 08 seguem os comandos do README. As sementes estão em [05_folds.md](05_folds.md).
 
