@@ -46,6 +46,14 @@ def test_metricas_secundarias_no_limiar_de_meio():
     assert r["especificidade"] == pytest.approx(1 / 2)
     assert r["acuracia_balanceada"] == pytest.approx((2 / 3 + 1 / 2) / 2)
     assert 0 < r["macro_f1"] < 1
+    assert r["acuracia"] == pytest.approx(3 / 5)                    # acertos: 0,9; 0,6; 0,2
+    assert r["precisao"] == pytest.approx(2 / 3)                    # previstos pacientes: 0,9; 0,6; 0,7
+    assert r["f1"] == pytest.approx(2 * (2 / 3) * (2 / 3) / (2 / 3 + 2 / 3))
+
+
+def test_precisao_sem_nenhum_previsto_paciente_e_zero():
+    r = m.metricas_secundarias(np.array([1, 0]), np.array([0.1, 0.2]))
+    assert r["precisao"] == 0 and r["f1"] == 0 and r["acuracia"] == 0.5
 
 
 def test_p_valor_de_permutacao():
@@ -254,6 +262,7 @@ def test_metricas_por_repeticao_usam_as_previsoes_de_cada_repeticao():
 
 def test_tabela_media_desvio_tem_uma_coluna_por_metrica_e_marca_incompletos():
     t = m.tabela_media_desvio([(["X"], _predicoes_repeticoes()), (["Y"], None)], ["Modelo"])
-    assert t[0] == "| Modelo | AUC | Acurácia balanceada | Sensibilidade | Especificidade | Macro F1 |"
-    assert t[2].startswith("| X | ") and t[2].count("±") == 5
+    assert t[0] == ("| Modelo | AUC | Acurácia | Acurácia balanceada | Precisão | Sensibilidade (recall) | "
+                    "Especificidade | F1 | Macro F1 |")
+    assert t[2].startswith("| X | ") and t[2].count("±") == 8
     assert t[3].startswith("| Y | incompleto |")

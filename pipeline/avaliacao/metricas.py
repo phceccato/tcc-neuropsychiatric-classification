@@ -9,8 +9,8 @@ linha por (repetição, pessoa) e as colunas repeticao, subject_uid, y (1 = paci
 - média ± desvio nas repetições (`metricas_por_repeticao`, `tabela_media_desvio`): em cada repetição, as 5
   previsões fora do fold juntas dão AUC e secundárias; reporta-se a média e o desvio (ddof = 1) das 10. Mostra
   quanto o resultado muda com a partição, não a incerteza sobre a população (as repetições reusam as pessoas);
-- secundárias (descritivas): acurácia balanceada, sensibilidade, especificidade e Macro F1
-  no limiar 0,5;
+- secundárias (descritivas), no limiar 0,5 e com o paciente como classe positiva: acurácia, acurácia
+  balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1;
 - permutação: p = (nº de nulas ≥ observado + 1) / (N + 1);
 - `teste_pareado`: ΔAUC entre dois modelos sobre os escores pareados de cada pessoa, com
   permutação pareada (troca dos dois escores de cada pessoa), unilateral; as hipóteses H2–H4
@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.stats import t as dist_t
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import f1_score, precision_score, roc_auc_score
 
 LIMIAR = 0.5
 REAMOSTRAGENS = 2000
@@ -63,12 +63,15 @@ def metricas_secundarias(y: np.ndarray, prob: np.ndarray) -> dict[str, float]:
     y, previsto = np.asarray(y), (np.asarray(prob) >= LIMIAR).astype(int)
     sensibilidade = float(np.mean(previsto[y == 1] == 1))
     especificidade = float(np.mean(previsto[y == 0] == 0))
-    return dict(acuracia_balanceada=(sensibilidade + especificidade) / 2, sensibilidade=sensibilidade,
-                especificidade=especificidade, macro_f1=float(f1_score(y, previsto, average="macro")))
+    return dict(acuracia=float(np.mean(previsto == y)), acuracia_balanceada=(sensibilidade + especificidade) / 2,
+                precisao=float(precision_score(y, previsto, zero_division=0)), sensibilidade=sensibilidade,
+                especificidade=especificidade, f1=float(f1_score(y, previsto, zero_division=0)),
+                macro_f1=float(f1_score(y, previsto, average="macro")))
 
 
-METRICAS_REPETICAO = {"auc": "AUC", "acuracia_balanceada": "Acurácia balanceada", "sensibilidade": "Sensibilidade",
-                      "especificidade": "Especificidade", "macro_f1": "Macro F1"}
+METRICAS_REPETICAO = {"auc": "AUC", "acuracia": "Acurácia", "acuracia_balanceada": "Acurácia balanceada",
+                      "precisao": "Precisão", "sensibilidade": "Sensibilidade (recall)",
+                      "especificidade": "Especificidade", "f1": "F1", "macro_f1": "Macro F1"}
 
 
 def metricas_por_repeticao(predicoes: pd.DataFrame) -> pd.DataFrame:
