@@ -107,7 +107,7 @@ def treinar(tipo: str, fonte, treino: list[str], validacao: list[str], y: pd.Ser
             max_epocas: int | None = None, paciencia: int | None = None, config: ConfigTreino = PADRAO,
             dispositivo: str = "cpu", construir: Callable[[], DTSF] | None = None) -> Resultado:
     """Treina o DTSF `tipo` com `config`; `construir`, se dado, cria a rede no lugar de `DTSF(tipo, …)`
-    (as etapas 12 e 14 usam para as suas variantes). A rede é criada depois da semente, como o D."""
+    (para variantes com outra rede). A rede é criada depois da semente."""
     max_epocas = config.max_epocas if max_epocas is None else max_epocas
     paciencia = config.paciencia if paciencia is None else paciencia
     dispositivo = torch.device(dispositivo)
