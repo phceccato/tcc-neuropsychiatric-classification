@@ -65,19 +65,24 @@ venv/bin/python -m pipeline.e08_classicos.caracteristicas   # 475 + 1102 caracte
 venv/bin/python -m pipeline.e08_classicos.rodar 2>&1 | tee -a outputs/08_classicos/log_classicos.txt   # 9 baselines clássicos (retoma) → outputs/08_classicos/resultados/
 venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e H4 (D_FA × 3 baselines combinados) → outputs/08_classicos/resultados/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.datas        # data de gravação × diagnóstico → outputs/09_investigacao/datas/
-venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # D retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/
-venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/resumo.md
+venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # D_FA retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/D_FA/
+venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/D_FA/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.erros         # perfil das pessoas classificadas errado → outputs/09_investigacao/erros/
-venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt   # AUC por subconjunto de sessão + D no MDD sem jan/2013 (retoma) → outputs/09_investigacao/lote/
+venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt   # AUC por subconjunto de sessão + D_FA no MDD sem jan/2013 (retoma) → outputs/09_investigacao/lote/
 venv/bin/python -m pipeline.e10_resultados.exportar   # previsões de todos os modelos (y_true, y_pred, y_prob), métricas e resumos → outputs/10_resultados/ (versionada)
 venv/bin/python -m pipeline.e11_topomapa.topomapa --pessoa MDD-MDD-S27   # mapas topográficos por banda de uma pessoa → outputs/11_topomapa/
 venv/bin/python -m pipeline.e11_topomapa.todos                           # os mesmos mapas para as 84 pessoas → outputs/11_topomapa/<dataset>/<classe>/<sessão>/
-venv/bin/python -m pipeline.e12_figuras.h1_nula   # figura da distribuição nula da H1 (pgfplots) → outputs/12_figuras/fig_h1_nula.tex
-venv/bin/python -m pipeline.e12_figuras.roc       # curvas ROC por pessoa (pgfplots) → outputs/12_figuras/fig_roc.tex
-venv/bin/python -m pipeline.e12_figuras.sessoes   # linha do tempo das gravações (pgfplots) → outputs/12_figuras/fig_sessoes.tex
+venv/bin/python -m pipeline.e12_graficos.numeros   # números dos gráficos, de outputs/10_resultados/, conferidos contra os resumos → outputs/12_graficos/numeros.json
+venv/bin/python -m pipeline.e12_graficos.graficos  # gráficos principais e suplementares (PDF e PNG) → outputs/12_graficos/principais/ e suplementares/
+venv/bin/python -m pipeline.e12_graficos.h1_nula   # distribuição nula da H1 (pgfplots) → outputs/12_graficos/pgfplots/fig_h1_nula.tex
+venv/bin/python -m pipeline.e12_graficos.roc       # curvas ROC do D_FA e dos combinados (pgfplots) → outputs/12_graficos/pgfplots/fig_roc.tex
+venv/bin/python -m pipeline.e12_graficos.sessoes   # linha do tempo das gravações (pgfplots, precisa da etapa 02) → outputs/12_graficos/pgfplots/fig_sessoes.tex
+venv/bin/python -m pipeline.e12_graficos.previa    # PNG de conferência de cada .tex (precisa do pdflatex) → outputs/12_graficos/pgfplots/*.png
 ```
 
-A especificação do experimento está em [docs/00_proposta-tcc.md](docs/00_proposta-tcc.md). Pastas de `docs/` e `outputs/` levam o número da etapa (`01_`…`11_`), e os pacotes de `pipeline/` e `tests/` o mesmo número com o prefixo `e` (`e01_`…), porque um módulo Python não pode começar com dígito; `pipeline/avaliacao` é a biblioteca de métricas usada pelas etapas 06–08 e não tem número. `outputs/` não é versionado, com uma exceção: `outputs/10_resultados/`, com as previsões de todos os modelos, para reproduzir os resultados sem treinar ([docs/10_resultados.md](docs/10_resultados.md)).
+A etapa 11 (topomapas) fica só na máquina do autor, fora do git. A etapa 12 lê `outputs/10_resultados/`, então gera os gráficos em qualquer clone, sem treinar nada (só a linha do tempo das gravações precisa dos dados).
+
+A especificação do experimento está em [docs/00_proposta-tcc.md](docs/00_proposta-tcc.md). Pastas de `docs/` e `outputs/` levam o número da etapa (`01_`…`12_`), e os pacotes de `pipeline/` e `tests/` o mesmo número com o prefixo `e` (`e01_`…), porque um módulo Python não pode começar com dígito; `pipeline/avaliacao` é a biblioteca de métricas usada pelas etapas 06–08 e não tem número. `outputs/` não é versionado, com duas exceções: `outputs/10_resultados/`, com as previsões de todos os modelos, para reproduzir os resultados sem treinar ([docs/10_resultados.md](docs/10_resultados.md)), e `outputs/12_graficos/`, com os gráficos principais e suplementares ([docs/12_graficos.md](docs/12_graficos.md)).
 
 ## Resultados por etapa
 
@@ -95,6 +100,6 @@ Cada pasta de `pipeline/` tem um doc em `docs/` com os resultados da última exe
 | `pipeline/e08_classicos` | [docs/08_classicos.md](docs/08_classicos.md) |
 | `pipeline/e09_investigacao` | [docs/09_investigacao.md](docs/09_investigacao.md) |
 | `pipeline/e10_resultados` | [docs/10_resultados.md](docs/10_resultados.md) |
-| `pipeline/e11_topomapa` | [docs/11_topomapa.md](docs/11_topomapa.md) |
-| `pipeline/e12_figuras` | [docs/12_figuras.md](docs/12_figuras.md) |
+| `pipeline/e11_topomapa` | [docs/11_topomapa.md](docs/11_topomapa.md) (só local) |
+| `pipeline/e12_graficos` | [docs/12_graficos.md](docs/12_graficos.md) |
 | `pipeline/avaliacao` (biblioteca) | [docs/avaliacao.md](docs/avaliacao.md) |
