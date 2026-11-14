@@ -1,6 +1,6 @@
 # Investigação dos erros e do confundidor de data — resultados
 
-Quatro análises pós-hoc sobre o DTSF, pedidas na conversa com o orientador: a data de gravação contra o diagnóstico, as pessoas que o D classifica errado, explicações SHAP e a influência da sessão de gravação. **Nenhuma delas testa hipótese**: são descritivas, e todas foram escolhidas depois de ver os resultados.
+Quatro análises pós-hoc sobre o DTSF, pedidas na conversa com o orientador: a data de gravação contra o diagnóstico, as pessoas que o modelo principal (D_FA) classifica errado, explicações SHAP e a influência da sessão de gravação. **Nenhuma delas testa hipótese**: são descritivas, e todas foram escolhidas depois de ver os resultados.
 
 Resultado que não depende da semente:
 - **A data de gravação, sozinha, separa as classes:** AUC de 0,929 na SZ e 0,928 no MDD. Na SZ, nenhuma sessão de gravação tem as duas classes.
@@ -12,21 +12,22 @@ Os resultados das seções 2–4 dependem dos modelos treinados e estão pendent
   - `erros.py`: experimento 2;
   - `explicar.py` e `relatorio_explicacao.py`: experimento 3 (retreino com pesos gravados, SHAP e resumo);
   - `lote.py`: experimento 4.
+- Modelo investigado: o principal da etapa 07, o D_FA (`PRINCIPAL` em [pipeline/e07_DTSF/redes_dtsf.py](../pipeline/e07_DTSF/redes_dtsf.py)). Os retreinos usam a mesma rede, as mesmas partições e as mesmas sementes da etapa 07.
 - Testes: `tests/e09_investigacao/`.
-- Saídas em `outputs/09_investigacao/`: `datas/`, `erros/`, `explicacao/` e `lote/`, cada uma com `resumo.md`; logs `log_explicacao.txt` e `log_lote.txt`.
+- Saídas em `outputs/09_investigacao/`: `datas/`, `erros/`, `explicacao/D_FA/` e `lote/` (com o retreino em `lote/resultados/MDD/D_FA/`), cada uma com `resumo.md`; logs `log_explicacao.txt` e `log_lote.txt`. A explicação e o retreino ficam numa pasta por modelo, porque pesos de redes diferentes não se misturam.
 - Execução sobre as saídas da rodada completa.
 
 ```bash
 venv/bin/python -m pipeline.e09_investigacao.datas
-venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # 10 retreinos + SHAP (~15 min com 10 processos); retoma
+venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # 10 retreinos do D_FA + SHAP; retoma
 venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao
 venv/bin/python -m pipeline.e09_investigacao.erros          # usa as janelas do explicar, se existirem
-venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt               # subconjuntos + 50 retreinos; retoma
+venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt               # subconjuntos + 50 retreinos do D_FA; retoma
 ```
 
-Pré-requisitos: as etapas 02, 03, 05, 06, 07 (com os caches e as previsões do D) e 08.
+Pré-requisitos: as etapas 02, 03, 05, 06, 07 (com os caches e as previsões do D_FA) e 08.
 
-O `explicar` e o `lote` aceitam `--dispositivo cuda`, como a etapa 07 (ver [07_DTSF.md](07_DTSF.md#cpu-ou-gpu)): os retreinos do D rodam na GPU. No `explicar`, o modelo volta para a CPU antes do SHAP, que continua na CPU. Use o mesmo dispositivo da etapa 07, para o D da etapa 09 ser treinado como o D que ele investiga; o runner se recusa a completar uma pasta com retreinos feitos em outro dispositivo.
+O `explicar` e o `lote` aceitam `--dispositivo cuda`, como a etapa 07 (ver [07_DTSF.md](07_DTSF.md#cpu-ou-gpu)): os retreinos do D_FA rodam na GPU. No `explicar`, o modelo volta para a CPU antes do SHAP, que continua na CPU. Use o mesmo dispositivo da etapa 07, para o D_FA da etapa 09 ser treinado como o D_FA que ele investiga; o runner se recusa a completar uma pasta com retreinos feitos em outro dispositivo.
 
 ## 1. Data de gravação × diagnóstico
 
@@ -55,20 +56,20 @@ A tabela por ano e mês está em `outputs/09_investigacao/datas/resumo.md`.
 
 ## 2. Erros individuais
 
-Para cada pessoa: a previsão do D nas 10 repetições, a qualidade do sinal, a sessão e o espectro (Welch nas janelas aceitas sem overlap, média dos 19 canais).
+Para cada pessoa: a previsão do D_FA nas 10 repetições, a qualidade do sinal, a sessão e o espectro (Welch nas janelas aceitas sem overlap, média dos 19 canais).
 Pessoas em foco: s06 (SZ), h10 (HC da SZ) e MDD S27, com o espectro comparado ao das duas classes (figuras `erros/espectros.png` e `erros/janelas.png`).
 
 **Resultados:** pendentes da rodada com a semente 20261108.
 
 ## 3. Explicações SHAP
 
-**Como.** As previsões da etapa 07 não guardam os pesos, então o D foi retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes, e os pesos foram gravados. Para cada janela de teste aceita sem overlap, os valores SHAP do logit foram calculados por *expected gradients* (ERION et al., 2021), o algoritmo do `shap.GradientExplainer`, implementado em PyTorch para não trazer a biblioteca `shap` (que depende do `numba` e pode exigir outra versão do numpy). O fundo tem 100 janelas de treino de cada classe, e cada janela usa 50 amostras. φ > 0 empurra para paciente.
+**Como.** As previsões da etapa 07 não guardam os pesos, então o D_FA é retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes, e os pesos são gravados. Para cada janela de teste aceita sem overlap, os valores SHAP do logit são calculados por *expected gradients* (ERION et al., 2021), o algoritmo do `shap.GradientExplainer`, implementado em PyTorch para não trazer a biblioteca `shap` (que depende do `numba` e pode exigir outra versão do numpy). O fundo tem 100 janelas de treino de cada classe, e cada janela usa 50 amostras. φ > 0 empurra para paciente. A Frequency Attention fica dentro da rede, então os φ do ramo temporal já incluem o efeito dela.
 
 **Conferências:** a previsão da pessoa no modelo retreinado contra a da etapa 07 (repetição 0) e a completude (soma dos φ contra f(x) − E[f(fundo)]).
 
 **Grupos.** Cada pessoa de teste entra num grupo pela previsão do próprio modelo retreinado (HC certo, HC errado, paciente certo, paciente errado). Antes da média do grupo, o perfil de cada pessoa é normalizado para somar 1.
 
-Figuras: `explicacao/frequencias.png`, `explicacao/canais.png` (topografia) e `explicacao/tempo.png`.
+Figuras: `explicacao/D_FA/frequencias.png`, `explicacao/D_FA/canais.png` (topografia) e `explicacao/D_FA/tempo.png`.
 
 **Resultados:** pendentes da rodada com a semente 20261108.
 
@@ -76,14 +77,14 @@ Figuras: `explicacao/frequencias.png`, `explicacao/canais.png` (topografia) e `e
 
 ### Subconjuntos, sem retreino
 
-As previsões fora do fold já gravadas (D da etapa 07, os 9 baselines da etapa 08 e a LR de 76 bandas da etapa 06) são reavaliadas só nas pessoas de cada subconjunto em que a data se confunde menos com o diagnóstico. Os modelos continuam treinados com todas as pessoas. AUC por pessoa (média das 10 repetições fora do fold); o IC de 95% (bootstrap estratificado) é só do D.
+As previsões fora do fold já gravadas (D_FA da etapa 07, os 9 baselines da etapa 08 e a LR de 76 bandas da etapa 06) são reavaliadas só nas pessoas de cada subconjunto em que a data se confunde menos com o diagnóstico. Os modelos continuam treinados com todas as pessoas. AUC por pessoa (média das 10 repetições fora do fold); o IC de 95% (bootstrap estratificado) é só do D_FA.
 
 - **SZ:** os 3 pacientes gravados em 2003 contra os 14 HC (todos de 2003), e os 11 pacientes de 2004–2008 contra os mesmos HC.
 - **MDD:** sem o lote de jan/2013; só a sessão de abr–jul/2013, a única com as duas classes (4 HC); e cada sessão de HC separada contra todos os pacientes.
 
-### Retreino do D no MDD sem o lote de jan/2013
+### Retreino do D_FA no MDD sem o lote de jan/2013
 
-Partições novas 5 × 10, com o mesmo procedimento de [05_folds.md](05_folds.md), nas 42 pessoas restantes (13 HC e 29 MDD; 8–9 pessoas de teste por fold), e o D treinado do zero com o código da etapa 07: 50 treinos, ~40 min com 10 processos.
+Partições novas 5 × 10, com o mesmo procedimento de [05_folds.md](05_folds.md), nas 42 pessoas restantes (13 HC e 29 MDD; 8–9 pessoas de teste por fold), e o D_FA treinado do zero com o código da etapa 07: 50 treinos.
 
 Na SZ não há retreino equivalente: os 14 HC estão numa sessão só.
 
