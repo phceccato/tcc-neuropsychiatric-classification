@@ -125,3 +125,108 @@ def test_cada_figura_grava_pdf_e_png_na_sua_pasta(figura, numeros_sinteticos, tm
     assert all(c.stat().st_size > 1000 for c in caminhos)
     pasta = {c.parent.name for c in caminhos}
     assert pasta == ({g.PRINCIPAIS} if caminhos[0].name.startswith("p") else {g.SUPLEMENTARES})
+
+
+# ---------- perdas do D_FA e ROC de todos os modelos ----------
+
+def test_numeros_trazem_as_perdas_conferidas_do_d_fa(numeros_json):
+    folds = numeros_json["perdas"]["SZ"]
+    assert len(folds) == 50 and {f["repeticao"] for f in folds} == set(range(10))
+    f = folds[0]
+    assert len(f["treino"]) == len(f["validacao"]) and f["melhor"] == 1 + int(np.argmin(f["validacao"]))
+
+
+def test_perdas_param_se_a_epoca_escolhida_nao_e_a_de_menor_validacao(tmp_path):
+    from tests.e11_graficos.conftest import _perdas
+    t = _perdas(0)
+    t.loc[(t["repeticao"] == 0) & (t["fold"] == 0), "melhor"] = 0
+    t.loc[(t["repeticao"] == 0) & (t["fold"] == 0) & (t["epoca"] == 1), "melhor"] = 1
+    t.loc[(t["repeticao"] == 0) & (t["fold"] == 0) & (t["epoca"] == 1), "perda_validacao"] = 9.0
+    t.to_csv(tmp_path / "d.csv", index=False)
+    with pytest.raises(n.Divergencia):
+        n.perdas_folds(tmp_path / "d.csv")
+
+
+def test_perdas_param_com_folds_faltando(tmp_path):
+    from tests.e11_graficos.conftest import _perdas
+    t = _perdas(0)
+    t[~((t["repeticao"] == 9) & (t["fold"] == 4))].to_csv(tmp_path / "d.csv", index=False)
+    with pytest.raises(n.Divergencia, match="49 folds"):
+        n.perdas_folds(tmp_path / "d.csv")
+
+
+def test_figura_de_perdas_sem_perdas_nao_grava_e_avisa(numeros_json, tmp_path, capsys):
+    g.configurar()
+    sem = {k: v for k, v in numeros_json.items() if k != "perdas"}
+    assert g.fig_loss_d_fa(sem, tmp_path) == [] and "perdas" in capsys.readouterr().out
+    assert not list(tmp_path.rglob("*.pdf"))
+
+
+def test_curva_pr_bate_com_o_sklearn_e_a_ap_e_a_area_por_passos():
+    from sklearn.metrics import average_precision_score
+    e = dict(y=[0, 0, 1, 1, 0, 1, 1, 0], prob=[0.1, 0.4, 0.35, 0.8, 0.5, 0.65, 0.9, 0.2])
+    revocacao, precisao, ap = g.curva_pr(e)
+    assert ap == pytest.approx(average_precision_score(e["y"], e["prob"])) and revocacao[0] == 1.0
+    assert revocacao[-1] == 0.0 and precisao[-1] == 1.0 and len(revocacao) == len(precisao)
+    assert -np.sum(np.diff(revocacao) * precisao[:-1]) == pytest.approx(ap)
+
+
+def test_figura_roc_pr_tem_uma_figura_por_transtorno_com_os_6_principais(numeros_json, tmp_path):
+    g.configurar()
+    caminhos = g.fig_roc_pr(numeros_json, tmp_path)
+    assert sorted(c.name for c in caminhos) == ["p6_roc_pr_mdd.pdf", "p6_roc_pr_mdd.png",
+                                                 "p6_roc_pr_sz.pdf", "p6_roc_pr_sz.png"]
+    assert {c.parent.name for c in caminhos} == {g.PRINCIPAIS} and len(g.MODELOS_PRINCIPAIS) == 6
+
+
+def test_valores_do_grafico_de_linhas_sao_as_medias_nas_repeticoes_em_porcentagem(numeros_json):
+    md = numeros_json["modelos"]["SZ"]["D_FA"]["media_desvio"]
+    v = g.valores_limiar(numeros_json, "SZ", "D_FA")
+    assert list(v) == ["acuracia", "precisao", "sensibilidade", "f1"]
+    assert v["acuracia"] == pytest.approx(100 * md["acuracia"][0]) and v["f1"] == pytest.approx(100 * md["f1"][0])
+
+
+def test_limites_do_eixo_incluem_todos_os_valores():
+    assert g.limites_y_limiar([53.2, 90.1]) == (40, 100)
+    assert g.limites_y_limiar([71.0, 80.0]) == (60, 100)
+    assert g.limites_y_limiar([2.0, 50.0]) == (0, 100)
+
+
+def test_graficos_de_linhas_gravam_nas_pastas_certas(numeros_json, tmp_path):
+    g.configurar()
+    a = g.fig_metricas_limiar(numeros_json, tmp_path)
+    b = g.fig_metricas_limiar_todos(numeros_json, tmp_path)
+    assert [c.name for c in a] == ["p7_metricas_limiar.pdf", "p7_metricas_limiar.png"] and a[0].parent.name == g.PRINCIPAIS
+    assert [c.name for c in b] == ["s11_metricas_limiar_todos.pdf", "s11_metricas_limiar_todos.png"]
+    assert b[0].parent.name == g.SUPLEMENTARES
+
+
+def test_bootstrap_do_principal_tem_o_mesmo_ic_do_resumo_e_curvas_na_grade(numeros_json):
+    b = numeros_json["bootstrap"]["MDD"]
+    r = numeros_json["modelos"]["MDD"]["D_FA"]
+    assert b["ic"] == pytest.approx(r["ic"], abs=1e-9) and b["reamostragens"] == 2000
+    assert len(b["curvas"]) == n.N_CURVAS_BOOTSTRAP and len(b["curvas"][0]) == len(b["grade"]) == 101
+    curvas = np.array(b["curvas"])
+    assert (np.diff(curvas, axis=1) >= -1e-9).all() and (curvas[:, -1] == 1).all() and (curvas >= 0).all()
+
+
+def test_figura_do_bootstrap_grava_em_principais(numeros_json, tmp_path):
+    g.configurar()
+    caminhos = g.fig_roc_bootstrap(numeros_json, tmp_path)
+    assert [c.name for c in caminhos] == ["p8_roc_bootstrap_d_fa.pdf", "p8_roc_bootstrap_d_fa.png"]
+    assert caminhos[0].parent.name == g.PRINCIPAIS
+
+
+def test_mediana_por_epoca_so_onde_restam_folds_suficientes():
+    x, y = g._mediana_por_epoca([[1.0, 2.0, 3.0], [3.0, 4.0], [5.0]], minimo=2)
+    assert x.tolist() == [1, 2] and y.tolist() == [3.0, 3.0]
+
+
+def test_roc_de_todos_os_modelos_tem_um_arquivo_por_transtorno_e_todos_os_17_modelos(numeros_json, tmp_path):
+    g.configurar()
+    caminhos = g.fig_roc_todos(numeros_json, tmp_path)
+    assert sorted(c.name for c in caminhos) == ["s10_roc_todos_mdd.pdf", "s10_roc_todos_mdd.png",
+                                                 "s10_roc_todos_sz.pdf", "s10_roc_todos_sz.png"]
+    desenhados = {m for _, ms in g.GRUPOS for m in ms}
+    assert len(desenhados) == 17 and desenhados == set(numeros_json["modelos"]["SZ"])
+    assert all(g.estilo_roc_todos(m) for m in desenhados)

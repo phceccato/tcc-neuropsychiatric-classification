@@ -7,10 +7,21 @@ principais/ — os gráficos do texto:
   p1_roc_principais: curvas ROC por pessoa dos 6 modelos principais (D_FA, D, D_pequeno e LR, RF e KNN combinados);
   p2_auc_modelos: AUC por pessoa com IC de 95% de todos os modelos (etapas 06, 07 e 08);
   p3_metricas_principais: AUC, acurácia, precisão, recall e F1 dos 6 principais, média ± desvio nas 10 repetições;
-  p4_sz_mdd: AUC por pessoa com IC de 95% de cada modelo em SZ e em MDD, lado a lado.
+  p4_sz_mdd: AUC por pessoa com IC de 95% de cada modelo em SZ e em MDD, lado a lado;
+  p8_roc_bootstrap_d_fa: curvas ROC de reamostras bootstrap (cinza) e a curva original (preto) do D_FA, com a AUC por
+     pessoa e o IC de 95%, em SZ e em MDD;
+  p7_metricas_limiar: gráfico de linhas com acurácia, precisão, recall e F1 (limiar 0,5) dos 6 modelos principais,
+     um painel por transtorno (média nas 10 repetições);
+  p6_roc_pr_sz, p6_roc_pr_mdd: curvas ROC (esquerda) e Precision-Recall (direita) por pessoa dos 6 modelos principais,
+     com a AUC e a AP (average precision) na legenda, uma figura por transtorno;
+  p5_loss_d_fa: perda de treino e de validação interna do D_FA por época, nos 50 folds de cada transtorno (só se
+     numeros.json tiver as perdas; a perda de treino é a do lote com Mixup, a de validação é sem Mixup).
 
 suplementares/ — o material suplementar:
   s1_roc_ablacoes: curvas ROC do D_pequeno e das suas 3 ablações;
+  s11_metricas_limiar_todos: o mesmo gráfico de linhas para os 17 modelos, agrupados como em p2;
+  s10_roc_todos_sz, s10_roc_todos_mdd: curvas ROC por pessoa de todos os 17 modelos, um painel por grupo, com o D_FA
+     como referência em cada painel;
   s2_confusao_sz, s2_confusao_mdd: matriz de confusão por pessoa (limiar 0,5) de todos os modelos;
   s3_temporal_espectral: AUC só com o ramo ou as características temporais, só com as espectrais e com as duas,
      no DTSF (ablações do D_pequeno) e nos clássicos;
@@ -42,7 +53,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MultipleLocator  # noqa: E402
-from sklearn.metrics import roc_curve  # noqa: E402
+from sklearn.metrics import average_precision_score, precision_recall_curve, roc_curve  # noqa: E402
 
 SAIDA = Path("outputs/11_graficos")
 PRINCIPAIS, SUPLEMENTARES = "principais", "suplementares"
@@ -194,6 +205,269 @@ def fig_roc_ablacoes(numeros: dict, saida: Path) -> list[Path]:
     rotulos = {m: f"D_pequeno {nome(m)}" for m in ABLACOES}
     return _fig_roc(numeros, [REFERENCIA_ABLACOES, *ABLACOES], saida / SUPLEMENTARES, "s1_roc_ablacoes", rotulos,
                     {REFERENCIA_ABLACOES: dict(color=PRETO, ls="-", lw=1.8)})
+
+
+# ---------------------------------------------------------------- métricas de limiar em linhas
+
+# (chave em media_desvio, nome, marcador, tracejado, cor): a cor e o tracejado distinguem as métricas também em P&B
+METRICAS_LIMIAR = [("acuracia", "Acurácia", "o", "-", "#1f4e8c"), ("precisao", "Precisão", "s", ":", "#eb6834"),
+                   ("sensibilidade", "Recall", "^", "-.", "#1baf7a"), ("f1", "F1", "P", "--", PRETO)]
+
+
+def valores_limiar(numeros: dict, d: str, m: str) -> dict[str, float]:
+    """Acurácia, precisão, recall e F1 do modelo em %: a média das 10 repetições (limiar 0,5, paciente positivo)."""
+    md = numeros["modelos"][d][m]["media_desvio"]
+    return {chave: 100 * md[chave][0] for chave, *_ in METRICAS_LIMIAR}
+
+
+def limites_y_limiar(valores: list[float]) -> tuple[int, int]:
+    """Do múltiplo de 10 logo abaixo do menor valor (menos 5) até 100; o eixo não começa em 0 e a nota da figura avisa."""
+    return max(0, int(np.floor((min(valores) - 5) / 10)) * 10), 100
+
+
+def _linhas_limiar(ax, numeros: dict, d: str, posicoes: list[tuple[str, float]], ylim: tuple[int, int],
+                   rotulo_x: int = 25) -> None:
+    for chave, nome_metrica, marcador, tracejado, cor in METRICAS_LIMIAR:
+        ax.plot([x for _, x in posicoes], [valores_limiar(numeros, d, m)[chave] for m, _ in posicoes], marker=marcador,
+                ls=tracejado, color=cor, lw=1.1, ms=4, label=nome_metrica, zorder=3)
+    ax.set_xticks([x for _, x in posicoes])
+    ax.set_xticklabels([NOMES_CURTOS[m] for m, _ in posicoes], rotation=rotulo_x, ha="right", rotation_mode="anchor")
+    ax.set_ylim(*ylim)
+    ax.set_yticks(np.arange(ylim[0], ylim[1] + 1, 10))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}"))
+    ax.set_ylabel("Porcentagem (%)")
+    ax.tick_params(axis="y", length=3, width=0.6)
+    ax.grid(color="#ebebe8", lw=0.5, ls="--")
+
+
+NOTA_LIMIAR = ("Média das 10 repetições da validação cruzada, no limiar 0,5, com o paciente como classe positiva. "
+               "O eixo vertical não começa em zero.")
+
+
+def fig_metricas_limiar(numeros: dict, saida: Path) -> list[Path]:
+    """Linhas de acurácia, precisão, recall e F1 dos 6 modelos principais, um painel por transtorno."""
+    posicoes = [(m, float(i)) for i, m in enumerate(MODELOS_PRINCIPAIS)]
+    ylim = limites_y_limiar([v for d in DATASETS for m in MODELOS_PRINCIPAIS
+                             for v in valores_limiar(numeros, d, m).values()])
+    fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 3.7), gridspec_kw=dict(wspace=0.22))
+    for ax, d, letra in zip(eixos, DATASETS, "ab"):
+        _linhas_limiar(ax, numeros, d, posicoes, ylim)
+        ax.set_xlim(-0.4, len(posicoes) - 0.6)
+        ax.set_title(f"({letra}) {TITULOS[d]}", loc="left")
+    eixos[1].set_ylabel("")
+    fig.legend(*eixos[0].get_legend_handles_labels(), loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=4,
+               handlelength=2.6, columnspacing=1.8)
+    fig.text(0.5, -0.22, NOTA_LIMIAR, ha="center", va="top", fontsize=6.4, color=TEXTO_2)
+    return _gravar(fig, saida / PRINCIPAIS, "p7_metricas_limiar")
+
+
+TITULOS_CURTOS_GRUPOS = {"DTSF (etapa 07)": "DTSF", "Ablações do D_pequeno (etapa 07)": "Ablações",
+                         "Clássicos temporais (etapa 08)": "Temporais", "Clássicos espectrais (etapa 08)": "Espectrais",
+                         "Clássicos combinados (etapa 08)": "Combinados", "LR de 76 bandas (etapa 06)": "LR 76 bandas"}
+
+
+def fig_metricas_limiar_todos(numeros: dict, saida: Path) -> list[Path]:
+    """O mesmo gráfico para os 17 modelos, em dois painéis (SZ em cima, MDD embaixo), com os grupos separados."""
+    posicoes, divisorias, x = [], [], 0.0
+    for titulo, ms in GRUPOS:
+        divisorias.append((TITULOS_CURTOS_GRUPOS[titulo], x, x + len(ms) - 1))
+        posicoes += [(m, x + i) for i, m in enumerate(ms)]
+        x += len(ms) + 0.8
+    ylim = limites_y_limiar([v for d in DATASETS for m, _ in posicoes for v in valores_limiar(numeros, d, m).values()])
+    fig, eixos = plt.subplots(2, 1, figsize=(LARGURA, 7.4), gridspec_kw=dict(hspace=0.85))
+    for ax, d, letra in zip(eixos, DATASETS, "ab"):
+        _linhas_limiar(ax, numeros, d, posicoes, ylim, rotulo_x=40)
+        ax.set_xlim(-0.6, posicoes[-1][1] + 0.6)
+        ax.set_title(f"({letra}) {TITULOS[d]}", loc="left", pad=16)
+        for (titulo, inicio, fim), anterior in zip(divisorias, [None, *divisorias[:-1]]):
+            if anterior:
+                ax.axvline(inicio - 0.4, color=CINZA_CLARO, lw=0.7, ls=":", zorder=1)
+            ax.text((inicio + fim) / 2, 1.015, titulo, transform=ax.get_xaxis_transform(), ha="center", va="bottom",
+                    fontsize=6.2, color=TEXTO_2, clip_on=False)
+    fig.legend(*eixos[0].get_legend_handles_labels(), loc="upper center", bbox_to_anchor=(0.5, -0.02), ncol=4,
+               handlelength=2.6, columnspacing=1.8)
+    fig.text(0.5, -0.07, NOTA_LIMIAR, ha="center", va="top", fontsize=6.4, color=TEXTO_2)
+    return _gravar(fig, saida / SUPLEMENTARES, "s11_metricas_limiar_todos")
+
+
+def fig_roc_bootstrap(numeros: dict, saida: Path) -> list[Path]:
+    """Nuvem de curvas ROC bootstrap do modelo principal, com a curva original por cima."""
+    fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 3.4), gridspec_kw=dict(wspace=0.25))
+    for ax, d in zip(eixos, DATASETS):
+        b, r = numeros["bootstrap"][d], numeros["modelos"][d][PRINCIPAL]
+        grade = np.array(b["grade"])
+        ax.plot([0, 1], [0, 1], color=CINZA_CLARO, lw=0.8, zorder=0)
+        for curva in b["curvas"]:
+            ax.plot(grade, curva, drawstyle="steps-post", color=CINZA, lw=0.4, alpha=0.07, zorder=1)
+        fpr, tpr = curva_roc(r["escores"])
+        ax.plot(fpr, tpr, drawstyle="steps-post", color=PRETO, lw=1.8, zorder=3)
+        ax.text(0.97, 0.05, f"AUC {virgula(r['auc'], 2)}\nIC 95%: {virgula(b['ic'][0], 2)}–{virgula(b['ic'][1], 2)}",
+                ha="right", va="bottom", fontsize=7.5, transform=ax.transAxes,
+                bbox=dict(facecolor="white", edgecolor=CINZA_CLARO, lw=0.5, pad=2.5), zorder=4)
+        ax.set_xlim(-0.01, 1.01)
+        ax.set_ylim(-0.01, 1.01)
+        ax.set_aspect("equal")
+        for eixo in ("x", "y"):
+            _eixo_virgula(ax, eixo=eixo)
+        ax.tick_params(axis="y", length=3, width=0.6)
+        ax.grid(color="#ebebe8", lw=0.5)
+        ax.set_xlabel("1 − especificidade")
+        ax.set_ylabel("Sensibilidade" if d == "SZ" else "")
+        ax.set_title(TITULOS[d], loc="left")
+    n, desenhadas = numeros["bootstrap"]["SZ"]["reamostragens"], len(numeros["bootstrap"]["SZ"]["curvas"])
+    legenda = [Line2D([], [], color=CINZA, lw=0.8, alpha=0.5, label=f"Curvas ROC bootstrap ({n:,} reamostras; "
+                      f"{desenhadas} desenhadas)".replace(",", ".")),
+               Line2D([], [], color=PRETO, lw=1.8, label="Curva ROC original")]
+    fig.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, 0.0), ncol=2, handlelength=2.4,
+               columnspacing=1.8, fontsize=7)
+    fig.text(0.5, -0.1, f"Modelo principal ({PRINCIPAL}). Bootstrap estratificado por pessoa, sobre o escore médio nas 10 "
+             "repetições; o IC é o percentil 2,5–97,5 das AUCs das reamostras (o mesmo IC do restante do trabalho).",
+             ha="center", va="top", fontsize=6.4, color=TEXTO_2, wrap=True)
+    return _gravar(fig, saida / PRINCIPAIS, "p8_roc_bootstrap_d_fa")
+
+
+def curva_pr(escores: dict) -> tuple[np.ndarray, np.ndarray, float]:
+    """Revocação, precisão e AP (average precision) por pessoa (escore médio nas 10 repetições); paciente é a positiva."""
+    precisao, revocacao, _ = precision_recall_curve(escores["y"], escores["prob"])
+    return revocacao, precisao, float(average_precision_score(escores["y"], escores["prob"]))
+
+
+def _fig_roc_pr(numeros: dict, d: str, modelos: list[str], saida: Path, base: str) -> list[Path]:
+    """ROC e Precision-Recall lado a lado de um transtorno, com uma legenda só (AUC e AP de cada modelo)."""
+    r = numeros["modelos"][d]
+    fig, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(LARGURA, 3.2), gridspec_kw=dict(wspace=0.3))
+    prevalencia = float(np.mean(r[modelos[0]]["escores"]["y"]))
+    ax_roc.plot([0, 1], [0, 1], color=CINZA_CLARO, lw=0.8, zorder=0)
+    ax_pr.axhline(prevalencia, color=CINZA_CLARO, lw=0.8, zorder=0)
+    legenda = []
+    for m in modelos:
+        fpr, tpr = curva_roc(r[m]["escores"])
+        revocacao, precisao, ap = curva_pr(r[m]["escores"])
+        ax_roc.plot(fpr, tpr, drawstyle="steps-post", **ESTILO_ROC[m])
+        ax_pr.plot(revocacao, precisao, drawstyle="steps-post", **ESTILO_ROC[m])
+        legenda.append(Line2D([], [], label=f"{nome(m)} (AUC {virgula(r[m]['auc'], 2)}; AP {virgula(ap, 2)})",
+                              **ESTILO_ROC[m]))
+    for ax, titulo, x_rotulo, y_rotulo in ((ax_roc, "Curvas ROC", "1 − especificidade", "Sensibilidade"),
+                                           (ax_pr, "Curvas Precision-Recall", "Recall (sensibilidade)", "Precisão")):
+        ax.set_xlim(-0.01, 1.01)
+        ax.set_ylim(-0.01, 1.01)
+        ax.set_aspect("equal")
+        for eixo in ("x", "y"):
+            _eixo_virgula(ax, eixo=eixo)
+        ax.tick_params(axis="y", length=3, width=0.6)
+        ax.grid(color="#ebebe8", lw=0.5)
+        ax.set_xlabel(x_rotulo)
+        ax.set_ylabel(y_rotulo)
+        ax.set_title(titulo, loc="left")
+    fig.suptitle(f"ROC e Precision-Recall dos modelos principais: {TITULOS[d]}", fontsize=8.5, y=0.97)
+    fig.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, -0.04), ncol=2, handlelength=2.6,
+               columnspacing=1.8, fontsize=6.8, title="AUC por pessoa e AP (average precision)", title_fontsize=6.8)
+    fig.text(0.5, -0.36, f"Linha cinza: acaso (ROC) e prevalência de pacientes, {virgula(prevalencia, 2)} (Precision-Recall).",
+             ha="center", va="top", fontsize=6.4, color=TEXTO_2)
+    return _gravar(fig, saida / PRINCIPAIS, base)
+
+
+def fig_roc_pr(numeros: dict, saida: Path) -> list[Path]:
+    return [c for d in DATASETS for c in _fig_roc_pr(numeros, d, MODELOS_PRINCIPAIS, saida, f"p6_roc_pr_{d.lower()}")]
+
+
+def estilo_roc_todos(m: str) -> dict:
+    """Cor pela modalidade (clássicos) e tracejado pelo classificador; o DTSF e a LR de 76 bandas em preto e amarelo."""
+    if m in ("D_FA", "D", "D_pequeno") or m in ABLACOES:
+        return ESTILO_ROC[m] | ({} if m in ("D_FA", "D", "D_pequeno") else dict(color=PRETO))
+    if m.startswith("LR_psd"):
+        return dict(color=CORES_ROC[3], ls="-" if "absolutas" in m else "--", lw=1.2)
+    classificador, modalidade = m.split("_")
+    return dict(color=CORES_ROC[("temporal", "espectral", "combinado").index(modalidade)],
+                ls={"LR": "-", "RF": "--", "KNN": ":"}[classificador], lw=1.2)
+
+
+CORES_ROC = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")
+
+
+def _fig_roc_todos(numeros: dict, d: str, saida: Path, base: str) -> list[Path]:
+    """Seis painéis (um por grupo de modelos) com as curvas ROC de um transtorno; o D_FA aparece em todos."""
+    r = numeros["modelos"][d]
+    fig, eixos = plt.subplots(2, 3, figsize=(LARGURA, 5.9), gridspec_kw=dict(wspace=0.4, hspace=0.8))
+    for ax, (titulo, modelos) in zip(eixos.flat, GRUPOS):
+        ax.plot([0, 1], [0, 1], color=CINZA_CLARO, lw=0.8, zorder=0)
+        for m in (modelos if PRINCIPAL in modelos else [PRINCIPAL, *modelos]):
+            fpr, tpr = curva_roc(r[m]["escores"])
+            estilo_m = estilo_roc_todos(m) | (dict(lw=1.8) if m == PRINCIPAL else {})
+            ax.plot(fpr, tpr, drawstyle="steps-post", label=f"{NOMES_CURTOS[m]} ({virgula(r[m]['auc'], 2)})",
+                    **estilo_m)
+        ax.set_xlim(-0.01, 1.01)
+        ax.set_ylim(-0.01, 1.01)
+        ax.set_aspect("equal")
+        for eixo in ("x", "y"):
+            _eixo_virgula(ax, eixo=eixo)
+        ax.tick_params(axis="y", length=3, width=0.6)
+        ax.grid(color="#ebebe8", lw=0.5)
+        ax.set_xlabel("1 − especificidade", fontsize=7)
+        ax.set_ylabel("Sensibilidade", fontsize=7)
+        ax.set_title(titulo.split(" (")[0], loc="left", fontsize=7.5)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.27), fontsize=5.8, handlelength=2.2, labelspacing=0.3)
+    fig.suptitle(f"{TITULOS[d]}: AUC por pessoa entre parênteses", fontsize=8.5, y=0.97)
+    return _gravar(fig, saida / SUPLEMENTARES, base)
+
+
+def fig_roc_todos(numeros: dict, saida: Path) -> list[Path]:
+    return [c for d in DATASETS for c in _fig_roc_todos(numeros, d, saida, f"s10_roc_todos_{d.lower()}")]
+
+
+# ---------------------------------------------------------------- perda de treino e de validação do D_FA
+
+NOTA_LOSS = ("Perda de treino: lote com Mixup e dropout. Perda de validação: pessoas do split interno do treino (nunca o "
+             "teste), sem Mixup. As escalas não são diretamente comparáveis.")
+
+
+def _mediana_por_epoca(series: list[list[float]], minimo: int) -> tuple[np.ndarray, np.ndarray]:
+    """Mediana, por época, dos folds que ainda treinavam; só nas épocas em que restam `minimo` folds ou mais."""
+    epocas = max(len(s) for s in series)
+    x, y = [], []
+    for e in range(epocas):
+        valores = [s[e] for s in series if len(s) > e]
+        if len(valores) >= minimo:
+            x.append(e + 1)
+            y.append(float(np.median(valores)))
+    return np.array(x), np.array(y)
+
+
+def fig_loss_d_fa(numeros: dict, saida: Path) -> list[Path]:
+    perdas = numeros.get("perdas")
+    if not perdas:
+        print("p5_loss_d_fa: numeros.json sem as perdas do D_FA (perdas/<dataset>/D_FA.csv da etapa 10); figura não gerada")
+        return []
+    fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 4.0), gridspec_kw=dict(wspace=0.22))
+    for ax, d in zip(eixos, DATASETS):
+        folds = perdas[d]
+        for f in folds:
+            x = np.arange(1, len(f["treino"]) + 1)
+            ax.plot(x, f["treino"], color=CINZA, ls="--", lw=0.5, alpha=0.22, zorder=1)
+            ax.plot(x, f["validacao"], color=PRETO, lw=0.5, alpha=0.22, zorder=1)
+        minimo = (len(folds) + 1) // 2
+        ax.plot(*_mediana_por_epoca([f["treino"] for f in folds], minimo), color=CINZA, ls="--", lw=1.8, zorder=3)
+        ax.plot(*_mediana_por_epoca([f["validacao"] for f in folds], minimo), color=PRETO, lw=1.8, zorder=3)
+        melhor = float(np.median([f["melhor"] for f in folds]))
+        ax.axvline(melhor, color=TEXTO_2, ls=":", lw=0.9, zorder=2)
+        topo = np.percentile(np.concatenate([f["validacao"] + f["treino"] for f in folds]), 99)
+        ax.set_ylim(0, topo * 1.1)
+        ax.set_xlim(0.5, max(len(f["treino"]) for f in folds) + 0.5)
+        ax.xaxis.set_major_locator(MultipleLocator(5))
+        _eixo_virgula(ax, 1, eixo="y")
+        ax.tick_params(axis="y", length=3, width=0.6)
+        ax.grid(color="#ebebe8", lw=0.5)
+        ax.set_xlabel("Época")
+        ax.set_ylabel("Perda (BCE com peso de classe)" if d == "SZ" else "")
+        ax.set_title(f"{TITULOS[d]}", loc="left")
+    legenda = [Line2D([], [], color=CINZA, ls="--", lw=1.8, label="Treino (com Mixup), mediana dos folds"),
+               Line2D([], [], color=PRETO, lw=1.8, label="Validação interna, mediana dos folds"),
+               Line2D([], [], color=CINZA_CLARO, lw=0.8, label="um fold (50 por transtorno)"),
+               Line2D([], [], color=TEXTO_2, ls=":", lw=0.9, label="época escolhida (mediana)")]
+    fig.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, 0.02), ncol=2, handlelength=2.4,
+               columnspacing=1.6)
+    fig.text(0.5, -0.1, NOTA_LOSS, ha="center", va="top", fontsize=6.4, color=TEXTO_2, wrap=True)
+    return _gravar(fig, saida / PRINCIPAIS, "p5_loss_d_fa")
 
 
 # ---------------------------------------------------------------- AUC de todos os modelos
@@ -593,8 +867,8 @@ def fig_barras_classicos(numeros: dict, saida: Path) -> list[Path]:
 
 FIGURAS = dict(
     roc_principais=fig_roc_principais, auc_modelos=fig_auc_modelos, metricas_principais=fig_metricas_principais,
-    sz_mdd=fig_sz_mdd,
-    roc_ablacoes=fig_roc_ablacoes, confusao_todos=fig_confusao_todos, temporal_espectral=fig_temporal_espectral,
+    sz_mdd=fig_sz_mdd, roc_pr=fig_roc_pr, roc_bootstrap=fig_roc_bootstrap, metricas_limiar=fig_metricas_limiar, loss_d_fa=fig_loss_d_fa,
+    roc_ablacoes=fig_roc_ablacoes, roc_todos=fig_roc_todos, metricas_limiar_todos=fig_metricas_limiar_todos, confusao_todos=fig_confusao_todos, temporal_espectral=fig_temporal_espectral,
     absolutas_relativas=fig_absolutas_relativas, auc_repeticoes=fig_auc_repeticoes,
     delta_hipoteses=fig_delta_hipoteses, testes_estatisticos=fig_testes_estatisticos,
     barras_ablacoes=fig_barras_ablacoes, barras_classicos=fig_barras_classicos,
