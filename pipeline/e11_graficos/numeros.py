@@ -12,6 +12,10 @@ Recalcula, com as mesmas funções e sementes dessas etapas:
   baseline (os 3 combinados na H4 e os 6 de uma modalidade, descritivos) e as descritivas entre os DTSF
   (D_FA − D, D − D_pequeno, D_FA − D_pequeno); e a decisão de cada hipótese (interseção-união e Holm);
 - H1: as AUCs nulas das permutações do D_FA, a AUC observada (repetição 0) e o p contra o acaso;
+- teste de DeLong (complementar; `teste_delong`), bicaudal, nas mesmas comparações "A − B", sobre os escores por
+  pessoa (média das 10 repetições): o modelo principal contra os outros 5 modelos principais (`DELONG_COMPARADOS`:
+  D, D_pequeno e os 3 combinados); os 5 p brutos de cada transtorno são ajustados por Holm, com α = 0,05. Não há resumo de etapa para conferir: a conferência é o teste unitário contra uma
+  implementação independente. As decisões de H1 a H4 continuam sendo as da permutação pareada sobre ranks;
 - bootstrap do modelo principal: as curvas ROC de reamostras bootstrap estratificadas por pessoa (as mesmas
   reamostragens do IC de 95% da AUC, que é conferido), numa grade de 1 − especificidade; só as primeiras
   N_CURVAS_BOOTSTRAP curvas vão para o json;
@@ -34,12 +38,14 @@ import numpy as np
 import pandas as pd
 
 from pipeline.avaliacao.metricas import (GRADE_FPR, auc_por_repeticao, avaliar, bootstrap_roc, escores_por_pessoa,
-                                         media_desvio, metricas_secundarias, p_valor, roc_auc_score)
-from pipeline.e07_DTSF.avaliar import (DESCRITIVAS, HIPOTESES, REFERENCIA_ABLACOES, SEMENTE, comparacao_pareada,
+                                         holm, media_desvio, metricas_secundarias, p_valor, parear, roc_auc_score,
+                                         teste_delong)
+from pipeline.e07_DTSF.avaliar import (ALFA, DESCRITIVAS, HIPOTESES, REFERENCIA_ABLACOES, SEMENTE, comparacao_pareada,
                                        completo, decidir_h1, decidir_hipotese)
 from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
 from pipeline.e08_classicos.avaliar import BASELINES_H4, REFERENCIA as REFERENCIA_H4, decidir_h4
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS
+from pipeline.e11_graficos.delong import COMPARADOS as DELONG_COMPARADOS
 
 DATASETS = ("SZ", "MDD")
 LR_PSD = ("LR_psd_absolutas", "LR_psd_relativas")
@@ -137,6 +143,25 @@ def h1(real: pd.DataFrame, permutacoes: pd.DataFrame) -> dict:
     return dict(nulas=nulas.tolist(), observada=observada, p=p_valor(observada, nulas))
 
 
+def delong_comparacoes(pred: dict[str, pd.DataFrame]) -> dict[str, dict]:
+    """DeLong do principal contra cada um dos outros 5 modelos principais e o p ajustado por Holm sobre os 5."""
+    brutos = {}
+    for b in DELONG_COMPARADOS:
+        y, ea, eb = parear(escores_por_pessoa(pred[PRINCIPAL]), escores_por_pessoa(pred[b]))
+        brutos[f"{PRINCIPAL} − {b}"] = teste_delong(y, ea, eb)
+    ajustados = holm({k: v["p"] for k, v in brutos.items()}, alfa=ALFA)
+    return {k: v | dict(p_holm=float(ajustados[k]["p_ajustado"]), rejeita=bool(ajustados[k]["rejeita"]))
+            for k, v in brutos.items()}
+
+
+def tabela_delong(delong: dict) -> pd.DataFrame:
+    """Uma linha por (transtorno, comparação), para o delong.csv."""
+    return pd.DataFrame([dict(dataset=d, comparacao=c, auc_a=r["auc_a"], auc_b=r["auc_b"], delta=r["delta"],
+                              ic_baixo=r["ic"][0], ic_alto=r["ic"][1], z=r["z"], p=r["p"], p_holm=r["p_holm"],
+                              rejeita=r["rejeita"], degenerado=r["degenerado"])
+                         for d, comps in delong.items() for c, r in comps.items()])
+
+
 def bootstrap_principal(predicoes: pd.DataFrame, ic_resumo: list[float]) -> dict:
     """Reamostras bootstrap da AUC do modelo principal; confere o IC contra o `avaliar` (mesmas reamostragens)."""
     e = escores_por_pessoa(predicoes)          # a mesma ordem das pessoas que `avaliar` usa
@@ -172,7 +197,8 @@ def calcular(raiz: Path = RESULTADOS) -> dict:
     esperado_aucs = tabela_modelos(md["07_DTSF"]) | tabela_modelos(md["08_classicos"]) | tabela_lr_psd(md["06_LR_psd"])
     esperado_deltas = tabela_deltas(md["07_DTSF"], REFERENCIA_ABLACOES) | tabela_deltas(md["08_classicos"], REFERENCIA_H4)
 
-    numeros = dict(modelos={}, comparacoes={}, hipoteses={}, h1={}, h1_distribuicao={}, perdas={}, bootstrap={})
+    numeros = dict(modelos={}, comparacoes={}, hipoteses={}, h1={}, h1_distribuicao={}, perdas={}, bootstrap={},
+                   delong={})
     acaso, por_hipotese, h4 = {}, {h: {} for h in HIPOTESES}, {}
     for d in DATASETS:
         pred = {m: ler_previsoes(raiz / "previsoes" / d / f"{m}.csv") for m in MODELOS}
@@ -202,6 +228,7 @@ def calcular(raiz: Path = RESULTADOS) -> dict:
         for h, ablacoes in HIPOTESES.items():
             por_hipotese[h][d] = {x: numeros["comparacoes"][d][f"{REFERENCIA_ABLACOES} − {x}"] for x in ablacoes}
         h4[d] = {m: numeros["comparacoes"][d][f"{REFERENCIA_H4} − {m}"] for m in BASELINES_H4}
+        numeros["delong"][d] = delong_comparacoes(pred)
 
         caminho = raiz / "permutacoes" / d / f"{PRINCIPAL}.csv"
         if not caminho.exists():
@@ -232,6 +259,7 @@ def main() -> None:
     args.saida.mkdir(parents=True, exist_ok=True)
     destino = args.saida / "numeros.json"
     destino.write_text(json.dumps(numeros, indent=1, ensure_ascii=False), encoding="utf-8")
+    tabela_delong(numeros["delong"]).to_csv(args.saida / "delong.csv", index=False)
     n = sum(len(v) for v in numeros["modelos"].values())
     print(f"{destino}: {n} (modelo, dataset) e {sum(len(v) for v in numeros['comparacoes'].values())} comparações, "
           "todos conferidos contra os resumos das etapas")
