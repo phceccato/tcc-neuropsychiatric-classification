@@ -74,6 +74,7 @@ venv/bin/python -m pipeline.e11_graficos.numeros   # números dos gráficos, de 
 venv/bin/python -m pipeline.e11_graficos.graficos  # gráficos principais e suplementares (PDF e PNG) → outputs/11_graficos/principais/ e suplementares/
 venv/bin/python -m pipeline.e11_graficos.h1_nula   # distribuição nula da H1 (pgfplots) → outputs/11_graficos/pgfplots/fig_h1_nula.tex
 venv/bin/python -m pipeline.e11_graficos.roc       # curvas ROC do D_FA e dos combinados (pgfplots) → outputs/11_graficos/pgfplots/fig_roc.tex
+venv/bin/python -m pipeline.e11_graficos.delong    # tabela do teste de DeLong (Holm sobre 5 p) em LaTeX → outputs/11_graficos/delong.tex
 venv/bin/python -m pipeline.e11_graficos.sessoes   # linha do tempo das gravações (pgfplots, precisa da etapa 02) → outputs/11_graficos/pgfplots/fig_sessoes.tex
 venv/bin/python -m pipeline.e11_graficos.previa    # PNG de conferência de cada .tex (precisa do pdflatex) → outputs/11_graficos/pgfplots/*.png
 venv/bin/python -m pipeline.e12_topomapa.topomapa --pessoa MDD-MDD-S27   # mapas topográficos por banda de uma pessoa → outputs/12_topomapa/

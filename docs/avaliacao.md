@@ -20,13 +20,30 @@ Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo D
 | `ic_bootstrap_delta` | IC de 95% do ΔAUC, reamostrando pessoas e mantendo os pares | IC das comparações e das ablações |
 | `parear` | Alinha os escores por pessoa de dois modelos e recusa pessoas ausentes, repetidas, rótulos divergentes ou escores inválidos | Comparações pareadas |
 | `p_interseccao_uniao` | p = maior p das comparações componentes (BERGER, 1982) | H2 e H4: decisão num transtorno |
-| `holm` | Correção de Holm (step-down) | H2–H4: decisão entre SZ e MDD |
+| `holm` | Correção de Holm (step-down) | H2–H4: decisão entre SZ e MDD; DeLong complementar |
+| `teste_delong` | Teste de DeLong (DELONG et al., 1988) para a diferença entre duas AUCs correlacionadas nas mesmas pessoas: ΔAUC, erro-padrão, z, p bicaudal e IC de 95% (Δ ± 1,96 dp). Variância zero (as duas AUCs valem 1 ou escores idênticos) devolve p = 1 e `degenerado` | Teste complementar da etapa 11 |
 | `delta_por_repeticao`, `delta_por_fold` | ΔAUC de cada repetição e de cada (repetição, fold) | Sensibilidades |
 | `t_corrigido` | t corrigido de Nadeau e Bengio (2003) sobre os ΔAUC por fold | Sensibilidade |
 
 ## Média ± desvio nas repetições
 
 Em cada uma das 10 repetições, as previsões fora do fold dos 5 folds formam uma previsão para cada pessoa; sobre elas se calculam a AUC e as secundárias (limiar 0,5). Os resumos trazem a média ± desvio dessas 10. O desvio mostra quanto o resultado muda com a partição. Ele não é a incerteza sobre a população, porque as repetições reusam as mesmas pessoas; para isso vale o IC por bootstrap da AUC por pessoa.
+
+## Teste de DeLong (complementar)
+
+Pedido pelo orientador, o teste de DeLong compara as AUCs de dois modelos por vez, nas mesmas pessoas, e depois ajusta os p por Holm. Ele é calculado na etapa 11 ([11_graficos.md](11_graficos.md)) sobre os escores por pessoa (média das 10 repetições):
+1. **Comparações:** o modelo principal (`D_FA`) contra os outros 5 modelos principais: `D` (dimensões do artigo, sem FA), `D_pequeno` e os 3 baselines combinados (LR, RF e KNN). Em cada uma, `teste_delong` dá a AUC dos dois modelos, ΔAUC = AUC(`D_FA`) − AUC(outro), o erro-padrão, o Z, o p bruto (bicaudal) e o IC de 95% do Δ.
+2. **Holm:** os 5 p brutos de cada transtorno são ajustados por Holm (`holm`, α = 0,05, separadamente em SZ e em MDD). "Significativo" é a decisão do Holm.
+
+A tabela (comparação, AUC dos dois modelos, ΔAUC, Z, p bruto, p ajustado e decisão) sai em `outputs/11_graficos/delong.tex` (LaTeX, booktabs), `delong.csv` e na figura `p10_delong_tabela`.
+
+O teste **não substitui** a decisão de H1–H4, que segue a permutação pareada sobre ranks definida antes dos resultados: trocar o teste depois de ver os dados é um desvio que precisaria ser declarado. Ressalvas:
+- o DeLong supõe pessoas independentes e escores fixos, e a validação cruzada viola isso (os treinos se sobrepõem e o escore é uma média de repetições): o p é aproximado e tende a ser otimista, como já se declara para a permutação;
+- a aproximação normal é fraca com 14 + 14 pessoas, e perto de AUC = 1 a variância se aproxima de zero (nesse caso o teste devolve p = 1 e marca `degenerado`);
+- o teste é bicaudal, e a permutação das hipóteses é unilateral, então os p não são comparáveis diretamente;
+- o Holm só corrige os 5 p de cada transtorno, não as demais comparações do trabalho.
+
+Validação: `tests/avaliacao/test_metricas.py` confere o teste contra uma implementação independente por laços, a AUC contra o scikit-learn, a simetria, os casos degenerados, a calibração sob a nula (taxa de rejeição entre 2% e 9% a α = 0,05, com pessoas independentes) e o poder.
 
 ## Hipóteses H1–H4
 
