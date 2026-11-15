@@ -55,15 +55,14 @@ venv/bin/python -m pipeline.e02_harmonizacao.harmonizar     # harmonização das
 venv/bin/python -m pipeline.e03_janelas.janelas             # filtro 2–30 Hz, z-score e índice de janelas → outputs/03_janelas/
 venv/bin/python -m pipeline.e04_features.psd                # PSD de Welch e as 76 features de banda → outputs/04_features/
 venv/bin/python -m pipeline.e05_folds.folds                 # partições 5 × 10 por pessoa → outputs/05_folds/
-venv/bin/python -m pipeline.e06_LR_psd.lr           # regressão logística + permutações → outputs/06_LR_psd/
+venv/bin/python -m pipeline.e06_LR_psd.lr           # regressão logística → outputs/06_LR_psd/
 venv/bin/python -m pipeline.e07_DTSF.dados               # cache do sinal z-score a 125 Hz → outputs/07_DTSF/cache/
 venv/bin/python -m pipeline.e07_DTSF.dados_dtsf          # cache multibanda do DTSF → outputs/07_DTSF/cache_dtsf/
 venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt   # os 6 modelos DTSF (retoma) → outputs/07_DTSF/resultados/
-venv/bin/python -m pipeline.e07_DTSF.rodar --permutacoes 25 2>&1 | tee -a outputs/07_DTSF/log_dtsf_permutacoes.txt   # D_FA contra o acaso (H1)
-venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt   # AUCs, ablações e H1–H3 → outputs/07_DTSF/resultados/resumo_dtsf.md
+venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt   # AUCs, ablações e comparações entre os DTSF → outputs/07_DTSF/resultados/resumo_dtsf.md
 venv/bin/python -m pipeline.e08_classicos.caracteristicas   # 475 + 1102 características por janela → outputs/08_classicos/caracteristicas/
 venv/bin/python -m pipeline.e08_classicos.rodar 2>&1 | tee -a outputs/08_classicos/log_classicos.txt   # 9 baselines clássicos (retoma) → outputs/08_classicos/resultados/
-venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e H4 (D_FA × 3 baselines combinados) → outputs/08_classicos/resultados/resumo.md
+venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e ΔAUC do D_FA contra os 9 baselines → outputs/08_classicos/resultados/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.datas        # data de gravação × diagnóstico → outputs/09_investigacao/datas/
 venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # D_FA retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/D_FA/
 venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/D_FA/resumo.md
@@ -72,7 +71,6 @@ venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_inves
 venv/bin/python -m pipeline.e10_resultados.exportar   # previsões de todos os modelos (y_true, y_pred, y_prob), métricas e resumos → outputs/10_resultados/ (versionada)
 venv/bin/python -m pipeline.e11_graficos.numeros   # números dos gráficos, de outputs/10_resultados/, conferidos contra os resumos → outputs/11_graficos/numeros.json
 venv/bin/python -m pipeline.e11_graficos.graficos  # gráficos principais e suplementares (PDF e PNG) → outputs/11_graficos/principais/ e suplementares/
-venv/bin/python -m pipeline.e11_graficos.h1_nula   # distribuição nula da H1 (pgfplots) → outputs/11_graficos/pgfplots/fig_h1_nula.tex
 venv/bin/python -m pipeline.e11_graficos.roc       # curvas ROC do D_FA e dos combinados (pgfplots) → outputs/11_graficos/pgfplots/fig_roc.tex
 venv/bin/python -m pipeline.e11_graficos.delong    # tabela do teste de DeLong (Holm sobre 5 p) em LaTeX → outputs/11_graficos/delong.tex
 venv/bin/python -m pipeline.e11_graficos.sessoes   # linha do tempo das gravações (pgfplots, precisa da etapa 02) → outputs/11_graficos/pgfplots/fig_sessoes.tex

@@ -3,7 +3,7 @@
 Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo DTSF, pelos baselines clássicos e pela LR de 76 bandas. Ela não tem execução própria: os resultados aparecem em [07_DTSF.md](07_DTSF.md), [08_classicos.md](08_classicos.md) e [06_LR_psd.md](06_LR_psd.md).
 
 - Código: [pipeline/avaliacao/metricas.py](../pipeline/avaliacao/metricas.py)
-- Testes: `tests/avaliacao/test_metricas.py`, que confere, entre outras coisas, a AUC vetorizada contra o scikit-learn, com empates, e `tests/avaliacao/test_premissas_ranks.py`, com as simulações que sustentam o teste pareado com ranks
+- Testes: `tests/avaliacao/test_metricas.py`, que confere, entre outras coisas, a AUC vetorizada contra o scikit-learn, com empates
 
 ## O que cada função implementa
 
@@ -14,48 +14,37 @@ Esta pasta guarda as funções de métrica e de teste estatístico usadas pelo D
 | `ic_bootstrap` | IC de 95% da AUC, por percentil, reamostrando pessoas dentro de cada classe (2000 vezes) | Incerteza da AUC |
 | `metricas_secundarias` | Acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 (paciente como classe positiva) e Macro F1 no limiar 0,5 | Métricas descritivas |
 | `metricas_por_repeticao`, `media_desvio`, `tabela_media_desvio` | AUC e secundárias de cada repetição (os 5 folds juntos) e a média ± desvio (ddof = 1) das 10 | Tabela de média ± desvio dos resumos das etapas 06, 07 e 08 |
-| `p_valor` | (nº de nulas ≥ observado + 1) / (N + 1) | Testes contra o acaso |
-| `auc_em_lote` | AUC de Mann-Whitney vetorizada, com empate valendo ½ | Base dos testes por permutação |
-| `teste_pareado` | ΔAUC = AUC(a) − AUC(b) e p unilateral, trocando os dois escores de cada pessoa ao acaso (10.000 vezes) | Base do teste com ranks |
-| `ic_bootstrap_delta` | IC de 95% do ΔAUC, reamostrando pessoas e mantendo os pares | IC das comparações e das ablações |
+| `p_valor` | (nº de nulas ≥ observado + 1) / (N + 1) | Só a LR de 76 bandas (etapa 06) |
+| `auc_em_lote` | AUC de Mann-Whitney vetorizada, com empate valendo ½ | ΔAUC e bootstrap |
+| `ic_bootstrap_delta` | IC de 95% do ΔAUC, reamostrando pessoas e mantendo os pares | IC das comparações e das ablações (descritivo) |
 | `parear` | Alinha os escores por pessoa de dois modelos e recusa pessoas ausentes, repetidas, rótulos divergentes ou escores inválidos | Comparações pareadas |
-| `p_interseccao_uniao` | p = maior p das comparações componentes (BERGER, 1982) | H2 e H4: decisão num transtorno |
-| `holm` | Correção de Holm (step-down) | H2–H4: decisão entre SZ e MDD; DeLong complementar |
-| `teste_delong` | Teste de DeLong (DELONG et al., 1988) para a diferença entre duas AUCs correlacionadas nas mesmas pessoas: ΔAUC, erro-padrão, z, p bicaudal e IC de 95% (Δ ± 1,96 dp). Variância zero (as duas AUCs valem 1 ou escores idênticos) devolve p = 1 e `degenerado` | Teste complementar da etapa 11 |
-| `delta_por_repeticao`, `delta_por_fold` | ΔAUC de cada repetição e de cada (repetição, fold) | Sensibilidades |
-| `t_corrigido` | t corrigido de Nadeau e Bengio (2003) sobre os ΔAUC por fold | Sensibilidade |
+| `holm` | Correção de Holm (step-down) | Os 5 p do DeLong em cada transtorno |
+| `teste_delong` | Teste de DeLong (DELONG et al., 1988) para a diferença entre duas AUCs correlacionadas nas mesmas pessoas: ΔAUC, erro-padrão, z, p bicaudal e IC de 95% (Δ ± 1,96 dp). Variância zero (as duas AUCs valem 1 ou escores idênticos) devolve p = 1 e `degenerado` | Análise estatística principal (etapa 11) |
+| `delta_por_repeticao` | ΔAUC de cada repetição | Descritivo |
 
 ## Média ± desvio nas repetições
 
 Em cada uma das 10 repetições, as previsões fora do fold dos 5 folds formam uma previsão para cada pessoa; sobre elas se calculam a AUC e as secundárias (limiar 0,5). Os resumos trazem a média ± desvio dessas 10. O desvio mostra quanto o resultado muda com a partição. Ele não é a incerteza sobre a população, porque as repetições reusam as mesmas pessoas; para isso vale o IC por bootstrap da AUC por pessoa.
 
-## Teste de DeLong (complementar)
+## Teste de DeLong com Holm (análise principal)
 
-Pedido pelo orientador, o teste de DeLong compara as AUCs de dois modelos por vez, nas mesmas pessoas, e depois ajusta os p por Holm. Ele é calculado na etapa 11 ([11_graficos.md](11_graficos.md)) sobre os escores por pessoa (média das 10 repetições):
+O trabalho não formula hipóteses a decidir. A inferência é o teste de DeLong, que compara as AUCs de dois modelos por vez, nas mesmas pessoas, e depois ajusta os p por Holm. Ele é calculado na etapa 11 ([11_graficos.md](11_graficos.md)) sobre os escores por pessoa (média das 10 repetições):
 1. **Comparações:** o modelo principal (`D_FA`) contra os outros 5 modelos principais: `D` (dimensões do artigo, sem FA), `D_pequeno` e os 3 baselines combinados (LR, RF e KNN). Em cada uma, `teste_delong` dá a AUC dos dois modelos, ΔAUC = AUC(`D_FA`) − AUC(outro), o erro-padrão, o Z, o p bruto (bicaudal) e o IC de 95% do Δ.
 2. **Holm:** os 5 p brutos de cada transtorno são ajustados por Holm (`holm`, α = 0,05, separadamente em SZ e em MDD). "Significativo" é a decisão do Holm.
 
 A tabela (comparação, AUC dos dois modelos, ΔAUC, Z, p bruto, p ajustado e decisão) sai em `outputs/11_graficos/delong.tex` (LaTeX, booktabs), `delong.csv` e na figura `p10_delong_tabela`.
 
-O teste **não substitui** a decisão de H1–H4, que segue a permutação pareada sobre ranks definida antes dos resultados: trocar o teste depois de ver os dados é um desvio que precisaria ser declarado. Ressalvas:
-- o DeLong supõe pessoas independentes e escores fixos, e a validação cruzada viola isso (os treinos se sobrepõem e o escore é uma média de repetições): o p é aproximado e tende a ser otimista, como já se declara para a permutação;
+Todas as outras comparações (ablações, efeitos da FA e do tamanho, baselines de uma modalidade) são **descritivas**: ΔAUC com IC de 95% por bootstrap estratificado e pareado, sem p-valor, e o Δ de cada repetição. Não há teste contra o acaso: o IC da AUC por pessoa mostra a incerteza da estimativa. Ressalvas:
+- o DeLong supõe pessoas independentes e escores fixos, e a validação cruzada viola isso (os treinos se sobrepõem e o escore é uma média de repetições): o p é aproximado e tende a ser otimista, e o escore de cada pessoa é a média de 10 repetições, mais estável que o de uma repetição só (a AUC por pessoa é mais alta que a média das AUCs por repetição);
 - a aproximação normal é fraca com 14 + 14 pessoas, e perto de AUC = 1 a variância se aproxima de zero (nesse caso o teste devolve p = 1 e marca `degenerado`);
-- o teste é bicaudal, e a permutação das hipóteses é unilateral, então os p não são comparáveis diretamente;
+- o teste é bicaudal;
 - o Holm só corrige os 5 p de cada transtorno, não as demais comparações do trabalho.
 
 Validação: `tests/avaliacao/test_metricas.py` confere o teste contra uma implementação independente por laços, a AUC contra o scikit-learn, a simetria, os casos degenerados, a calibração sob a nula (taxa de rejeição entre 2% e 9% a α = 0,05, com pessoas independentes) e o poder.
 
-## Hipóteses H1–H4
+## Comparações descritivas
 
-As comparações entre dois modelos usam `comparacao_pareada` ([pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py)):
-- `teste_ranks` transforma os escores de cada modelo em ranks entre as pessoas e aplica a permutação pareada (`teste_pareado`);
-- `comparacao_pareada` junta a isso o IC do Δ e as sensibilidades.
-
-H1, H2 e H3 estão em [pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py):
-- H1: p de permutação contra o acaso em cada transtorno, a α = 0,05, sem Holm (`decidir_h1`);
-- H2 e H3: `comparacao_pareada(D_pequeno, ablação)`, com ΔAUC = D_pequeno − ablação; na H2, interseção-união sobre `D_sem_T` e `D_sem_E`; Holm entre SZ e MDD (`decidir_hipotese`).
-
-A H4 (D_FA contra os três baselines clássicos combinados: LR, RF e KNN sobre as características temporais e espectrais concatenadas, `BASELINES_H4`) está em [pipeline/e08_classicos/avaliar.py](../pipeline/e08_classicos/avaliar.py):
-- interseção-união das três comparações em cada transtorno;
-- Holm entre SZ e MDD;
-- os 6 baselines de uma modalidade só entram como descritivos (Δ, IC e p, sem decisão).
+`comparacao_pareada` ([pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py)) compara dois modelos nas mesmas pessoas e devolve o ΔAUC (a − b) sobre os escores por pessoa, o IC de 95% (`ic_bootstrap_delta`) e o Δ de cada repetição (`delta_por_repeticao`). Ela é usada:
+- na etapa 07, para `D_pequeno` − ablação (`D_sem_T`, `D_sem_E`, `D_sem_mixup`) e para `D_FA` − `D`, `D` − `D_pequeno` e `D_FA` − `D_pequeno`;
+- na etapa 08, para `D_FA` − cada um dos 9 baselines clássicos;
+- na etapa 11 (`numeros.py`), que recalcula essas comparações das previsões exportadas e as confere contra as tabelas dos resumos.

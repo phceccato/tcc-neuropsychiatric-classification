@@ -10,16 +10,16 @@ A etapa roda seis modelos ([Modelos](#modelos)):
 
 | Modelo | O que é | Parâmetros | Uso |
 | --- | --- | --- | --- |
-| `D_FA` | **Principal.** DTSF com as dimensões do artigo e a Frequency Attention (FA) no ramo temporal | 704.769 | H1, H4 |
-| `D_pequeno` | DTSF com as dimensões reduzidas (16 filtros, dimensão 32), sem FA | 80.449 | H2, H3 (referência das ablações); descritivo (efeito do tamanho) |
-| `D` | O `D_FA` sem a FA (DTSF com as dimensões do artigo) | 702.721 | descritivo (efeito da FA) |
-| `D_sem_mixup` | O `D_pequeno` sem Mixup | 80.449 | H3 |
-| `D_sem_T` | O `D_pequeno` só com o ramo espectral | 48.881 | H2 |
-| `D_sem_E` | O `D_pequeno` só com o ramo temporal | 47.825 | H2 |
+| `D_FA` | **Principal.** DTSF com as dimensões do artigo e a Frequency Attention (FA) no ramo temporal | 704.769 | Principal (DeLong com Holm contra os outros 5 modelos principais) |
+| `D_pequeno` | DTSF com as dimensões reduzidas (16 filtros, dimensão 32), sem FA | 80.449 | Referência das ablações; comparação (efeito do tamanho) |
+| `D` | O `D_FA` sem a FA (DTSF com as dimensões do artigo) | 702.721 | Comparação (efeito da FA) |
+| `D_sem_mixup` | O `D_pequeno` sem Mixup | 80.449 | Ablação |
+| `D_sem_T` | O `D_pequeno` só com o ramo espectral | 48.881 | Ablação |
+| `D_sem_E` | O `D_pequeno` só com o ramo temporal | 47.825 | Ablação |
 
-H1 e H4 são sobre o `D_FA`. As ablações derivam do `D_pequeno` (dimensões reduzidas, sem FA), e cada uma muda uma coisa só em relação a ele; por isso H2 e H3 comparam o `D_pequeno` com as ablações.
+As ablações derivam do `D_pequeno` (dimensões reduzidas, sem FA), e cada uma muda uma coisa só em relação a ele; por isso a comparação é `D_pequeno` − ablação. Não há hipóteses a decidir: as comparações são descritivas (ΔAUC com IC de 95%), e o teste estatístico do `D_FA` é o DeLong com Holm, na etapa 11 ([avaliacao.md](avaliacao.md)).
 
-Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados)). A comparação com os baselines clássicos (H4) está em [08_classicos.md](08_classicos.md).
+Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados)). A comparação com os baselines clássicos está em [08_classicos.md](08_classicos.md).
 
 ## Código
 
@@ -29,21 +29,19 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
   - `redes_dtsf.py`: os seis modelos (`MODELOS`, com o principal em `PRINCIPAL`) e a Frequency Attention (`AtencaoFrequencia`);
   - `treino.py`: o treino de um fold;
   - `rodar.py`: o runner;
-  - `avaliar.py`: o resumo do DTSF, as decisões de H1 (`D_FA`), H2 e H3 (`D_pequeno` contra as ablações) (`decidir_h1`, `decidir_hipotese`), as comparações descritivas (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`), usada por H2, H3 e pela H4.
+  - `avaliar.py`: o resumo do DTSF, o ΔAUC com IC de `D_pequeno` contra cada ablação, as comparações entre os DTSF (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`: Δ, IC e Δ por repetição), usada também pela etapa 08.
 - Saídas em `outputs/07_DTSF/`:
   - `cache/` e `cache_dtsf/`: o sinal a 125 Hz e o cache multibanda com a STFT;
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.csv`: previsões das pessoas de teste;
   - `resultados/<conjunto>/<modelo>/r<rep>_f<fold>.json`: época escolhida, dispositivo, número de parâmetros, a configuração que reproduz o treino (modelo, semente, variante com ramos, Mixup, FA e dimensões, hiperparâmetros de treino, janelas por pessoa, versões do PyTorch e da CUDA; `configuracao_tarefa` em `rodar.py`) e o histórico de perdas (treino e validação interna, por época, em todas as épocas executadas, mais `epocas_executadas` e `perda_validacao_melhor`). O `.json` é gravado inteiro (escrita em `.tmp`), então uma interrupção não deixa um histórico truncado. A perda de treino é a do lote com Mixup e dropout; a de validação é a média por pessoa do split interno, sem Mixup: as duas não têm a mesma escala. Os `.json` gravados antes de 14/11/2026 (rodada em CPU de 9/11) não têm a configuração, só época, tempo e histórico;
-  - `checkpoints/<conjunto>/<modelo>/r<rep>_f<fold>.pt`: os pesos do melhor modelo de cada fold (os da época escolhida pelo early stopping, com a STFT normalizada e os componentes da FA), só do `D_FA` por padrão (`--checkpoints todos` grava os seis; `nenhum` desliga; as permutações nunca gravam). São tensores na CPU mais metadados simples (semente, repetição, fold, configuração); abra com `treino.carregar_checkpoint`. Cerca de 2,8 MB por fold, 280 MB para os 100 folds do `D_FA`. O treino conta como feito só se o `.csv` e, nos modelos com checkpoint, o `.pt` existem;
-  - `permutacoes/<conjunto>/<modelo>/p<k>_f<fold>.{csv,json}`: o mesmo para cada permutação de rótulos (só a repetição 0);
+  - `checkpoints/<conjunto>/<modelo>/r<rep>_f<fold>.pt`: os pesos do melhor modelo de cada fold (os da época escolhida pelo early stopping, com a STFT normalizada e os componentes da FA), só do `D_FA` por padrão (`--checkpoints todos` grava os seis; `nenhum` desliga). São tensores na CPU mais metadados simples (semente, repetição, fold, configuração); abra com `treino.carregar_checkpoint`. Cerca de 2,8 MB por fold, 280 MB para os 100 folds do `D_FA` (50 por transtorno). O treino conta como feito só se o `.csv` e, nos modelos com checkpoint, o `.pt` existem;
   - `resultados/resumo_dtsf.md`: o resumo gerado por `avaliar`. Para cada dataset, ele traz a AUC por pessoa com IC e uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições)).
 
 ```bash
 venv/bin/python -m pipeline.e07_DTSF.dados                                                      # cache a 125 Hz, uma vez
 venv/bin/python -m pipeline.e07_DTSF.dados_dtsf                                                 # cache multibanda, uma vez
-venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt                                         # os 6 modelos: 600 treinos; retoma
-venv/bin/python -m pipeline.e07_DTSF.rodar --permutacoes 25 2>&1 | tee -a outputs/07_DTSF/log_dtsf_permutacoes.txt              # D_FA contra o acaso: 250 treinos
-venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt                                                          # resumo_dtsf.md e H1–H3
+venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt                                         # os 6 modelos: 600 treinos (6 × 2 transtornos × 50 folds); retoma
+venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt                                                          # resumo_dtsf.md
 ```
 
 ### CPU ou GPU
@@ -52,7 +50,6 @@ Por padrão os treinos rodam na CPU, com 1 thread por processo; as rodadas regis
 
 ```bash
 venv/bin/python -m pipeline.e07_DTSF.rodar --dispositivo cuda --processos 14 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt
-venv/bin/python -m pipeline.e07_DTSF.rodar --permutacoes 25 --dispositivo cuda --processos 14 2>&1 | tee -a outputs/07_DTSF/log_dtsf_permutacoes.txt
 ```
 
 - Os processos dividem a mesma GPU. O sorteio das janelas, o Mixup e a STFT continuam na CPU, com os mesmos geradores, e o lote só depois vai para a GPU; por isso vale usar quase todos os núcleos em `--processos`.
@@ -127,16 +124,18 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 Pendentes da rodada oficial, com a semente 20261108, que será feita numa GPU. Estado em 14/11/2026, nesta máquina (CPU):
 
-| Modelo | Treinos reais (de 100 por dataset) | Permutações da H1 |
-| --- | --- | --- |
-| `D_FA` (principal) | 0 | 22 de 250 (interrompidas) |
-| `D` | 0 | não se aplica |
-| `D_pequeno`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` | 100 (CPU, rodada de 9/11, sem a configuração no `.json`) | não se aplica |
+| Modelo | Treinos reais (de 100: 50 por transtorno) |
+| --- | --- |
+| `D_FA` (principal) | 0 |
+| `D` | 0 |
+| `D_pequeno`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` | 100 cada (CPU, rodada de 9/11, sem a configuração no `.json`) |
 
-- `outputs/07_DTSF/resultados/resumo_dtsf.md` não existe, e a H1–H3 ainda não foi calculada.
+O `D_FA` e o `D` somam 200 treinos reais. As permutações de rótulo foram retiradas do trabalho: as 22 que existiam em disco (interrompidas) não são mais usadas.
+
+- `outputs/07_DTSF/resultados/resumo_dtsf.md` não existe, e as comparações ainda não foram calculadas.
 - Para a rodada oficial, use uma cópia do repositório com `outputs/` vazio e o mesmo `--dispositivo` em todos os modelos: o runner recusa misturar CPU e GPU numa pasta, e os `.json` antigos contam como CPU. Faça o commit do código antes de rodar, porque o manifesto da etapa 10 grava o commit.
 - Os checkpoints do `D_FA` são gravados durante o `rodar` (nada a fazer à parte); a pasta `checkpoints/` fica fora do git, então copie-a da máquina da GPU junto com `outputs/10_resultados`. A etapa 10 exporta o histórico de perdas do `D_FA` (`perdas/<dataset>/D_FA.csv`).
-- Ordem: `rodar` (treinos), `rodar --permutacoes 25`, `avaliar`, etapa 08 e etapa 10.
+- Ordem: `rodar` (treinos), `avaliar`, etapa 08 e etapa 10.
 - Os hiperparâmetros ficam em constantes do código (`ConfigTreino` em `treino.py`, `MODELOS` em `redes_dtsf.py`) e, a cada tarefa, no `.json`; não há arquivo de configuração separado.
 
 ## Análise anterior

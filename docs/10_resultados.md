@@ -1,6 +1,6 @@
 # Resultados exportados — reprodução sem treinar
 
-Esta etapa junta as previsões fora do fold de todos os modelos numa pasta versionada, `outputs/10_resultados/`. Com ela, qualquer pessoa recalcula as AUCs, os ICs, a média ± desvio e os testes das hipóteses sem treinar nada e sem baixar o EEG. Ela não treina nem testa: só lê as saídas das etapas 05 a 08, confere e grava.
+Esta etapa junta as previsões fora do fold de todos os modelos numa pasta versionada, `outputs/10_resultados/`. Com ela, qualquer pessoa recalcula as AUCs, os ICs, a média ± desvio e as comparações entre modelos sem treinar nada e sem baixar o EEG. Ela não treina nem testa: só lê as saídas das etapas 05 a 08, confere e grava.
 
 `outputs/10_resultados/` é a única pasta de `outputs/` no git; o resto continua fora (`.gitignore`).
 
@@ -12,12 +12,10 @@ Esta etapa junta as previsões fora do fold de todos os modelos numa pasta versi
 | --- | --- |
 | `previsoes/<dataset>/<modelo>.csv` | uma linha por (repetição, fold, pessoa de teste): `repeticao`, `fold`, `subject_uid`, `y_true` (1 = paciente), `y_pred` (`y_prob` ≥ 0,5) e `y_prob` (probabilidade de paciente, fora do fold) |
 | `perdas/<dataset>/D_FA.csv` | só do modelo principal: perda de treino e perda de validação interna (nunca o teste) de cada época de cada (repetição, fold), de `outputs/07_DTSF/resultados/*/D_FA/*.json`; `melhor` marca a época escolhida. A perda de treino é a do lote com Mixup |
-| `permutacoes/<dataset>/<modelo>.csv` | o mesmo para as 25 permutações de rótulo com retreino da H1 (coluna `permutacao`; `y_true` é o rótulo permutado) |
-| `permutacoes/<dataset>/LR_psd_absolutas_nulas.csv` | as 1000 AUCs nulas da etapa 06, que grava só as AUCs |
 | `folds.csv` | as partições da etapa 05: dataset, repetição, fold, pessoa, grupo e papel (treino, validação, teste) |
 | `metricas.csv` | por (dataset, modelo): AUC por pessoa com IC de 95%; acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1 por pessoa (limiar 0,5); e a média ± desvio de todas nas 10 repetições, recalculadas dos arquivos exportados |
-| `resumos/` | cópia dos resumos das etapas 06, 07 e 08, com os testes das hipóteses |
-| `manifesto.json` | semente, commit do código, limiar de `y_pred`, e por modelo: etapa, dispositivo (CPU ou GPU), número de parâmetros, linhas e permutações; os modelos que ficaram de fora por estarem incompletos |
+| `resumos/` | cópia dos resumos das etapas 06, 07 e 08, com as comparações entre modelos |
+| `manifesto.json` | semente, commit do código, limiar de `y_pred`, e por modelo: etapa, dispositivo (CPU ou GPU), número de parâmetros e linhas; os modelos que ficaram de fora por estarem incompletos |
 | `LEIAME.md` | o que é cada arquivo e como recalcular a AUC por pessoa |
 
 Modelos: os seis DTSF da etapa 07 (`D_FA`, `D_pequeno`, `D`, `D_sem_mixup`, `D_sem_T`, `D_sem_E`), os nove clássicos da etapa 08 e a LR_psd da etapa 06 (`LR_psd_absolutas`, `LR_psd_relativas`), nos dois datasets. Os nomes dos arquivos são os dos modelos nas etapas.
@@ -46,4 +44,4 @@ Com treino, do zero: os dados são públicos e a etapa 00 baixa e confere cada a
 
 ## Execução
 
-A exportação ainda **não foi feita**: `outputs/10_resultados/` não existe. Ela depende da rodada oficial (GPU) e das etapas anteriores, nesta ordem: `e07_DTSF.rodar`, `rodar --permutacoes 25`, `e07_DTSF.avaliar`, `e08_classicos.rodar` e `avaliar`. O `exportar` para com `Divergencia` se o `resumo_dtsf.md` da etapa 07 não existir, e deixa `D_FA` e `D` fora (listados como incompletos no manifesto) se eles não tiverem as 10 repetições. Depois da exportação, faça o commit da pasta. O teste da exportação (`tests/e10_resultados`, 5 testes) usa dados sintéticos.
+A exportação ainda **não foi feita**: `outputs/10_resultados/` não existe. Ela depende da rodada oficial (GPU) e das etapas anteriores, nesta ordem: `e07_DTSF.rodar`, `e07_DTSF.avaliar`, `e08_classicos.rodar` e `avaliar`. O `exportar` para com `Divergencia` se o `resumo_dtsf.md` da etapa 07 não existir, e deixa `D_FA` e `D` fora (listados como incompletos no manifesto) se eles não tiverem as 10 repetições. Depois da exportação, faça o commit da pasta. O teste da exportação (`tests/e10_resultados`, 5 testes) usa dados sintéticos.

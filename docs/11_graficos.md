@@ -1,21 +1,20 @@
 # Gráficos de resultados (matplotlib e pgfplots)
 
-Gráficos do TCC e do material suplementar, em dois formatos: imagens prontas (matplotlib: PDF vetorial para `\includegraphics` e PNG de conferência) e figuras em pgfplots (`.tex` para dar `\input` no Overleaf, com um PNG de prévia). Esta etapa não treina nada e só calcula o teste de DeLong, complementar, que não decide hipótese: lê a pasta versionada da etapa 10 (`outputs/10_resultados/`), recalcula os números a partir das previsões, confere cada um contra o resumo da etapa e desenha. Por isso, qualquer pessoa com o repositório gera os mesmos gráficos sem treinar nenhum modelo. A única exceção é a linha do tempo das gravações (`fig_sessoes`), que precisa das datas dos EDF (etapa 02).
+Gráficos do TCC e do material suplementar, em dois formatos: imagens prontas (matplotlib: PDF vetorial para `\includegraphics` e PNG de conferência) e figuras em pgfplots (`.tex` para dar `\input` no Overleaf, com um PNG de prévia). Esta etapa não treina nada e calcula o teste de DeLong com Holm, a análise estatística principal: lê a pasta versionada da etapa 10 (`outputs/10_resultados/`), recalcula os números a partir das previsões, confere cada um contra o resumo da etapa e desenha. Por isso, qualquer pessoa com o repositório gera os mesmos gráficos sem treinar nenhum modelo. A única exceção é a linha do tempo das gravações (`fig_sessoes`), que precisa das datas dos EDF (etapa 02).
 
 - Código: [pipeline/e11_graficos/](../pipeline/e11_graficos/)
-  - `numeros.py`: lê as previsões (`previsoes/<dataset>/<modelo>.csv`), as permutações do D_FA e os resumos de `outputs/10_resultados/`; recalcula, com as mesmas funções e sementes das etapas, a AUC por pessoa com IC, a AUC de cada repetição, a média ± desvio de todas as métricas nas 10 repetições, as secundárias por pessoa, a matriz de confusão, os escores por pessoa (rótulo e escore médio, sem identificador) para as curvas ROC, o teste de DeLong de cada comparação, com Holm sobre os 5 p do transtorno (`delong`, e a tabela `delong.csv`; não há resumo de etapa para conferir, a conferência é o teste unitário), as curvas ROC de reamostras bootstrap do D_FA (`bootstrap`, com o IC conferido contra o resumo), as perdas do D_FA por (repetição, fold), conferidas (50 folds, épocas em sequência e a época escolhida é a de menor perda de validação; `Divergencia` se não for), as comparações (H2 e H3 sobre o D_pequeno, H4 e as descritivas com os baselines sobre o D_FA, e as descritivas entre os DTSF), as decisões das hipóteses e a distribuição nula da H1; confere contra os resumos e grava `numeros.json`;
+  - `numeros.py`: lê as previsões (`previsoes/<dataset>/<modelo>.csv`), o histórico de perdas do D_FA e os resumos de `outputs/10_resultados/`; recalcula, com as mesmas funções e sementes das etapas, a AUC por pessoa com IC, a AUC de cada repetição, a média ± desvio de todas as métricas nas 10 repetições, as secundárias por pessoa, a matriz de confusão, os escores por pessoa (rótulo e escore médio, sem identificador) para as curvas ROC, o teste de DeLong de cada comparação, com Holm sobre os 5 p do transtorno (`delong`, e a tabela `delong.csv`; não há resumo de etapa para conferir, a conferência é o teste unitário), as curvas ROC de reamostras bootstrap do D_FA (`bootstrap`, com o IC conferido contra o resumo), as perdas do D_FA por (repetição, fold), conferidas (50 folds, épocas em sequência e a época escolhida é a de menor perda de validação; `Divergencia` se não for), as comparações descritivas (ΔAUC com IC e Δ por repetição: D_pequeno contra as ablações, D_FA contra os 9 baselines e entre os DTSF); confere contra os resumos e grava `numeros.json`;
   - `graficos.py`: as figuras em matplotlib;
-  - `comum.py`, `h1_nula.py`, `roc.py` e `sessoes.py`: as figuras em pgfplots (ambiente `figure` completo, com `\caption` e `\label` em português e os dados embutidos em `coordinates`). `h1_nula` e `roc` leem o `numeros.json`; `sessoes` lê o manifesto da etapa 02 e confere as contagens por sessão contra [09_investigacao.md](09_investigacao.md);
+  - `comum.py`, `roc.py` e `sessoes.py`: as figuras em pgfplots (ambiente `figure` completo, com `\caption` e `\label` em português e os dados embutidos em `coordinates`). `roc` lê o `numeros.json`; `sessoes` lê o manifesto da etapa 02 e confere as contagens por sessão contra [09_investigacao.md](09_investigacao.md);
   - `previa.py`: compila cada `.tex` num documento mínimo, recortado na figura e com 16 cm de largura de texto, e grava um PNG ao lado, só para conferência.
 - Testes: `tests/e11_graficos/`, com uma pasta `10_resultados` sintética que passa por `numeros`, `graficos` e pgfplots de ponta a ponta (com a compilação no pdflatex, quando ele está instalado).
 - Saídas em `outputs/11_graficos/` (versionada, como `outputs/10_resultados/`): `numeros.json`; `principais/` e `suplementares/`, com um `.pdf` e um `.png` de cada figura; e `pgfplots/`, com os `.tex` e as prévias em `.png`.
 
-Pré-requisitos: `outputs/10_resultados/` completa (etapa 10), com as previsões dos 17 modelos, as permutações do D_FA, o histórico de perdas do D_FA (`perdas/`) e os resumos; para `sessoes`, o manifesto da etapa 02; para a prévia, o pdflatex com pgfplots e o pdftocairo (`sudo apt install texlive-latex-extra texlive-pictures poppler-utils`).
+Pré-requisitos: `outputs/10_resultados/` completa (etapa 10), com as previsões dos 17 modelos, o histórico de perdas do D_FA (`perdas/`) e os resumos; para `sessoes`, o manifesto da etapa 02; para a prévia, o pdflatex com pgfplots e o pdftocairo (`sudo apt install texlive-latex-extra texlive-pictures poppler-utils`).
 
 ```bash
 venv/bin/python -m pipeline.e11_graficos.numeros    # recalcula e confere → outputs/11_graficos/numeros.json
 venv/bin/python -m pipeline.e11_graficos.graficos   # → outputs/11_graficos/principais/ e suplementares/
-venv/bin/python -m pipeline.e11_graficos.h1_nula    # → outputs/11_graficos/pgfplots/fig_h1_nula.tex
 venv/bin/python -m pipeline.e11_graficos.roc        # → outputs/11_graficos/pgfplots/fig_roc.tex
 venv/bin/python -m pipeline.e11_graficos.delong     # tabela do DeLong em LaTeX → outputs/11_graficos/delong.tex
 venv/bin/python -m pipeline.e11_graficos.sessoes    # → outputs/11_graficos/pgfplots/fig_sessoes.tex (precisa da etapa 02)
@@ -34,7 +33,7 @@ O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com 
 | `p2_auc_modelos` | AUC por pessoa e IC de 95% dos 17 modelos, em grupos (DTSF, ablações, clássicos temporais, espectrais e combinados, LR de 76 bandas) |
 | `p3_metricas_principais` | AUC, acurácia, precisão, recall e F1 dos 6 principais: média ± desvio nas 10 repetições |
 | `p4_sz_mdd` | AUC por pessoa e IC de 95% de cada modelo em SZ e em MDD, lado a lado |
-| `p9_delong_sz`, `p9_delong_mdd` | O D_FA contra cada um dos outros 5 modelos principais (D, D_pequeno e os 3 combinados), uma figura por transtorno, com um painel por comparação: as duas curvas ROC por pessoa, a área entre elas, a diferença de AUC e o p do teste de DeLong, bruto e ajustado por Holm sobre os 5 p do transtorno. O teste é complementar (ver [avaliacao.md](avaliacao.md#teste-de-delong-complementar)) |
+| `p9_delong_sz`, `p9_delong_mdd` | O D_FA contra cada um dos outros 5 modelos principais (D, D_pequeno e os 3 combinados), uma figura por transtorno, com um painel por comparação: as duas curvas ROC por pessoa, a área entre elas, a diferença de AUC e o p do teste de DeLong, bruto e ajustado por Holm sobre os 5 p do transtorno. É a análise estatística principal (ver [avaliacao.md](avaliacao.md#teste-de-delong-com-holm-análise-principal)) |
 | `p10_delong_tabela` | A tabela do DeLong dos dois transtornos: comparação, AUC dos dois modelos, ΔAUC, Z, p bruto, p ajustado (Holm) e a decisão. A mesma tabela está em `delong.csv` e, em LaTeX para o Overleaf, em `delong.tex` (`python -m pipeline.e11_graficos.delong`; precisa de `\usepackage{booktabs}`) |
 | `p8_roc_bootstrap_d_fa` | Curvas ROC de reamostras bootstrap do D_FA (nuvem cinza) e a curva original (preta), com a AUC por pessoa e o IC de 95%, em SZ e em MDD. O bootstrap é estratificado por pessoa e usa as mesmas 2.000 reamostragens do IC do resto do trabalho (o IC da figura é o das tabelas, e o `numeros` confere); só as 500 primeiras curvas são desenhadas, para o `numeros.json` não crescer |
 | `p7_metricas_limiar` | Gráfico de linhas com acurácia, precisão, recall e F1 dos 6 modelos principais no eixo x, um painel por transtorno: (a) SZ e (b) MDD. Valores em %, a média das 10 repetições no limiar 0,5, com o paciente como classe positiva. O eixo vertical não começa em zero (a nota está na figura) e é o mesmo nos dois painéis. O desvio entre repetições fica em `p3_metricas_principais` e em `metricas.csv` |
@@ -52,8 +51,7 @@ O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com 
 | `s3_temporal_espectral` | AUC só com o temporal, só com o espectral e com os dois, no DTSF (D_sem_E, D_sem_T e D_pequeno) e em LR, RF e KNN |
 | `s4_absolutas_relativas` | LR de 76 bandas com potência absoluta e relativa: AUC por pessoa com IC e AUC de cada repetição |
 | `s5_auc_repeticoes` | AUC de cada uma das 10 repetições e a média, dos 17 modelos |
-| `s6_delta_hipoteses` | ΔAUC = referência − comparado, com IC de 95% e p: H2 e H3 (D_pequeno contra as ablações), H4 (D_FA contra os 3 combinados), com a decisão; e as descritivas (entre os DTSF e D_FA contra os 6 baselines de uma modalidade), sem decisão |
-| `s7_testes_estatisticos` | Distribuição nula da H1 (AUCs com rótulos permutados e a AUC observada) e tabela com o teste, p, p de Holm e decisão de H1 a H4 em cada transtorno |
+| `s6_delta_auc` | ΔAUC = referência − comparado, com IC de 95%, sem p-valor: D_pequeno contra as ablações, D_FA contra os 3 combinados, entre os DTSF e D_FA contra os 6 baselines de uma modalidade |
 | `s8_barras_ablacoes` | AUC por pessoa em barras do D_pequeno e das ablações |
 | `s9_barras_classicos` | AUC por pessoa em barras do D_FA e dos 9 baselines, com a cor pela modalidade |
 
@@ -61,8 +59,7 @@ O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com 
 
 | Arquivo | Conteúdo |
 | --- | --- |
-| `fig_h1_nula` (`fig:res-h1-nula`) | Dot plot das AUCs do D_FA retreinado com rótulos permutados (25 permutações, repetição 0), com a AUC observada, o p e o acaso |
-| `fig_roc` (`fig:res-roc`) | Curvas ROC por pessoa do D_FA e dos 3 baselines combinados da H4 |
+| `fig_roc` (`fig:res-roc`) | Curvas ROC por pessoa do D_FA e dos 3 baselines combinados |
 | `fig_sessoes` (`fig:des-sessoes`) | Data de gravação de cada participante por classe, com as sessões reconstruídas (nova sessão quando duas datas distam mais de 30 dias); nenhum identificador vai para o `.tex` |
 
 Preâmbulo do Overleaf:
@@ -73,7 +70,7 @@ Preâmbulo do Overleaf:
 \pgfplotsset{compat=1.18}
 ```
 
-Copie os `.tex` para a pasta do projeto e use `\input{fig_h1_nula}`, `\input{fig_roc}` e `\input{fig_sessoes}`. Formato: largura de no máximo `\linewidth`, fonte `\footnotesize`, vírgula decimal nos eixos (`/pgf/number format/use comma, 1000 sep={.}`) e no texto, e séries diferenciadas também por marcador ou tracejado, para a leitura impressa em P&B. Na prévia em PNG, a legenda sai como "Figura 1", porque cada figura é compilada sozinha.
+Copie os `.tex` para a pasta do projeto e use `\input{fig_roc}` e `\input{fig_sessoes}`. Formato: largura de no máximo `\linewidth`, fonte `\footnotesize`, vírgula decimal nos eixos (`/pgf/number format/use comma, 1000 sep={.}`) e no texto, e séries diferenciadas também por marcador ou tracejado, para a leitura impressa em P&B. Na prévia em PNG, a legenda sai como "Figura 1", porque cada figura é compilada sozinha.
 
 ## Formato
 
@@ -98,9 +95,8 @@ Copie os `.tex` para a pasta do projeto e use `\input{fig_h1_nula}`, `\input{fig
 
 > **p3.** Métricas dos modelos principais no limiar de 0,5 (paciente como classe positiva): média e desvio-padrão nas 10 repetições da validação cruzada (5 folds).
 
-> **s6.** Diferença de AUC por pessoa entre o modelo de referência e cada modelo comparado, com intervalo de confiança de 95% (bootstrap estratificado e pareado) e o p unilateral da permutação pareada sobre os ranks (10.000 permutações). Valores positivos favorecem a referência: o D_pequeno em H2 e H3, de que as ablações derivam, e o D_FA em H4 e nas comparações com os baselines. Em cada hipótese, a decisão usa a interseção-união entre as comparações e a correção de Holm entre os transtornos (α = 0,05); os grupos descritivos não têm decisão.
+> **s6.** Diferença de AUC por pessoa entre o modelo de referência e cada modelo comparado, com intervalo de confiança de 95% (bootstrap estratificado e pareado). Valores positivos favorecem a referência: o D_pequeno nas ablações, de que elas derivam, e o D_FA nas demais comparações. É descritivo: não há p-valor; o teste estatístico é o DeLong com Holm (p9 e p10).
 
-> **s7.** Acima, as AUCs do D_FA retreinado com os rótulos permutados (25 permutações, repetição 0) e a AUC observada na repetição 0. Abaixo, o teste, o p, o p corrigido por Holm entre os transtornos e a decisão de cada hipótese (α = 0,05; a H1 é decidida sem Holm, porque o menor p possível com 25 permutações é 0,038).
 
 ## Resultados
 

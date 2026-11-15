@@ -1,27 +1,26 @@
 # Baselines clássicos por modalidade — resultados
 
-Nove baselines clássicos para comparar com o DTSF adaptado: regressão logística, Random Forest e KNN × características temporais, espectrais e combinadas (as duas concatenadas), extraídas das mesmas entradas do DTSF. O plano e a hipótese H4 estão em [00_proposta-tcc.md](00_proposta-tcc.md): a H4 compara o D_FA só com os 3 baselines combinados, e os 6 de uma modalidade só são descritivos.
+Nove baselines clássicos para comparar com o DTSF adaptado: regressão logística, Random Forest e KNN × características temporais, espectrais e combinadas (as duas concatenadas), extraídas das mesmas entradas do DTSF. O plano está em [00_proposta-tcc.md](00_proposta-tcc.md). Não há hipóteses a decidir: a etapa traz o ΔAUC do D_FA contra cada baseline, com IC de 95%; o teste estatístico (DeLong com Holm, contra os 3 combinados) está na etapa 11.
 
 Os resultados ficam em [Resultados](#resultados).
 
 - Código: [pipeline/e08_classicos/](../pipeline/e08_classicos/)
   - `caracteristicas.py`: 475 características temporais e 1.102 espectrais por janela;
   - `treino.py`: os 9 modelos, as grades e a seleção interna por pessoa;
-  - `rodar.py`: o runner, com retomada, processos em paralelo e permutações; monta o combinado concatenando as 475 temporais e as 1.102 espectrais de cada janela (1.577);
-  - `avaliar.py`: as AUCs, as comparações D_FA − baseline (o modelo principal da etapa 07), a H4 sobre os 3 combinados (`BASELINES_H4`) e as comparações descritivas com os 6 de uma modalidade.
+  - `rodar.py`: o runner, com retomada e processos em paralelo; monta o combinado concatenando as 475 temporais e as 1.102 espectrais de cada janela (1.577);
+  - `avaliar.py`: as AUCs, o ΔAUC com IC de D_FA − baseline (o modelo principal da etapa 07) para os 9 baselines, e o Δ por repetição.
 - Testes: `tests/e08_classicos/`.
 - Saídas:
   - `outputs/08_classicos/caracteristicas/`: o cache, com `temporais.npy`, `espectrais.npy` e `extracao.json` (todo o `outputs/` fica fora do git);
   - `outputs/08_classicos/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{csv,json}` e `resumo.md`, que traz a AUC por pessoa com IC e uma tabela com a média ± desvio, nas 10 repetições, da AUC e das secundárias ([avaliacao.md](avaliacao.md#média--desvio-nas-repetições));
-  - `outputs/08_classicos/permutacoes/`, se a rodada de permutações for feita (`rodar --permutacoes 25`). **Nenhum código avalia essas permutações ainda**: rodá-las (2.250 treinos) só faz sentido se a avaliação for implementada; a decisão está nas pendências da proposta.
-  - Nada é gravado em `outputs/07_DTSF/resultados`, `outputs/07_DTSF/permutacoes` ou `outputs/06_LR_psd`.
+  - Nada é gravado em `outputs/07_DTSF/resultados` ou `outputs/06_LR_psd`.
 
-Pré-requisitos: as etapas 03 e 05 e os caches da 07 (`pipeline.e07_DTSF.dados` e `pipeline.e07_DTSF.dados_dtsf`). O `avaliar` também precisa das previsões completas do modelo principal (D_FA) em `outputs/07_DTSF/resultados`; sem elas, ele não dá erro, só marca o D_FA como incompleto e não calcula a H4.
+Pré-requisitos: as etapas 03 e 05 e os caches da 07 (`pipeline.e07_DTSF.dados` e `pipeline.e07_DTSF.dados_dtsf`). O `avaliar` também precisa das previsões completas do modelo principal (D_FA) em `outputs/07_DTSF/resultados`; sem elas, ele não dá erro, só marca o D_FA como incompleto e não calcula as comparações.
 
 ```bash
 venv/bin/python -m pipeline.e08_classicos.caracteristicas                     # cache das características, uma vez (~1 min)
 venv/bin/python -m pipeline.e08_classicos.rodar 2>&1 | tee -a outputs/08_classicos/log_classicos.txt            # 900 tarefas (9 modelos × 2 datasets × 5 folds × 10 repetições); retoma
-venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # resumo e H4 → outputs/08_classicos/resultados/resumo.md
+venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # resumo e ΔAUC do D_FA contra os baselines → outputs/08_classicos/resultados/resumo.md
 ```
 
 ## Extração das características
@@ -38,17 +37,17 @@ Descritivo, sem rótulos: o desvio do sinal base tem mediana 0,96 (z-score por p
 
 ## Validação mínima do fluxo
 
-12 tarefas (6 modelos × 2 datasets), permutação 0, fold 0, **rótulos embaralhados**, com a saída na pasta temporária da sessão, fora de `outputs/`. Ela confere o formato e o fluxo, e não é resultado.
+12 tarefas (6 modelos × 2 datasets), repetição 0, fold 0, **rótulos embaralhados** (um piloto da época das permutações, que o trabalho não usa mais), com a saída na pasta temporária da sessão, fora de `outputs/`. Ela confere o formato e o fluxo, e não é resultado.
 - As previsões cobrem exatamente as pessoas de teste do fold.
 - As partes internas usam só as pessoas de treino e validação.
 - Cada pessoa de ajuste entrou com 60 janelas: 1.320 janelas de ajuste na SZ e 2.700 no MDD. Era a versão anterior; com 150, são ~3.300 e ~6.400.
 - A tarefa mais cara foi o RF_espectral no MDD, com 160 s. O conjunto levou 2 min 46 s com 10 processos, ~530 s de CPU.
-- `avaliar` rodado sobre essa pasta marca todos os baselines como incompletos, não calcula a H4 e grava o `resumo.md` só na pasta indicada.
+- `avaliar` rodado sobre essa pasta marca todos os baselines como incompletos, não calcula as comparações e grava o `resumo.md` só na pasta indicada.
 
 ## Revisão final
 
 Feita sem rótulos reais e sem resultados dos baselines.
-- **H4:** ficou documentado no plano, na proposta e no `resumo.md` que a interseção-união e o Holm controlam só a multiplicidade. A validade de cada permutação não é garantida, por causa da dependência da validação cruzada.
+- **Inferência:** a validação cruzada viola a independência das pessoas que o DeLong supõe; isso está declarado na proposta e em [avaliacao.md](avaliacao.md).
 - **Janelas:** foi conferido no código e em teste que o sorteio vale só para o ajuste. A validação interna e o teste usam todas as janelas aceitas sem overlap, como no DTSF. A exposição a janelas em relação ao D foi medida reproduzindo o gerador do D. Com 60 por pessoa, os baselines viam ~20% (SZ) e ~54% (MDD) das janelas distintas do D.
 - **150 janelas por pessoa:** os baselines passam a ~51% (SZ) e ~128% (MDD) das janelas distintas do D, com +22–25% de pessoas. Como 46 de 56 pessoas do MDD têm menos de 150 aceitas, entraram pesos por janela, N / (2 · P_c · n_i), no lugar do `class_weight="balanced"`, para cada pessoa e cada classe continuarem pesando igual. Na SZ, os pesos são idênticos ao `class_weight` anterior.
 
@@ -71,15 +70,15 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
 
 ## Testes
 
-72 testes em `tests/e08_classicos/` (308 no repositório inteiro, todos passando em 14/11/2026):
+Testes em `tests/e08_classicos/`:
 - **características:** dimensões, ordem, valores contra numpy e scipy, senoide conhecida, sinal constante, valores inválidos, correspondência com a STFT do DTSF, alinhamento do cache;
 - **treino:** combinado = temporais e espectrais concatenadas; 150 janelas por pessoa só no ajuste; pesos por pessoa e classe chegando aos três classificadores em todos os ajustes; janelas de previsão independentes do sorteio; cada modelo nas duas tarefas, normalização só nas janelas de ajuste, partes internas disjuntas e com as duas classes, seleção que não muda quando se trocam as características e os rótulos do teste, agregação pela média das janelas sem overlap, reprodutibilidade, saídas separadas das históricas;
-- **avaliação:** interseção-união, Holm, comparação pareada com ranks (`comparacao_pareada`), resumo gravado só na pasta dos clássicos;
+- **avaliação:** comparação pareada (`comparacao_pareada`: Δ, IC e Δ por repetição), resumo gravado só na pasta dos clássicos;
 - **integridade:** o código compartilhado (`pipeline/avaliacao`, `pipeline/e06_LR_psd`, `pipeline/e05_folds`) inalterado.
 
 ## Resultados
 
-Os 9 baselines estão completos nos dois datasets (50 tarefas por modelo e dataset, rodada em CPU de 9/11, semente 20261108), mas o `resumo.md` que está em `outputs/08_classicos/resultados/` é **anterior à etapa 07 de seis modelos**: ele compara com o `D` antigo (o de 80 mil parâmetros, hoje `D_pequeno`) e fala em "9 baselines" na H4. Descarte-o: depois que o `D_FA` estiver completo em `outputs/07_DTSF/resultados` (rodada oficial), rode o `avaliar` de novo para gerar a H4 com o `D_FA` contra os 3 combinados.
+Os 9 baselines estão completos nos dois datasets (50 tarefas por modelo e dataset, rodada em CPU de 9/11, semente 20261108), mas o `resumo.md` que está em `outputs/08_classicos/resultados/` é **anterior à etapa 07 de seis modelos**: ele compara com o `D` antigo (o de 80 mil parâmetros, hoje `D_pequeno`) e traz decisões de hipóteses que o trabalho não usa mais. Descarte-o: depois que o `D_FA` estiver completo em `outputs/07_DTSF/resultados` (rodada oficial), rode o `avaliar` de novo para gerar o ΔAUC do `D_FA` contra os 9 baselines.
 
 Cada `.json` grava, além dos hiperparâmetros escolhidos, o modelo, a semente, a grade de candidatos, o número de árvores, as partes internas e as janelas por pessoa. Os `.json` de 9/11 não têm os campos novos.
 
