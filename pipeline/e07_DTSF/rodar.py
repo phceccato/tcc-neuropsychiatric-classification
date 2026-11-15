@@ -9,12 +9,7 @@ Modelos (pipeline/e07_DTSF/redes_dtsf.py): D_FA (o principal), D_pequeno, D, D_s
 por padrão, os seis. A semente de cada tarefa depende só de (repetição, fold): todos os modelos veem as mesmas
 partições e sementes.
 
-Com --permutacoes N, roda o teste contra o acaso: para cada permutação k, os rótulos das pessoas
-do dataset são embaralhados e o modelo é retreinado do zero nas partições da repetição 0; grava
-outputs/07_DTSF/permutacoes/<dataset>/<modelo>/p<k>_f<fold>.csv. Nas permutações, o padrão é só o
-modelo principal (a H1).
-
-Checkpoints: nos treinos reais, o D_FA (o principal; --checkpoints todos para os seis) grava os pesos do melhor
+Checkpoints: o D_FA (o principal; --checkpoints todos para os seis) grava os pesos do melhor
 modelo de cada fold em outputs/07_DTSF/checkpoints/<dataset>/<modelo>/r<rep>_f<fold>.pt (treino.salvar_checkpoint).
 O .json guarda o histórico de perdas de treino e de validação interna de todas as épocas executadas.
 
@@ -45,7 +40,6 @@ from pipeline.e07_DTSF.redes_dtsf import MODELOS, PRINCIPAL, TIPOS_DTSF
 from pipeline.e07_DTSF.treino import JANELAS_POR_PESSOA, PADRAO, prever, salvar_checkpoint, treinar
 
 SEMENTE = 20261108
-SEMENTE_PERMUTACAO = 1_108_000
 JANELAS_CSV = Path("outputs/03_janelas/janelas.csv")
 CACHE_DTSF = Path("outputs/07_DTSF/cache_dtsf")
 CHECKPOINTS = Path("outputs/07_DTSF/checkpoints")
@@ -59,12 +53,6 @@ def _fonte(dataset: str, folds: pd.DataFrame) -> FonteDTSF:
         uids = folds.loc[folds["dataset"] == dataset, "subject_uid"].unique()
         _FONTES[dataset] = FonteDTSF(uids, JANELAS_CSV, CACHE_DTSF, JANELAS)
     return _FONTES[dataset]
-
-
-def rotulos_permutados(y: pd.Series, k: int) -> pd.Series:
-    """Rótulos das pessoas embaralhados (permutação k), com as mesmas contagens por classe."""
-    rng = np.random.default_rng(SEMENTE_PERMUTACAO + k)
-    return pd.Series(rng.permutation(y.to_numpy()), index=y.index)
 
 
 def _iniciar() -> None:
@@ -122,12 +110,10 @@ def caminho_checkpoint(pasta: Path | str, dataset: str, modelo: str, repeticao: 
 
 
 def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv: str, saida: str,
-                 permutacao: int | None = None, dispositivo: str = "cpu", pasta_checkpoints: str | None = None) -> str:
+                 dispositivo: str = "cpu", pasta_checkpoints: str | None = None) -> str:
     folds = pd.read_csv(folds_csv)
     g = folds[(folds["dataset"] == dataset) & (folds["repeticao"] == repeticao) & (folds["fold"] == fold)]
     y = (g.set_index("subject_uid")["grupo"] != "HC").astype(int)
-    if permutacao is not None:
-        y = rotulos_permutados(y.sort_index(), permutacao)
     papel = g.groupby("papel")["subject_uid"].apply(list)
     fonte = _fonte(dataset, folds)
 
@@ -138,7 +124,7 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
 
     destino = Path(saida) / dataset / modelo
     destino.mkdir(parents=True, exist_ok=True)
-    base = destino / (f"r{repeticao}_f{fold}" if permutacao is None else f"p{permutacao}_f{fold}")
+    base = destino / f"r{repeticao}_f{fold}"
     config = configuracao_tarefa(modelo, semente, dispositivo)
     historico = resultado.historico
     gravar_json(Path(f"{base}.json"), dict(
@@ -146,15 +132,14 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
         perda_validacao_melhor=historico[resultado.melhor_epoca - 1]["perda_validacao"],
         segundos=time.time() - inicio,
         parametros=sum(p.numel() for p in resultado.modelo.parameters()), **config, historico=historico))
-    if pasta_checkpoints is not None and permutacao is None:
+    if pasta_checkpoints is not None:
         salvar_checkpoint(caminho_checkpoint(pasta_checkpoints, dataset, modelo, repeticao, fold), resultado.modelo,
                           resultado.melhor_epoca, semente=semente, repeticao=repeticao, fold=fold, dataset=dataset,
                           configuracao=config)
     pd.DataFrame([dict(repeticao=repeticao, fold=fold, subject_uid=u, y=int(y[u]), prob=p) for u, p in prob.items()]
                  ).to_csv(f"{base}.csv.tmp", index=False)
     os.replace(f"{base}.csv.tmp", f"{base}.csv")  # o .csv só aparece completo
-    rotulo = f"r{repeticao}" if permutacao is None else f"p{permutacao}"
-    return f"{dataset} {modelo} {rotulo} f{fold}: época {resultado.melhor_epoca}, {time.time() - inicio:.0f} s"
+    return f"{dataset} {modelo} r{repeticao} f{fold}: época {resultado.melhor_epoca}, {time.time() - inicio:.0f} s"
 
 
 def main() -> None:
@@ -163,40 +148,30 @@ def main() -> None:
     parser.add_argument("--saida", default="outputs/07_DTSF/resultados")
     parser.add_argument("--datasets", nargs="+", default=["SZ", "MDD"])
     parser.add_argument("--modelos", nargs="+", default=None, choices=TIPOS_DTSF,
-                        help=f"padrão: os seis modelos; com --permutacoes, só o principal ({PRINCIPAL})")
+                        help="padrão: os seis modelos")
     parser.add_argument("--repeticoes", type=int, nargs="+", default=list(range(10)))
     parser.add_argument("--folds-ids", type=int, nargs="+", default=list(range(5)))
     parser.add_argument("--processos", type=int, default=10)
-    parser.add_argument("--permutacoes", type=int, default=0,
-                        help="roda N permutações de rótulo (repetição 0) em vez dos treinos reais")
     parser.add_argument("--checkpoints", choices=["principal", "todos", "nenhum"], default="principal",
-                        help="quais modelos gravam os pesos do melhor fold em --saida-checkpoints (padrão: só o D_FA); "
-                             "as permutações nunca gravam")
+                        help="quais modelos gravam os pesos do melhor fold em --saida-checkpoints (padrão: só o D_FA)")
     parser.add_argument("--saida-checkpoints", default=str(CHECKPOINTS))
     argumento_dispositivo(parser)
     args = parser.parse_args()
     if args.modelos is None:
-        args.modelos = [PRINCIPAL] if args.permutacoes else list(TIPOS_DTSF)
+        args.modelos = list(TIPOS_DTSF)
 
-    com_checkpoint: set[str] = set()
-    if args.permutacoes:
-        saida = args.saida if args.saida != parser.get_default("saida") else "outputs/07_DTSF/permutacoes"
-        tarefas = [(d, m, 0, f, k) for k in range(args.permutacoes) for m in args.modelos for d in args.datasets
-                   for f in args.folds_ids if not (Path(saida) / d / m / f"p{k}_f{f}.csv").exists()]
-        args.saida = saida
-    else:
-        com_checkpoint = modelos_com_checkpoint(args.checkpoints, args.modelos)
-        # um treino só conta como feito se o .csv existe e, nos modelos com checkpoint, o .pt também
-        tarefas = [(d, m, r, f, None) for m in args.modelos for d in args.datasets for r in args.repeticoes
-                   for f in args.folds_ids
-                   if not (Path(args.saida) / d / m / f"r{r}_f{f}.csv").exists()
-                   or (m in com_checkpoint and not caminho_checkpoint(args.saida_checkpoints, d, m, r, f).exists())]
+    com_checkpoint = modelos_com_checkpoint(args.checkpoints, args.modelos)
+    # um treino só conta como feito se o .csv existe e, nos modelos com checkpoint, o .pt também
+    tarefas = [(d, m, r, f) for m in args.modelos for d in args.datasets for r in args.repeticoes
+               for f in args.folds_ids
+               if not (Path(args.saida) / d / m / f"r{r}_f{f}.csv").exists()
+               or (m in com_checkpoint and not caminho_checkpoint(args.saida_checkpoints, d, m, r, f).exists())]
     conferir_dispositivo(parser, args.dispositivo, [Path(args.saida) / d / m for m in args.modelos for d in args.datasets])
     print(f"{len(tarefas)} tarefas pendentes ({args.dispositivo})", flush=True)
     with ProcessPoolExecutor(args.processos, initializer=_iniciar, mp_context=contexto_processos(args.dispositivo)) as executor:
-        futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, k, args.dispositivo,
-                                   args.saida_checkpoints if k is None and m in com_checkpoint else None)
-                   for d, m, r, f, k in tarefas]
+        futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, args.dispositivo,
+                                   args.saida_checkpoints if m in com_checkpoint else None)
+                   for d, m, r, f in tarefas]
         for i, futuro in enumerate(as_completed(futuros), 1):
             print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 

@@ -3,21 +3,8 @@ import pandas as pd
 from pipeline.e07_DTSF import rodar as r
 
 
-def _rotulos():
-    return pd.Series([1] * 14 + [0] * 14, index=[f"S{i}" for i in range(28)])
-
-
-def test_rotulos_permutados_mantem_as_contagens_e_sao_reprodutiveis():
-    y = _rotulos()
-    a, b = r.rotulos_permutados(y, 3), r.rotulos_permutados(y, 3)
-    pd.testing.assert_series_equal(a, b)
-    assert a.sum() == 14 and list(a.index) == list(y.index)
-    assert not a.equals(y)
-
-
-def test_permutacoes_diferentes_embaralham_diferente():
-    y = _rotulos()
-    assert not r.rotulos_permutados(y, 0).equals(r.rotulos_permutados(y, 1))
+def test_nao_ha_mais_permutacao_de_rotulos():
+    assert not hasattr(r, "rotulos_permutados") and not hasattr(r, "SEMENTE_PERMUTACAO")
 
 
 def test_runner_so_aceita_o_dtsf_e_as_ablacoes(monkeypatch):
@@ -60,7 +47,7 @@ def test_runner_recusa_cuda_sem_gpu(monkeypatch):
         r.main()
 
 
-def test_por_padrao_roda_os_seis_modelos_e_as_permutacoes_so_do_principal(tmp_path, monkeypatch):
+def test_por_padrao_roda_os_seis_modelos_e_nao_aceita_permutacoes(tmp_path, monkeypatch):
     from concurrent.futures import Future
     pedidos = []
 
@@ -84,10 +71,10 @@ def test_por_padrao_roda_os_seis_modelos_e_as_permutacoes_so_do_principal(tmp_pa
     monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path), "--datasets", "SZ", "--repeticoes", "0"])
     r.main()
     assert pedidos == [m for m in r.TIPOS_DTSF for _ in range(5)]
-    pedidos.clear()
-    monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path / "p"), "--datasets", "SZ", "--permutacoes", "1"])
-    r.main()
-    assert pedidos == ["D_FA"] * 5
+    import pytest
+    monkeypatch.setattr("sys.argv", ["rodar", "--saida", str(tmp_path / "p"), "--permutacoes", "1"])
+    with pytest.raises(SystemExit):
+        r.main()
 
 
 # ---------- configuração gravada no .json ----------
@@ -112,7 +99,7 @@ def test_checkpoint_so_do_principal_por_padrao():
     assert r.modelos_com_checkpoint("nenhum", list(r.TIPOS_DTSF)) == set()
 
 
-def _tarefa_sintetica(monkeypatch, tmp_path, modelo, permutacao=None):
+def _tarefa_sintetica(monkeypatch, tmp_path, modelo):
     import json
     from pipeline.e07_DTSF import treino as t
     from tests.e07_DTSF.test_dtsf import _FonteSintetica, _papeis
@@ -123,10 +110,9 @@ def _tarefa_sintetica(monkeypatch, tmp_path, modelo, permutacao=None):
                   for u, p in linhas]).to_csv(tmp_path / "folds.csv", index=False)
     monkeypatch.setattr(r, "_fonte", lambda dataset, folds: fonte)
     monkeypatch.setattr(r, "treinar", lambda *a, **k: t.treinar(*a, max_epocas=2, **k))
-    r.rodar_tarefa("SZ", modelo, 0, 0, str(tmp_path / "folds.csv"), str(tmp_path / "res"), permutacao,
+    r.rodar_tarefa("SZ", modelo, 0, 0, str(tmp_path / "folds.csv"), str(tmp_path / "res"),
                    pasta_checkpoints=str(tmp_path / "ck"))
-    base = "r0_f0" if permutacao is None else f"p{permutacao}_f0"
-    return json.load(open(tmp_path / "res" / "SZ" / modelo / f"{base}.json")), base
+    return json.load(open(tmp_path / "res" / "SZ" / modelo / "r0_f0.json")), "r0_f0"
 
 
 def test_tarefa_grava_checkpoint_e_historico_completo(monkeypatch, tmp_path):
@@ -139,8 +125,3 @@ def test_tarefa_grava_checkpoint_e_historico_completo(monkeypatch, tmp_path):
     modelo, meta = t.carregar_checkpoint(ck)
     assert meta["melhor_epoca"] == j["melhor_epoca"] and meta["configuracao"]["semente"] == j["semente"]
     assert sum(p.numel() for p in modelo.parameters()) == j["parametros"] == 704_769
-
-
-def test_permutacao_nao_grava_checkpoint(monkeypatch, tmp_path):
-    j, _ = _tarefa_sintetica(monkeypatch, tmp_path, "D_FA", permutacao=0)
-    assert len(j["historico"]) >= 1 and not (tmp_path / "ck").exists()

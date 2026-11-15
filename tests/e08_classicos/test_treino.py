@@ -298,20 +298,13 @@ def test_combinado_concatena_temporais_e_espectrais(tmp_path):
     assert ct.separar("RF_combinado") == ("RF", "combinado")
 
 
-def test_rodar_com_permutacao_grava_arquivo_p(tmp_path):
-    carac = _arquivos_runner(tmp_path)
-    cr._DADOS.clear()
-    saida = tmp_path / "perm"
-    cr.rodar_tarefa("SZ", "RF_temporal", 0, 0, str(tmp_path / "folds.csv"), str(saida), permutacao=0,
-                    caracteristicas=str(carac), janelas_csv=str(tmp_path / "janelas.csv"))
-    assert (saida / "SZ" / "RF_temporal" / "p0_f0.csv").exists()
-    assert not (saida / "SZ" / "RF_temporal" / "r0_f0.csv").exists()
+def test_rodar_nao_tem_mais_permutacao():
+    assert not hasattr(cr, "SAIDA_PERMUTACOES") and not hasattr(cr, "rotulos_permutados")
 
 
 def test_saidas_padrao_separadas_dos_resultados_historicos():
     from pathlib import Path
     assert cr.SAIDA == Path("outputs/08_classicos/resultados")
-    assert cr.SAIDA_PERMUTACOES == Path("outputs/08_classicos/permutacoes")
     assert cr.CARACTERISTICAS == Path("outputs/08_classicos/caracteristicas")
 
 
