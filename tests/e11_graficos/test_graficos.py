@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pipeline.e11_graficos import delong as dl
 from pipeline.e11_graficos import graficos as g
 from pipeline.e11_graficos import numeros as n
 from tests.e11_graficos.conftest import PESSOAS, _resultados_sinteticos
@@ -214,6 +215,69 @@ def test_figura_do_bootstrap_grava_em_principais(numeros_json, tmp_path):
     g.configurar()
     caminhos = g.fig_roc_bootstrap(numeros_json, tmp_path)
     assert [c.name for c in caminhos] == ["p8_roc_bootstrap_d_fa.pdf", "p8_roc_bootstrap_d_fa.png"]
+    assert caminhos[0].parent.name == g.PRINCIPAIS
+
+
+def test_delong_nos_numeros_tem_todas_as_comparacoes_com_holm_e_sem_identificadores(numeros_json):
+    d = numeros_json["delong"]["SZ"]
+    assert set(d) == {f"D_FA − {m}" for m in dl.COMPARADOS} and len(d) == 5
+    assert all(r["p"] <= r["p_holm"] <= 1 and 0 <= r["p"] <= 1 for r in d.values())
+    r = d["D_FA − LR_combinado"]
+    assert r["delta"] == pytest.approx(numeros_json["comparacoes"]["SZ"]["D_FA − LR_combinado"]["delta"], abs=1e-9)
+    assert r["auc_a"] == pytest.approx(numeros_json["modelos"]["SZ"]["D_FA"]["auc"], abs=1e-9)
+    assert r["ic"][0] <= r["delta"] <= r["ic"][1]
+
+
+def test_holm_do_delong_e_o_de_metricas_sobre_a_familia_do_transtorno(numeros_json):
+    from pipeline.avaliacao.metricas import holm
+    d = numeros_json["delong"]["MDD"]
+    esperado = holm({k: v["p"] for k, v in d.items()}, alfa=0.05)
+    assert all(d[k]["p_holm"] == pytest.approx(esperado[k]["p_ajustado"]) and d[k]["rejeita"] == esperado[k]["rejeita"]
+               for k in d)
+
+
+def test_tabela_delong_tem_uma_linha_por_comparacao_e_transtorno(numeros_json):
+    t = n.tabela_delong(numeros_json["delong"])
+    assert len(t) == 10 and set(t["dataset"]) == {"SZ", "MDD"}
+    assert list(t.columns[:3]) == ["dataset", "comparacao", "auc_a"] and {"p", "p_holm", "rejeita"} <= set(t.columns)
+
+
+def test_figura_do_delong_grava_uma_figura_por_transtorno_em_principais(numeros_json, tmp_path):
+    g.configurar()
+    caminhos = g.fig_delong(numeros_json, tmp_path)
+    assert sorted(c.name for c in caminhos) == ["p9_delong_mdd.pdf", "p9_delong_mdd.png",
+                                                 "p9_delong_sz.pdf", "p9_delong_sz.png"]
+    assert {c.parent.name for c in caminhos} == {g.PRINCIPAIS}
+
+
+def test_linhas_da_tabela_do_delong_seguem_o_exemplo_e_a_decisao_do_holm(numeros_json):
+    for d in ("SZ", "MDD"):
+        linhas = dl.linhas(numeros_json, d)
+        assert [l[0] for l in linhas] == [f"D_FA vs. {dl.ROTULOS[m]}" for m in dl.COMPARADOS]
+        assert all(len(l) == len(dl.CABECALHO) == 8 and l[-1] in ("Sim", "Não") for l in linhas)
+        for l, m in zip(linhas, dl.COMPARADOS):
+            r = numeros_json["delong"][d][f"D_FA − {m}"]
+            assert l[-1] == ("Sim" if r["p_holm"] <= 0.05 else "Não") and l[1] == dl.virgula(r["auc_a"])
+
+
+def test_formatacao_do_delong():
+    assert dl.virgula(0.0099, 4, True) == "+0,0099" and dl.virgula(-0.0155, 4, True) == "−0,0155"
+    assert dl.formatar_p(0.0004) == "< 0,001" and dl.formatar_p(0.051) == "0,0510"
+
+
+def test_latex_do_delong_tem_as_duas_tabelas_balanceadas_e_sem_unicode(numeros_json):
+    from pipeline.e11_graficos.comum import checar_tex
+    tex = dl.latex(numeros_json)
+    checar_tex(tex)
+    assert tex.count("\\midrule") == 2 and "D\\_FA vs. D\\_pequeno" in tex and "\\label{tab:res-delong}" in tex
+    assert all(ord(c) < 128 for c in tex.replace("ç", "").replace("ã", "").replace("õ", "").replace("é", "")
+               .replace("á", "").replace("í", "").replace("ó", "").replace("ê", "").replace("â", "").replace("ú", ""))
+
+
+def test_figura_da_tabela_do_delong_grava_em_principais(numeros_json, tmp_path):
+    g.configurar()
+    caminhos = g.fig_delong_tabela(numeros_json, tmp_path)
+    assert [c.name for c in caminhos] == ["p10_delong_tabela.pdf", "p10_delong_tabela.png"]
     assert caminhos[0].parent.name == g.PRINCIPAIS
 
 

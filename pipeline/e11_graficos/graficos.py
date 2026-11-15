@@ -8,6 +8,9 @@ principais/ — os gráficos do texto:
   p2_auc_modelos: AUC por pessoa com IC de 95% de todos os modelos (etapas 06, 07 e 08);
   p3_metricas_principais: AUC, acurácia, precisão, recall e F1 dos 6 principais, média ± desvio nas 10 repetições;
   p4_sz_mdd: AUC por pessoa com IC de 95% de cada modelo em SZ e em MDD, lado a lado;
+  p9_delong_sz, p9_delong_mdd: curvas ROC do D_FA contra cada um dos outros 5 modelos principais (D, D_pequeno e os
+     3 combinados), com a área entre as curvas, a diferença de AUC e o p do teste de DeLong, bruto e ajustado por Holm;
+  p10_delong_tabela: a tabela do DeLong (AUCs, ΔAUC, Z, p bruto, p de Holm e decisão) dos dois transtornos;
   p8_roc_bootstrap_d_fa: curvas ROC de reamostras bootstrap (cinza) e a curva original (preto) do D_FA, com a AUC por
      pessoa e o IC de 95%, em SZ e em MDD;
   p7_metricas_limiar: gráfico de linhas com acurácia, precisão, recall e F1 (limiar 0,5) dos 6 modelos principais,
@@ -44,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -53,6 +57,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MultipleLocator  # noqa: E402
+from pipeline.avaliacao.metricas import tpr_na_grade  # noqa: E402
+from pipeline.e11_graficos.delong import CABECALHO as DELONG_CABECALHO_TXT, COMPARADOS as COMPARADOS_DELONG, linhas as delong_linhas  # noqa: E402
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_curve  # noqa: E402
 
 SAIDA = Path("outputs/11_graficos")
@@ -324,6 +330,79 @@ def fig_roc_bootstrap(numeros: dict, saida: Path) -> list[Path]:
              "repetições; o IC é o percentil 2,5–97,5 das AUCs das reamostras (o mesmo IC do restante do trabalho).",
              ha="center", va="top", fontsize=6.4, color=TEXTO_2, wrap=True)
     return _gravar(fig, saida / PRINCIPAIS, "p8_roc_bootstrap_d_fa")
+
+
+def _fmt_p(p: float) -> str:
+    return "< 0,001" if p < 0.001 else f"= {virgula(p, 3)}"
+
+
+def _fig_delong(numeros: dict, d: str, saida: Path) -> list[Path]:
+    """O D_FA contra cada um dos outros 5 modelos principais: as duas curvas ROC, a área entre elas e o DeLong."""
+    fig, eixos = plt.subplots(2, 3, figsize=(LARGURA, 5.6), gridspec_kw=dict(wspace=0.32, hspace=0.75))
+    r = numeros["modelos"][d]
+    grade = np.linspace(0, 1, 101)
+    for ax, m in zip(eixos.flat, COMPARADOS_DELONG):
+        t = numeros["delong"][d][f"{PRINCIPAL} − {m}"]
+        ax.plot([0, 1], [0, 1], color=CINZA_CLARO, lw=0.8, ls="--", zorder=0)
+        tpr_a, tpr_b = (tpr_na_grade(r[x]["escores"]["y"], r[x]["escores"]["prob"], grade) for x in (PRINCIPAL, m))
+        ax.fill_between(grade, tpr_a, tpr_b, step="post", color=CORES[0], alpha=0.16, lw=0, zorder=1)
+        for x in (PRINCIPAL, m):
+            fpr, tpr = curva_roc(r[x]["escores"])
+            ax.plot(fpr, tpr, drawstyle="steps-post", zorder=3,
+                    label=f"{NOMES_CURTOS[x] if x == PRINCIPAL else nome(x)}: AUC = {virgula(t['auc_a' if x == PRINCIPAL else 'auc_b'], 2)}",
+                    **ESTILO_ROC.get(x, dict(color="#eb6834", ls="-", lw=1.1)))
+        ax.text(0.97, 0.04, f"DeLong p {_fmt_p(t['p'])}\nHolm p {_fmt_p(t['p_holm'])}\nΔAUC = {virgula(t['delta'], 2, True)}",
+                transform=ax.transAxes, ha="right", va="bottom", fontsize=6.4,
+                bbox=dict(facecolor="white", edgecolor=CINZA_CLARO, lw=0.5, pad=2.0), zorder=5)
+        ax.set_xlim(-0.01, 1.01)
+        ax.set_ylim(-0.01, 1.01)
+        ax.set_aspect("equal")
+        for eixo in ("x", "y"):
+            _eixo_virgula(ax, eixo=eixo)
+        ax.tick_params(axis="y", length=3, width=0.6)
+        ax.grid(color="#ebebe8", lw=0.5)
+        ax.set_xlabel("1 − especificidade", fontsize=7)
+        ax.set_ylabel("Sensibilidade", fontsize=7)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.27), fontsize=6.0, handlelength=2.2, labelspacing=0.3)
+    eixos.flat[-1].axis("off")
+    nota = (f"Teste de DeLong bicaudal sobre os escores por pessoa (média das 10 repetições). Holm sobre os "
+            f"{len(COMPARADOS_DELONG)} p do transtorno. A validação cruzada viola a independência das pessoas: os p "
+            "são aproximados. Área sombreada: diferença entre as curvas.")
+    eixos.flat[-1].text(0, 0.5, textwrap.fill(nota, 34), ha="left", va="center", fontsize=6.0, color=TEXTO_2,
+                        transform=eixos.flat[-1].transAxes)
+    fig.suptitle(f"Teste de DeLong, {PRINCIPAL} contra os outros modelos principais: {TITULOS[d]}", fontsize=8.2, y=0.96)
+    return _gravar(fig, saida / PRINCIPAIS, f"p9_delong_{d.lower()}")
+
+
+def fig_delong(numeros: dict, saida: Path) -> list[Path]:
+    return [c for d in DATASETS for c in _fig_delong(numeros, d, saida)]
+
+
+def fig_delong_tabela(numeros: dict, saida: Path) -> list[Path]:
+    """A tabela do DeLong (comparação, AUCs, ΔAUC, Z, p bruto, p de Holm e decisão), um bloco por transtorno."""
+    fig, eixos = plt.subplots(2, 1, figsize=(LARGURA, 4.3), gridspec_kw=dict(hspace=0.35))
+    larguras = [0.27, 0.07, 0.11, 0.14, 0.09, 0.09, 0.12, 0.11]
+    cabecalho = [c.replace(" (", "\n(").replace("AUC D_FA", "AUC\nD_FA").replace("AUC do comparado", "AUC do\ncomparado").replace("Z de DeLong", "Z de\nDeLong").replace("p bruto", "p\nbruto") for c in DELONG_CABECALHO_TXT]
+    for ax, d in zip(eixos, DATASETS):
+        ax.axis("off")
+        tabela = ax.table(cellText=delong_linhas(numeros, d), colLabels=cabecalho, colWidths=larguras,
+                          cellLoc="center", loc="upper center", bbox=[0, 0, 1, 0.82])
+        tabela.auto_set_font_size(False)
+        tabela.set_fontsize(6.2)
+        for (linha, coluna), celula in tabela.get_celld().items():
+            celula.set_edgecolor("#d0d0d0")
+            celula.set_linewidth(0.5)
+            if linha == 0:
+                celula.set_facecolor("#4a4a4a")
+                celula.set_text_props(color="white", fontweight="bold", fontsize=5.5)
+            elif coluna == 0:
+                celula.set_text_props(ha="left")
+                celula._loc = "left"
+        ax.set_title(TITULOS[d], loc="left", fontsize=8)
+    fig.text(0.5, 0.01, "DeLong bicaudal; ΔAUC = AUC do D_FA − AUC do outro modelo.\nSignificativo: p ajustado por Holm ≤ 0,05 "
+             "(Holm sobre os 5 p de cada transtorno). Teste complementar, p aproximado.", ha="center", va="top",
+             fontsize=6.0, color=TEXTO_2)
+    return _gravar(fig, saida / PRINCIPAIS, "p10_delong_tabela")
 
 
 def curva_pr(escores: dict) -> tuple[np.ndarray, np.ndarray, float]:
@@ -867,7 +946,7 @@ def fig_barras_classicos(numeros: dict, saida: Path) -> list[Path]:
 
 FIGURAS = dict(
     roc_principais=fig_roc_principais, auc_modelos=fig_auc_modelos, metricas_principais=fig_metricas_principais,
-    sz_mdd=fig_sz_mdd, roc_pr=fig_roc_pr, roc_bootstrap=fig_roc_bootstrap, metricas_limiar=fig_metricas_limiar, loss_d_fa=fig_loss_d_fa,
+    sz_mdd=fig_sz_mdd, roc_pr=fig_roc_pr, roc_bootstrap=fig_roc_bootstrap, delong=fig_delong, delong_tabela=fig_delong_tabela, metricas_limiar=fig_metricas_limiar, loss_d_fa=fig_loss_d_fa,
     roc_ablacoes=fig_roc_ablacoes, roc_todos=fig_roc_todos, metricas_limiar_todos=fig_metricas_limiar_todos, confusao_todos=fig_confusao_todos, temporal_espectral=fig_temporal_espectral,
     absolutas_relativas=fig_absolutas_relativas, auc_repeticoes=fig_auc_repeticoes,
     delta_hipoteses=fig_delta_hipoteses, testes_estatisticos=fig_testes_estatisticos,
