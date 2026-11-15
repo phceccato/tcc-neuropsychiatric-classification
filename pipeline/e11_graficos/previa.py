@@ -66,7 +66,7 @@ def main() -> None:
         raise SystemExit(f"faltam {', '.join(ausentes)}: instale texlive-latex-extra, texlive-pictures e poppler-utils")
     figuras = args.figuras or sorted(SAIDA.glob("*.tex"))
     if not figuras:
-        raise SystemExit(f"nenhum .tex em {SAIDA}: rode antes h1_nula, roc e sessoes")
+        raise SystemExit(f"nenhum .tex em {SAIDA}: rode antes roc e sessoes")
     for fonte in figuras:
         print(gerar_png(fonte, fonte.with_suffix(".png"), args.resolucao))
 

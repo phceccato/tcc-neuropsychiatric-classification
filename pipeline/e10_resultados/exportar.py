@@ -5,9 +5,6 @@ Lê as saídas das etapas 05 (partições), 06 (LR_psd), 07 (DTSF) e 08 (clássi
 
 - previsoes/<dataset>/<modelo>.csv: uma linha por (repetição, fold, pessoa de teste), com y_true (1 = paciente),
   y_prob (probabilidade de paciente, fora do fold) e y_pred (y_prob ≥ 0,5);
-- permutacoes/<dataset>/<modelo>.csv: o mesmo para as permutações de rótulo com retreino (coluna permutacao em vez
-  de repeticao; y_true é o rótulo permutado), base da H1; e permutacoes/<dataset>/LR_psd_absolutas_nulas.csv, as
-  AUCs nulas da etapa 06 (ela grava só as AUCs);
 - perdas/<dataset>/<modelo>.csv, só do modelo principal (D_FA): a perda de treino e a de validação interna de cada
   época de cada (repetição, fold), com a época escolhida (`melhor`); a validação é o split interno do treino, nunca o
   teste, e a perda de treino é a do lote com Mixup;
@@ -62,15 +59,6 @@ def para_avaliacao(exportado: pd.DataFrame) -> pd.DataFrame:
     return exportado.rename(columns={"y_true": "y", "y_prob": "prob"})
 
 
-def ler_permutacoes(pasta: Path) -> pd.DataFrame:
-    partes = []
-    for a in sorted(pasta.glob("p*_f*.csv")):
-        p = pd.read_csv(a)
-        p["permutacao"] = int(a.stem.split("_")[0][1:])
-        partes.append(p)
-    return pd.concat(partes, ignore_index=True) if partes else pd.DataFrame()
-
-
 def _jsons(pasta: Path) -> list[dict]:
     return [json.load(open(a)) for a in sorted(pasta.glob("r*_f*.json"))]
 
@@ -109,7 +97,7 @@ def ler_perdas(pasta: Path) -> pd.DataFrame:
 
 
 def coletar(raiz: Path) -> dict:
-    """Previsões, permutações e metadados de cada (dataset, modelo) completo."""
+    """Previsões e metadados de cada (dataset, modelo) completo."""
     modelos, incompletos = {}, []
     lr = pd.read_csv(raiz / "06_LR_psd/predicoes.csv")
     for d in DATASETS:
@@ -124,9 +112,7 @@ def coletar(raiz: Path) -> dict:
             dispositivos = sorted({j.get("dispositivo", "cpu") for j in js}) if etapa == "07" else ["cpu"]
             parametros = sorted({j["parametros"] for j in js if isinstance(j.get("parametros"), int)})
             perdas = ler_perdas(pasta) if etapa == "07" and m == PRINCIPAL else pd.DataFrame()
-            modelos[(d, m)] = dict(etapa=etapa, previsoes=p, dispositivo=dispositivos, parametros=parametros, perdas=perdas,
-                                   permutacoes=ler_permutacoes(raiz / "07_DTSF/permutacoes" / d / m)
-                                   if etapa == "07" else pd.DataFrame())
+            modelos[(d, m)] = dict(etapa=etapa, previsoes=p, dispositivo=dispositivos, parametros=parametros, perdas=perdas)
         for nome in ("absolutas", "relativas"):
             g = lr[(lr["dataset"] == d) & (lr["features"] == nome)]
             p = g[["repeticao", "fold", "subject_uid", "y", "prob"]].reset_index(drop=True)
@@ -134,7 +120,7 @@ def coletar(raiz: Path) -> dict:
                 incompletos.append(f"{d}/LR_psd_{nome}")
                 continue
             modelos[(d, f"LR_psd_{nome}")] = dict(etapa="06", previsoes=p, dispositivo=["cpu"], parametros=[],
-                                                   permutacoes=pd.DataFrame(), perdas=pd.DataFrame())
+                                                   perdas=pd.DataFrame())
     return dict(modelos=modelos, incompletos=incompletos)
 
 
@@ -181,12 +167,10 @@ treinar nada. Gerado por `python -m pipeline.e10_resultados.exportar`; o método
 | Arquivo | Conteúdo |
 | --- | --- |
 | `previsoes/<dataset>/<modelo>.csv` | uma linha por (repetição, fold, pessoa de teste): `y_true` (1 = paciente), `y_prob` (probabilidade de paciente), `y_pred` (`y_prob` ≥ 0,5) |
-| `permutacoes/<dataset>/<modelo>.csv` | o mesmo nas permutações de rótulo com retreino (repetição 0); `y_true` é o rótulo permutado |
-| `permutacoes/<dataset>/LR_psd_absolutas_nulas.csv` | as AUCs nulas da LR_psd (1000 permutações) |
 | `perdas/<dataset>/D_FA.csv` | perda de treino e de validação interna por época, em cada (repetição, fold), do modelo principal; `melhor` marca a época escolhida |
 | `folds.csv` | as partições: 5 folds × 10 repetições, por pessoa, com o papel (treino, validação, teste) |
 | `metricas.csv` | AUC por pessoa com IC de 95%; acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1 no limiar 0,5; e a média ± desvio de todas nas 10 repetições, recalculadas destes arquivos |
-| `resumos/` | os resumos das etapas 06, 07 e 08, com os testes das hipóteses |
+| `resumos/` | os resumos das etapas 06, 07 e 08, com as comparações entre modelos |
 | `manifesto.json` | semente, commit do código, dispositivo e parâmetros de cada modelo, modelos incompletos |
 
 AUC por pessoa: média de `y_prob` de cada pessoa nas 10 repetições, e uma AUC sobre as pessoas:
@@ -213,18 +197,9 @@ def exportar(raiz: Path = Path("outputs"), saida: Path = SAIDA) -> dict:
     for (d, m), info in modelos.items():
         (saida / "previsoes" / d).mkdir(parents=True, exist_ok=True)
         padronizar(info["previsoes"])[COLUNAS].to_csv(saida / "previsoes" / d / f"{m}.csv", index=False)
-        if len(info["permutacoes"]):
-            (saida / "permutacoes" / d).mkdir(parents=True, exist_ok=True)
-            padronizar(info["permutacoes"], "permutacao").to_csv(saida / "permutacoes" / d / f"{m}.csv", index=False)
         if len(info["perdas"]):
             (saida / "perdas" / d).mkdir(parents=True, exist_ok=True)
             info["perdas"].to_csv(saida / "perdas" / d / f"{m}.csv", index=False)
-    nulas = raiz / "06_LR_psd/permutacoes.csv"
-    if nulas.exists():
-        n = pd.read_csv(nulas)
-        for d, g in n.groupby("dataset"):
-            (saida / "permutacoes" / d).mkdir(parents=True, exist_ok=True)
-            g[["auc_nula"]].to_csv(saida / "permutacoes" / d / "LR_psd_absolutas_nulas.csv", index=False)
     shutil.copy(raiz / "05_folds/folds.csv", saida / "folds.csv")
     metricas(modelos).to_csv(saida / "metricas.csv", index=False)
     (saida / "resumos").mkdir()
@@ -234,8 +209,7 @@ def exportar(raiz: Path = Path("outputs"), saida: Path = SAIDA) -> dict:
             shutil.copy(raiz / origem, saida / "resumos" / destino)
     manifesto = dict(semente=SEMENTE, commit=_commit(), limiar_y_pred=LIMIAR,
                      modelos={f"{d}/{m}": dict(etapa=i["etapa"], dispositivo=i["dispositivo"], parametros=i["parametros"],
-                                               linhas=len(i["previsoes"]), permutacoes=int(i["permutacoes"]["permutacao"].nunique())
-                                               if len(i["permutacoes"]) else 0)
+                                               linhas=len(i["previsoes"]))
                               for (d, m), i in modelos.items()},
                      incompletos=dados["incompletos"])
     (saida / "LEIAME.md").write_text(LEIAME, encoding="utf-8")

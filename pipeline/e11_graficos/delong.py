@@ -1,4 +1,4 @@
-"""Tabela do teste de DeLong (complementar): o D_FA contra os outros 5 modelos principais, com Holm.
+"""Tabela do teste de DeLong (análise principal): o D_FA contra os outros 5 modelos principais, com Holm.
 
 Cada comparação testa a diferença entre as AUCs de dois modelos nas mesmas pessoas (`teste_delong`, bicaudal, sobre o
 escore médio das 10 repetições). Os 5 p brutos de cada transtorno são ajustados por Holm (α = 0,05), e a coluna
@@ -63,9 +63,9 @@ def latex(numeros: dict) -> str:
             f"\\begin{{tabular}}{{{colunas}}}\n\\toprule\n{cabecalho} \\\\\n" + "\n".join(corpo) + "\n\\bottomrule\n"
             "\\end{tabular}\n\\caption{Teste de DeLong para a diferença entre as AUCs por pessoa do D\\_FA e dos outros "
             "modelos principais (bicaudal). O p bruto de cada transtorno é ajustado por Holm sobre as cinco "
-            "comparações; significativo se o p ajustado é no máximo 0,05. O teste é complementar: a decisão das "
-            "hipóteses usa a permutação pareada sobre ranks, e a validação cruzada viola a independência das pessoas "
-            "que o DeLong supõe, então os p são aproximados.}\n\\label{tab:res-delong}\n\\end{table}\n")
+            "comparações; significativo se o p ajustado é no máximo 0,05. A validação cruzada viola a "
+            "independência das pessoas que o DeLong supõe, e as AUCs são as dos escores médios das repetições, então os "
+            "p são aproximados.}\n\\label{tab:res-delong}\n\\end{table}\n")
 
 
 def main() -> None:

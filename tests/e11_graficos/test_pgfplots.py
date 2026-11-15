@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from sklearn.metrics import roc_auc_score
 
-from pipeline.e11_graficos import comum, h1_nula, previa, roc, sessoes
+from pipeline.e11_graficos import comum, previa, roc, sessoes
 
 MANIFESTO = Path("outputs/02_harmonizacao/manifesto.csv")
 
@@ -44,9 +44,7 @@ def test_curva_em_degraus_tem_a_auc_do_sklearn():
         assert x0 == x1 or y0 == y1
 
 
-def test_empilhar_e_deslocamentos_sao_deterministicos():
-    v = np.array([0.501, 0.505, 0.73, 0.509])
-    assert h1_nula.empilhar(v) == [(0.51, 1), (0.51, 2), (0.51, 3), (0.73, 1)]
+def test_deslocamentos_sao_deterministicos():
     x = np.array([2003.5, 2003.5, 2003.5, 2006.0])
     d = sessoes.deslocamentos(x, tolerancia=0.01)
     np.testing.assert_allclose(d, [0.0, sessoes.PASSO, -sessoes.PASSO, 0.0])
@@ -72,16 +70,6 @@ def test_roc_usa_o_d_fa_e_os_combinados_da_h4(numeros_json):
     assert "\\label{fig:res-roc}" in texto and texto.startswith("\\begin{figure}[htbp]")
 
 
-def test_h1_traz_a_auc_observada_e_o_p_de_cada_dataset(numeros_json):
-    dados = h1_nula.dados(numeros_json)
-    texto = h1_nula.tex(dados)
-    comum.checar_tex(texto)
-    for d, r in dados.items():
-        assert len(r["nulas"]) == 25 and r["p"] == numeros_json["h1"][d]["p"]
-        assert f"{{{comum.virgula(r['observada'])}; p = {comum.virgula(r['p'])}}}" in texto
-    assert "D\\_FA retreinado" in texto and "\\label{fig:res-h1-nula}" in texto
-
-
 def _sem_identificador(texto: str) -> None:
     assert not re.search(r"(SZ|MDD)-(HC|SZ|MDD)-", texto)
 
@@ -95,7 +83,7 @@ def test_sessoes_reais_conferem_com_os_docs_e_sem_identificadores():
 
 @pytest.mark.skipif(shutil.which("pdflatex") is None, reason="precisa do pdflatex")
 def test_figuras_compilam_com_pdflatex(numeros_json, tmp_path):
-    textos = [h1_nula.tex(h1_nula.dados(numeros_json)), roc.tex(roc.dados(numeros_json))]
+    textos = [roc.tex(roc.dados(numeros_json))]
     if MANIFESTO.exists():
         textos.append(sessoes.tex(sessoes.dados(MANIFESTO)))
     for t in textos:

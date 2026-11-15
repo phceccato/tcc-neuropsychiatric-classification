@@ -40,10 +40,6 @@ def _outputs(tmp_path, quebrar=False):
         pred = _predicoes(k)
         _gravar_modelo(raiz / "07_DTSF/resultados" / d / "D_FA", pred)
         md07.append(_linha_auc("D_FA", pred if not quebrar else pred.assign(prob=1 - pred["prob"])))
-        perm = pred[pred["repeticao"] == 0].drop(columns="repeticao").assign(repeticao=0)
-        for j in range(3):
-            _gravar_modelo(raiz / "07_DTSF/permutacoes" / d / "D_FA", perm.assign(permutacao=j), prefixo="p",
-                           chave="permutacao")
         pc = _predicoes(10 + k)
         _gravar_modelo(raiz / "08_classicos/resultados" / d / "LR_temporal", pc, dispositivo="cpu")
         md08.append(_linha_auc("LR_temporal", pc).replace("| 704.769 ", ""))
@@ -54,8 +50,6 @@ def _outputs(tmp_path, quebrar=False):
         md06.append(f"| {d} | absolutas | {r['auc']:.3f} [{r['ic_baixo']:.3f}, {r['ic_alto']:.3f}] | x |")
     (raiz / "06_LR_psd").mkdir(parents=True)
     pd.concat(lr).to_csv(raiz / "06_LR_psd/predicoes.csv", index=False)
-    pd.DataFrame(dict(dataset=["SZ", "SZ", "MDD"], auc_nula=[0.5, 0.6, 0.4])).to_csv(
-        raiz / "06_LR_psd/permutacoes.csv", index=False)
     (raiz / "06_LR_psd/resumo.md").write_text("\n".join(md06))
     (raiz / "07_DTSF/resultados/resumo_dtsf.md").write_text("\n".join(md07))
     (raiz / "08_classicos/resultados/resumo.md").write_text("\n".join(md08))
@@ -73,7 +67,7 @@ def test_padronizar_tem_y_true_y_pred_y_prob():
                                     dict(repeticao=0, fold=1, subject_uid="B", y_true=1, y_pred=1, y_prob=0.5)]
 
 
-def test_exporta_previsoes_permutacoes_metricas_e_manifesto(tmp_path):
+def test_exporta_previsoes_metricas_e_manifesto(tmp_path):
     raiz, saida = _outputs(tmp_path), tmp_path / "10_resultados"
     manifesto = ex.exportar(raiz, saida)
     assert sorted(manifesto["incompletos"]) == sorted(
@@ -83,13 +77,10 @@ def test_exporta_previsoes_permutacoes_metricas_e_manifesto(tmp_path):
     p = pd.read_csv(saida / "previsoes/SZ/D_FA.csv")
     assert list(p.columns) == ex.COLUNAS and len(p) == 80
     assert ((p["y_prob"] >= 0.5).astype(int) == p["y_pred"]).all()
-    perm = pd.read_csv(saida / "permutacoes/SZ/D_FA.csv")
-    assert list(perm.columns)[0] == "permutacao" and perm["permutacao"].nunique() == 3
-    assert len(pd.read_csv(saida / "permutacoes/SZ/LR_psd_absolutas_nulas.csv")) == 2
+    assert not (saida / "permutacoes").exists()
     m = pd.read_csv(saida / "metricas.csv")
     assert set(m["modelo"]) == {"D_FA", "LR_temporal", "LR_psd_absolutas"} and "auc_rep_desvio" in m
-    assert manifesto["modelos"]["SZ/D_FA"] == dict(etapa="07", dispositivo=["cuda"], parametros=[704_769], linhas=80,
-                                                   permutacoes=3)
+    assert manifesto["modelos"]["SZ/D_FA"] == dict(etapa="07", dispositivo=["cuda"], parametros=[704_769], linhas=80)
     assert sorted(a.name for a in (saida / "resumos").iterdir()) == ["06_LR_psd.md", "07_DTSF.md", "08_classicos.md"]
     assert (saida / "folds.csv").exists() and "y_true" in (saida / "LEIAME.md").read_text()
 
@@ -112,7 +103,7 @@ def test_para_sem_gravar_se_a_auc_nao_bate_com_o_resumo(tmp_path):
 
 def test_aucs_do_resumo_le_as_tabelas_por_dataset_com_e_sem_parametros():
     md = ("## SZ\n\n| D_FA | 704.769 | 0.827 [0.643, 0.964] | x |\n| LR_temporal | 0.602 [0.367, 0.806] | x |\n"
-          "| D_FA | 0.781 ± 0.058 | x |\n## H2\n| SZ | D_FA − D_sem_T | +0.000 [-0.087, +0.087] |\n"
+          "| D_FA | 0.781 ± 0.058 | x |\n## Ablações\n| SZ | D_FA − D_sem_T | +0.000 [-0.087, +0.087] |\n"
           "## MDD\n\n| D_FA | 704.769 | 0.958 [0.897, 0.995] | x |\n")
     assert ex.aucs_do_resumo(md) == {("SZ", "D_FA"): 0.827, ("SZ", "LR_temporal"): 0.602, ("MDD", "D_FA"): 0.958}
 

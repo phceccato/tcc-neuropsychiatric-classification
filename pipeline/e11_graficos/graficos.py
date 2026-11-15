@@ -30,9 +30,8 @@ suplementares/ — o material suplementar:
      no DTSF (ablações do D_pequeno) e nos clássicos;
   s4_absolutas_relativas: LR de 76 bandas com potência absoluta e relativa (AUC por pessoa e por repetição);
   s5_auc_repeticoes: AUC de cada uma das 10 repetições e a média, mesmos modelos de p2;
-  s6_delta_hipoteses: ΔAUC = referência − comparado, com IC de 95% e p, agrupado por hipótese, com a decisão,
-     e as comparações descritivas;
-  s7_testes_estatisticos: distribuição nula da H1 e tabela com p, p de Holm e decisão de H1 a H4;
+  s6_delta_auc: ΔAUC = referência − comparado, com IC de 95% (descritivo, sem p-valor), das ablações do D_pequeno,
+     do D_FA contra os baselines e entre os DTSF;
   s8_barras_ablacoes, s9_barras_classicos (coloridas): AUC por pessoa em barras do D_pequeno e das ablações e do
      D_FA e dos 9 baselines.
 
@@ -400,7 +399,7 @@ def fig_delong_tabela(numeros: dict, saida: Path) -> list[Path]:
                 celula._loc = "left"
         ax.set_title(TITULOS[d], loc="left", fontsize=8)
     fig.text(0.5, 0.01, "DeLong bicaudal; ΔAUC = AUC do D_FA − AUC do outro modelo.\nSignificativo: p ajustado por Holm ≤ 0,05 "
-             "(Holm sobre os 5 p de cada transtorno). Teste complementar, p aproximado.", ha="center", va="top",
+             "(Holm sobre os 5 p de cada transtorno). p aproximado.", ha="center", va="top",
              fontsize=6.0, color=TEXTO_2)
     return _gravar(fig, saida / PRINCIPAIS, "p10_delong_tabela")
 
@@ -778,30 +777,23 @@ def fig_auc_repeticoes(numeros: dict, saida: Path) -> list[Path]:
 # ---------------------------------------------------------------- ΔAUC
 
 UMA_MODALIDADE = [f"{c}_{m}" for m in ("temporal", "espectral") for c in CLASSIFICADORES]
-# (título do grupo, hipótese decidida ou None, [(comparação "A − B", modelo que dá o marcador, rótulo)])
-HIPOTESES_FIG = [
-    ("H2: D_pequeno contra", "H2", [(f"{REFERENCIA_ABLACOES} − {m}", m, rotulo) for m, rotulo in
-                                    (("D_sem_T", "sem ramo temporal"), ("D_sem_E", "sem ramo espectral"))]),
-    ("H3: D_pequeno contra", "H3", [(f"{REFERENCIA_ABLACOES} − D_sem_mixup", "D_sem_mixup", "sem Mixup")]),
-    ("H4: D_FA contra", "H4", [(f"{PRINCIPAL} − {c}_combinado", f"{c}_combinado", f"{c} combinado")
-                              for c in CLASSIFICADORES]),
-    ("Descritivo: entre os DTSF", None, [("D_FA − D", "D", "D_FA − D (FA)"),
-                                         ("D − D_pequeno", "D_pequeno", "D − D_pequeno (tamanho)"),
-                                         ("D_FA − D_pequeno", "D_pequeno", "D_FA − D_pequeno")]),
-    ("Descritivo: D_FA contra", None, [(f"{PRINCIPAL} − {m}", m, m.replace("_", " ")) for m in UMA_MODALIDADE]),
+# (título do grupo, [(comparação "A − B", modelo que dá o marcador, rótulo)])
+GRUPOS_DELTA = [
+    ("Ablações: D_pequeno contra", [(f"{REFERENCIA_ABLACOES} − {m}", m, rotulo) for m, rotulo in
+                                    (("D_sem_T", "sem ramo temporal"), ("D_sem_E", "sem ramo espectral"),
+                                     ("D_sem_mixup", "sem Mixup"))]),
+    ("Clássicos combinados: D_FA contra", [(f"{PRINCIPAL} − {c}_combinado", f"{c}_combinado", f"{c} combinado")
+                                          for c in CLASSIFICADORES]),
+    ("Entre os DTSF", [("D_FA − D", "D", "D_FA − D (FA)"),
+                       ("D − D_pequeno", "D_pequeno", "D − D_pequeno (tamanho)"),
+                       ("D_FA − D_pequeno", "D_pequeno", "D_FA − D_pequeno")]),
+    ("Clássicos de uma modalidade: D_FA contra", [(f"{PRINCIPAL} − {m}", m, m.replace("_", " ")) for m in UMA_MODALIDADE]),
 ]
 
 
-def _decisao(numeros: dict, h: str, d: str) -> str:
-    dec = numeros["hipoteses"][h][d]
-    return (f"{'p IU' if h in ('H2', 'H4') else 'p'} = {virgula(dec['p'])}; Holm = {virgula(dec['p_ajustado'])}; "
-            f"{'rejeita' if dec['rejeita'] else 'não rejeita'} H₀")
-
-
-def fig_delta_hipoteses(numeros: dict, saida: Path) -> list[Path]:
-    modelos, titulos = _linhas([(t, itens) for t, _, itens in HIPOTESES_FIG])
-    decide = [h for _, h, _ in HIPOTESES_FIG]
-    fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 6.6), sharey=True, gridspec_kw=dict(wspace=0.42))
+def fig_delta_auc(numeros: dict, saida: Path) -> list[Path]:
+    modelos, titulos = _linhas(GRUPOS_DELTA)
+    fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 6.6), sharey=True, gridspec_kw=dict(wspace=0.12))
     for ax, d in zip(eixos, DATASETS):
         c = numeros["comparacoes"][d]
         ax.axvline(0, color=PRETO, lw=0.7, zorder=0)
@@ -810,14 +802,6 @@ def fig_delta_hipoteses(numeros: dict, saida: Path) -> list[Path]:
             ax.plot(c[chave]["ic"], [y, y], color=e["color"], lw=1.1, solid_capstyle="round", zorder=1)
             ax.plot(c[chave]["delta"], y, ls="none", marker=e["marker"], ms=e["ms"], mfc=e["mfc"], mec=e["color"],
                     mew=0.9, zorder=2)
-            ax.text(1.03, y, virgula(c[chave]["p"]), transform=ax.get_yaxis_transform(), va="center", ha="left",
-                    fontsize=7)
-        ax.text(1.03, titulos[0][1] + 0.9, "p", transform=ax.get_yaxis_transform(), va="center", ha="left",
-                fontsize=7, fontstyle="italic", fontweight="bold")
-        for h, (_, y) in zip(decide, titulos):
-            texto = "sem decisão" if h is None else _decisao(numeros, h, d)
-            ax.text(0.01, y, texto, transform=ax.get_yaxis_transform(), va="center", ha="left", fontsize=6.8,
-                    color=PRETO, fontstyle="italic", bbox=dict(fc="white", ec="none", pad=0.6))
         ax.set_xlim(-0.2, 0.55)
         ax.xaxis.set_major_locator(MultipleLocator(0.2))
         ax.xaxis.set_minor_locator(MultipleLocator(0.1))
@@ -831,62 +815,7 @@ def fig_delta_hipoteses(numeros: dict, saida: Path) -> list[Path]:
         rotulo.set_fontweight("bold")
     eixos[0].set_ylim(min(y for _, y in modelos) - 0.7, 0.7)
     eixos[1].tick_params(labelleft=False)
-    return _gravar(fig, saida / SUPLEMENTARES, "s6_delta_hipoteses")
-
-
-# ---------------------------------------------------------------- testes estatísticos
-
-ENUNCIADOS = {"H1": "D_FA > acaso", "H2": "D_pequeno > sem T, sem E",
-              "H3": "D_pequeno > sem Mixup", "H4": "D_FA > os 3 combinados"}
-TESTES = {"H1": "permutação de rótulos", "H2": "ranks pareados, IU", "H3": "ranks pareados",
-          "H4": "ranks pareados, IU"}
-
-
-def linhas_testes(numeros: dict) -> list[list[str]]:
-    """Uma linha por (hipótese, transtorno): enunciado, teste, p, p de Holm e decisão."""
-    linhas = []
-    for h in ("H1", "H2", "H3", "H4"):
-        for d in DATASETS:
-            dec = numeros["h1"][d] if h == "H1" else numeros["hipoteses"][h][d]
-            holm = "—" if h == "H1" else virgula(dec["p_ajustado"])
-            linhas.append([h, ENUNCIADOS[h], TESTES[h], d, virgula(dec["p"]), holm,
-                           "rejeita H₀" if dec["rejeita"] else "não rejeita H₀"])
-    return linhas
-
-
-def fig_testes_estatisticos(numeros: dict, saida: Path) -> list[Path]:
-    fig = plt.figure(figsize=(LARGURA, 5.6))
-    grade = fig.add_gridspec(2, 2, height_ratios=[1, 1.15], hspace=0.45, wspace=0.25)
-    for k, d in enumerate(DATASETS):
-        ax = fig.add_subplot(grade[0, k])
-        dist = numeros["h1_distribuicao"][d]
-        ax.hist(dist["nulas"], bins=np.arange(0.2, 1.0001, 0.04), color=CINZA_CLARO, edgecolor="white", zorder=2,
-                label="AUC com rótulos permutados")
-        ax.axvline(dist["observada"], color=PRETO, lw=1.4, zorder=3, label="AUC observada (repetição 0)")
-        ax.axvline(0.5, color=TEXTO_2, lw=0.7, ls="--", zorder=1, label="acaso (0,5)")
-        ax.text(dist["observada"], ax.get_ylim()[1] * 0.95, f" {virgula(dist['observada'])}\n p = {virgula(dist['p'])}",
-                va="top", ha="right" if dist["observada"] > 0.8 else "left", fontsize=6.8)
-        ax.set_xlim(0.2, 1.0)
-        _eixo_virgula(ax)
-        ax.tick_params(axis="y", length=3, width=0.6)
-        ax.set_xlabel("AUC")
-        ax.set_ylabel("Permutações" if k == 0 else "")
-        ax.set_title(f"H1, {CURTOS[d]}", loc="left")
-    fig.axes[0].legend(loc="upper center", bbox_to_anchor=(1.1, -0.28), ncol=3, fontsize=6.8)
-    ax = fig.add_subplot(grade[1, :])
-    ax.axis("off")
-    tabela = ax.table(cellText=linhas_testes(numeros),
-                      colLabels=["", "Hipótese", "Teste", "", "p", "p (Holm)", "Decisão"],
-                      colWidths=[0.04, 0.33, 0.23, 0.07, 0.07, 0.1, 0.16], loc="center", cellLoc="left")
-    tabela.auto_set_font_size(False)
-    tabela.set_fontsize(6.8)
-    tabela.scale(1, 1.25)
-    for (i, _), celula in tabela.get_celld().items():
-        celula.set_edgecolor(EIXO)
-        celula.set_linewidth(0.4)
-        if i == 0:
-            celula.set_text_props(fontweight="bold")
-    return _gravar(fig, saida / SUPLEMENTARES, "s7_testes_estatisticos")
+    return _gravar(fig, saida / SUPLEMENTARES, "s6_delta_auc")
 
 
 # ---------------------------------------------------------------- barras (coloridas)
@@ -949,7 +878,7 @@ FIGURAS = dict(
     sz_mdd=fig_sz_mdd, roc_pr=fig_roc_pr, roc_bootstrap=fig_roc_bootstrap, delong=fig_delong, delong_tabela=fig_delong_tabela, metricas_limiar=fig_metricas_limiar, loss_d_fa=fig_loss_d_fa,
     roc_ablacoes=fig_roc_ablacoes, roc_todos=fig_roc_todos, metricas_limiar_todos=fig_metricas_limiar_todos, confusao_todos=fig_confusao_todos, temporal_espectral=fig_temporal_espectral,
     absolutas_relativas=fig_absolutas_relativas, auc_repeticoes=fig_auc_repeticoes,
-    delta_hipoteses=fig_delta_hipoteses, testes_estatisticos=fig_testes_estatisticos,
+    delta_auc=fig_delta_auc,
     barras_ablacoes=fig_barras_ablacoes, barras_classicos=fig_barras_classicos,
 )
 

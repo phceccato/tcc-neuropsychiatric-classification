@@ -1,8 +1,8 @@
-"""Figura em pgfplots: curvas ROC por pessoa do modelo principal e dos baselines da H4 (fig:res-roc).
+"""Figura em pgfplots: curvas ROC por pessoa do modelo principal e dos baselines combinados (fig:res-roc).
 
 Escore de cada pessoa: média da probabilidade fora do fold nas 10 repetições, o mesmo da métrica primária.
 Modelos (`MODELOS`): o D_FA e os 3 baselines combinados (LR, RF e KNN sobre as características temporais e
-espectrais), os que a H4 compara. ROC empírica em degraus (`roc_curve` sem descartar pontos intermediários),
+espectrais). ROC empírica em degraus (`roc_curve` sem descartar pontos intermediários),
 com a área conferida contra `roc_auc_score` e contra a AUC de numeros.json.
 
 Lê outputs/11_graficos/numeros.json (`numeros.py`: rótulo e escore médio de cada pessoa, sem identificador).
@@ -65,7 +65,7 @@ def tex(curvas: dict[str, list[dict]]) -> str:
              "yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1}, "
              "legend style={at={(0.98,0.02)}, anchor=south east, cells={anchor=west}}, legend cell align=left]\n"
              + "\n".join(paineis) + "\n\\end{groupplot}\n\\end{tikzpicture}")
-    legenda = ("Curvas ROC por pessoa do D\\_FA e dos baselines clássicos combinados que a H4 compara com ele, sobre a "
+    legenda = ("Curvas ROC por pessoa do D\\_FA e dos baselines clássicos combinados, sobre a "
                "média das previsões fora do fold nas 10 repetições. Entre parênteses, a AUC por pessoa. A diagonal é o "
                "acaso.")
     return figura(corpo, legenda, "fig:res-roc")
