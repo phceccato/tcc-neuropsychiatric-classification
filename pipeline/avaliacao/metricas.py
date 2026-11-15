@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.stats import t as dist_t
+from scipy.stats import norm, t as dist_t
 from sklearn.metrics import f1_score, precision_score, roc_auc_score, roc_curve
 
 LIMIAR = 0.5
@@ -192,6 +192,42 @@ def parear(escores_a: pd.DataFrame, escores_b: pd.DataFrame) -> tuple[np.ndarray
     if set(np.unique(y)) != {0, 1}:
         raise ValueError("os escores precisam ter pacientes (y = 1) e controles (y = 0)")
     return y, ea, eb
+
+
+def teste_delong(y: np.ndarray, escore_a: np.ndarray, escore_b: np.ndarray) -> dict:
+    """Teste de DeLong (DELONG et al., 1988) para a diferença entre duas AUCs correlacionadas, bicaudal.
+
+    Os dois modelos pontuam as mesmas pessoas. A AUC é a estatística U de Mann-Whitney, com empate valendo ½; os
+    componentes estruturais V10 (um por paciente) e V01 (um por controle) dão a matriz de covariância das duas AUCs,
+    e z = (AUC_a − AUC_b) / dp(AUC_a − AUC_b), com p = 2 · P(Z > |z|) na normal. O IC de 95% do Δ é Δ ± 1,96 dp.
+
+    Se a variância da diferença é zero (por exemplo, as duas AUCs valem 1 ou os escores são idênticos), o teste
+    não é definido: devolve p = 1, z = None e `degenerado = True`. Valem as suposições do teste: pessoas
+    independentes e escores fixos. Com escores fora do fold de uma validação cruzada isso é só aproximado.
+    """
+    y = np.asarray(y).astype(int)
+    a, b = np.asarray(escore_a, dtype=float), np.asarray(escore_b, dtype=float)
+    pacientes, controles = a[y == 1], a[y == 0]
+    m, n = len(pacientes), len(controles)
+    if m < 2 or n < 2:
+        raise ValueError("o DeLong precisa de pelo menos 2 pacientes e 2 controles")
+    v10, v01 = [], []
+    for e in (a, b):
+        pos, neg = e[y == 1][:, None], e[y == 0][None, :]
+        psi = (pos > neg) + 0.5 * (pos == neg)
+        v10.append(psi.mean(axis=1))
+        v01.append(psi.mean(axis=0))
+    auc = np.array([v.mean() for v in v10])
+    covariancia = np.cov(np.array(v10)) / m + np.cov(np.array(v01)) / n
+    delta = float(auc[0] - auc[1])
+    variancia = float(covariancia[0, 0] + covariancia[1, 1] - 2 * covariancia[0, 1])
+    base = dict(auc_a=float(auc[0]), auc_b=float(auc[1]), delta=delta)
+    if variancia <= 1e-15:
+        return base | dict(erro_padrao=0.0, z=None, p=1.0, ic=[delta, delta], degenerado=True)
+    erro = float(np.sqrt(variancia))
+    z = delta / erro
+    return base | dict(erro_padrao=erro, z=float(z), p=float(2 * norm.sf(abs(z))),
+                       ic=[delta - 1.959963984540054 * erro, delta + 1.959963984540054 * erro], degenerado=False)
 
 
 def p_interseccao_uniao(ps: list[float]) -> float:

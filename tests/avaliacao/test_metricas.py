@@ -287,3 +287,75 @@ def test_tpr_na_grade_e_a_curva_em_degraus():
     y, escore = np.array([0, 0, 1, 1]), np.array([0.1, 0.4, 0.35, 0.8])
     t = m.tpr_na_grade(y, escore, np.array([0.0, 0.25, 0.5, 1.0]))
     assert t.tolist() == [0.5, 0.5, 1.0, 1.0]
+
+
+# ---------- teste de DeLong ----------
+
+def _delong_ingenuo(y, a, b):
+    """Implementação independente: componentes estruturais por laços, sem vetorização."""
+    import numpy as np
+    pos, neg = [i for i in range(len(y)) if y[i] == 1], [i for i in range(len(y)) if y[i] == 0]
+    def psi(x, i, j):
+        return 1.0 if x[i] > x[j] else 0.5 if x[i] == x[j] else 0.0
+    v10 = np.array([[np.mean([psi(x, i, j) for j in neg]) for i in pos] for x in (a, b)])
+    v01 = np.array([[np.mean([psi(x, i, j) for i in pos]) for j in neg] for x in (a, b)])
+    s = np.cov(v10) / len(pos) + np.cov(v01) / len(neg)
+    delta = v10[0].mean() - v10[1].mean()
+    return delta, s[0, 0] + s[1, 1] - 2 * s[0, 1]
+
+
+def test_delong_bate_com_a_implementacao_ingenua_e_com_a_auc_do_sklearn():
+    import numpy as np
+    from scipy.stats import norm
+    rng = np.random.default_rng(1)
+    y = np.r_[np.ones(12), np.zeros(15)].astype(int)
+    a = np.round(rng.normal(size=27) + 1.0 * y, 1)          # arredondado: há empates
+    b = np.round(0.5 * a + rng.normal(size=27) + 0.3 * y, 1)
+    r = m.teste_delong(y, a, b)
+    delta, variancia = _delong_ingenuo(y, a, b)
+    assert r["delta"] == pytest.approx(delta) and r["erro_padrao"] == pytest.approx(np.sqrt(variancia))
+    assert r["auc_a"] == pytest.approx(m.roc_auc_score(y, a)) and r["auc_b"] == pytest.approx(m.roc_auc_score(y, b))
+    assert r["p"] == pytest.approx(2 * norm.sf(abs(delta / np.sqrt(variancia))))
+    assert r["ic"][0] < r["delta"] < r["ic"][1] and not r["degenerado"]
+
+
+def test_delong_e_simetrico_e_o_p_nao_depende_da_ordem_dos_modelos():
+    import numpy as np
+    rng = np.random.default_rng(2)
+    y = np.r_[np.ones(10), np.zeros(10)].astype(int)
+    a, b = rng.normal(size=20) + y, rng.normal(size=20) + 0.4 * y
+    ab, ba = m.teste_delong(y, a, b), m.teste_delong(y, b, a)
+    assert ab["p"] == pytest.approx(ba["p"]) and ab["delta"] == pytest.approx(-ba["delta"])
+
+
+def test_delong_com_escores_identicos_ou_auc_1_e_degenerado_e_nao_rejeita():
+    import numpy as np
+    y = np.r_[np.ones(5), np.zeros(5)].astype(int)
+    perfeito = y + 0.1 * np.arange(10)
+    for a, b in ((perfeito, perfeito), (perfeito, perfeito * 2 + 1)):
+        r = m.teste_delong(y, a, b)
+        assert r["degenerado"] and r["p"] == 1.0 and r["z"] is None and r["delta"] == 0.0
+
+
+def test_delong_exige_dois_pacientes_e_dois_controles():
+    import numpy as np
+    with pytest.raises(ValueError):
+        m.teste_delong(np.array([1, 0, 0]), np.array([0.9, 0.1, 0.2]), np.array([0.8, 0.3, 0.1]))
+
+
+def test_delong_calibrado_sob_a_nula_com_pessoas_independentes():
+    """Dois modelos igualmente bons (mesmo sinal, ruído independente): rejeita perto de 5% a α = 0,05."""
+    import numpy as np
+    rng = np.random.default_rng(5)
+    y = np.r_[np.ones(40), np.zeros(40)].astype(int)
+    rejeicoes = np.mean([m.teste_delong(y, rng.normal(size=80) + 0.8 * y, rng.normal(size=80) + 0.8 * y)["p"] <= 0.05
+                         for _ in range(600)])
+    assert 0.02 <= rejeicoes <= 0.09
+
+
+def test_delong_detecta_uma_diferenca_grande():
+    import numpy as np
+    rng = np.random.default_rng(6)
+    y = np.r_[np.ones(40), np.zeros(40)].astype(int)
+    r = m.teste_delong(y, rng.normal(size=80) + 2.0 * y, rng.normal(size=80) + 0.2 * y)
+    assert r["delta"] > 0.2 and r["p"] < 0.001
