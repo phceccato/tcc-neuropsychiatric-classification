@@ -11,29 +11,23 @@ linha por (repetição, pessoa) e as colunas repeticao, subject_uid, y (1 = paci
   quanto o resultado muda com a partição, não a incerteza sobre a população (as repetições reusam as pessoas);
 - secundárias (descritivas), no limiar 0,5 e com o paciente como classe positiva: acurácia, acurácia
   balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1;
-- permutação: p = (nº de nulas ≥ observado + 1) / (N + 1);
-- `teste_pareado`: ΔAUC entre dois modelos sobre os escores pareados de cada pessoa, com
-  permutação pareada (troca dos dois escores de cada pessoa), unilateral; as hipóteses H2–H4
-  o aplicam sobre ranks (`teste_ranks`, em pipeline/e07_DTSF/avaliar.py).
-
-Extensão DTSF:
+- permutação: p = (nº de nulas ≥ observado + 1) / (N + 1) (`p_valor`, usado só pela LR de 76 bandas);
 - `parear`: alinha os escores por pessoa de dois modelos e recusa pessoas ausentes, repetidas,
   rótulos divergentes ou escores inválidos;
-- `p_interseccao_uniao`: p = maior p das comparações componentes (H2 e H4);
-- `holm`: correção de Holm sobre {SZ, MDD} de cada hipótese (H2–H4);
-- sensibilidades das comparações pareadas (secundárias, não mudam a decisão): ΔAUC por
-  repetição e t corrigido de Nadeau e Bengio (2003) sobre os ΔAUC por fold.
+- ΔAUC entre dois modelos: `ic_bootstrap_delta` (IC de 95% por bootstrap estratificado e pareado) e
+  `delta_por_repeticao` (o ΔAUC de cada repetição), descritivos;
+- `teste_delong`: teste de DeLong bicaudal da diferença entre duas AUCs correlacionadas; `holm`: correção de Holm
+  sobre uma família de p (os 5 p do modelo principal em cada transtorno). É a análise estatística principal.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm, t as dist_t
+from scipy.stats import norm
 from sklearn.metrics import f1_score, precision_score, roc_auc_score, roc_curve
 
 LIMIAR = 0.5
 REAMOSTRAGENS = 2000
-PERMUTACOES_PAREADAS = 10_000
 
 
 def escores_por_pessoa(predicoes: pd.DataFrame) -> pd.DataFrame:
@@ -151,16 +145,6 @@ def auc_em_lote(y: np.ndarray, escores: np.ndarray) -> np.ndarray:
     return ((pos > neg).sum(axis=(1, 2)) + 0.5 * (pos == neg).sum(axis=(1, 2))) / (y.sum() * (~y).sum())
 
 
-def teste_pareado(y: np.ndarray, escore_a: np.ndarray, escore_b: np.ndarray,
-                  n: int = PERMUTACOES_PAREADAS, semente: int = 0) -> tuple[float, float]:
-    """ΔAUC = AUC(a) − AUC(b) e o p unilateral (a > b) da permutação pareada."""
-    a, b = np.asarray(escore_a, dtype=float), np.asarray(escore_b, dtype=float)
-    delta = float(auc_em_lote(y, a[None])[0] - auc_em_lote(y, b[None])[0])
-    troca = np.random.default_rng(semente).random((n, len(a))) < 0.5
-    nulas = auc_em_lote(y, np.where(troca, b, a)) - auc_em_lote(y, np.where(troca, a, b))
-    return delta, p_valor(delta - 1e-12, nulas)
-
-
 def ic_bootstrap_delta(y: np.ndarray, escore_a: np.ndarray, escore_b: np.ndarray,
                        reamostragens: int = REAMOSTRAGENS, semente: int = 0) -> tuple[float, float]:
     """IC de 95% do ΔAUC (a − b), reamostrando pessoas dentro de cada classe (pares mantidos)."""
@@ -230,13 +214,6 @@ def teste_delong(y: np.ndarray, escore_a: np.ndarray, escore_b: np.ndarray) -> d
                        ic=[delta - 1.959963984540054 * erro, delta + 1.959963984540054 * erro], degenerado=False)
 
 
-def p_interseccao_uniao(ps: list[float]) -> float:
-    """p do teste de interseção-união: rejeita só se rejeitar todas as componentes (BERGER, 1982)."""
-    if not ps:
-        raise ValueError("sem comparações")
-    return float(max(ps))
-
-
 def holm(ps: dict[str, float], alfa: float = 0.05) -> dict[str, dict]:
     """Holm (step-down) sobre a família de p: p ajustado = max_{j ≤ i} min(1, (m − j + 1)·p₍ⱼ₎)."""
     if not ps or not all(np.isfinite(p) and 0 <= p <= 1 for p in ps.values()):
@@ -272,23 +249,3 @@ def _deltas(juntas: pd.DataFrame, chaves: list[str]) -> pd.DataFrame:
 def delta_por_repeticao(predicoes_a: pd.DataFrame, predicoes_b: pd.DataFrame) -> np.ndarray:
     """ΔAUC (a − b) de cada repetição, sobre as previsões fora do fold de todas as pessoas."""
     return _deltas(_juntar(predicoes_a, predicoes_b), ["repeticao"])["delta"].to_numpy()
-
-
-def delta_por_fold(predicoes_a: pd.DataFrame, predicoes_b: pd.DataFrame) -> pd.DataFrame:
-    """ΔAUC (a − b) em cada (repetição, fold), com o número de pessoas de teste do fold."""
-    return _deltas(_juntar(predicoes_a, predicoes_b), ["repeticao", "fold"])
-
-
-def t_corrigido(deltas: np.ndarray, razao_teste_treino: float) -> tuple[float, float, float]:
-    """Média, t e p unilateral (Δ > 0) do t corrigido de Nadeau e Bengio (2003).
-
-    A variância dos J deltas é multiplicada por (1/J + n_teste/n_treino); J − 1 graus de liberdade.
-    """
-    deltas = np.asarray(deltas, dtype=float)
-    if len(deltas) < 2:
-        raise ValueError("o t corrigido precisa de pelo menos 2 deltas")
-    media, variancia = float(deltas.mean()), float(deltas.var(ddof=1))
-    if variancia == 0:
-        return media, 0.0, 1.0 if media <= 0 else 0.0
-    t = media / np.sqrt((1 / len(deltas) + razao_teste_treino) * variancia)
-    return media, float(t), float(dist_t.sf(t, len(deltas) - 1))

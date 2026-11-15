@@ -71,23 +71,6 @@ def test_auc_vetorizada_bate_com_o_sklearn():
     np.testing.assert_allclose(m.auc_em_lote(y, escores), esperado)
 
 
-def test_teste_pareado_detecta_modelo_melhor():
-    rng = np.random.default_rng(1)
-    y = np.array([1] * 20 + [0] * 20)
-    bom = y + rng.normal(0, 0.5, 40)
-    ruim = rng.normal(0, 1, 40)
-    delta, p = m.teste_pareado(y, bom, ruim, n=2000, semente=0)
-    assert delta > 0.3 and p < 0.01
-
-
-def test_teste_pareado_com_modelos_iguais_nao_rejeita():
-    rng = np.random.default_rng(2)
-    y = np.array([1] * 20 + [0] * 20)
-    a = y + rng.normal(0, 1, 40)
-    delta, p = m.teste_pareado(y, a, a.copy(), n=2000, semente=0)
-    assert delta == 0 and p == 1.0
-
-
 def test_ic_bootstrap_do_delta_contem_o_delta_observado():
     rng = np.random.default_rng(3)
     y = np.array([1] * 15 + [0] * 15)
@@ -105,11 +88,6 @@ def _fixos():
     rng = np.random.default_rng(42)
     y = np.array([1] * 12 + [0] * 12)
     return y, y + rng.normal(0, 1, 24), y * 0.5 + rng.normal(0, 1, 24)
-
-
-def test_teste_pareado_mantem_o_comportamento_anterior():
-    y, a, b = _fixos()
-    assert m.teste_pareado(y, a, b, n=500, semente=7) == pytest.approx((0.02777777777777779, 0.4431137724550898))
 
 
 def test_ic_bootstrap_delta_mantem_o_comportamento_anterior():
@@ -208,36 +186,6 @@ def test_delta_por_repeticao_rejeita_pessoas_diferentes():
     a = _predicoes_modelo([0.9, 0.1, 0.8, 0.2, 0.9, 0.1, 0.8, 0.2])
     with pytest.raises(ValueError):
         m.delta_por_repeticao(a, a.iloc[1:])
-
-
-def test_delta_por_fold_traz_o_tamanho_do_teste():
-    a = _predicoes_modelo([0.9, 0.1, 0.8, 0.2, 0.9, 0.1, 0.8, 0.2])
-    b = _predicoes_modelo([0.4, 0.6, 0.8, 0.2, 0.9, 0.1, 0.1, 0.8])
-    folds = m.delta_por_fold(a, b)
-    assert list(folds["delta"]) == [1.0, 0.0, 0.0, 1.0] and list(folds["n_teste"]) == [2] * 4
-
-
-def test_t_corrigido_de_nadeau_e_bengio():
-    from scipy.stats import t as dist_t
-    deltas = np.array([0.1, 0.2, 0.3, 0.0, -0.1])
-    media, t, p = m.t_corrigido(deltas, razao_teste_treino=6 / 22)
-    esperado = 0.1 / np.sqrt((1 / 5 + 6 / 22) * 0.025)
-    assert media == pytest.approx(0.1) and t == pytest.approx(esperado)
-    assert p == pytest.approx(1 - dist_t.cdf(esperado, 4))
-
-
-def test_t_corrigido_com_deltas_constantes():
-    assert m.t_corrigido(np.zeros(5), 0.25)[2] == 1.0
-    with pytest.raises(ValueError):
-        m.t_corrigido(np.array([0.1]), 0.25)
-
-
-def test_delta_por_fold_recusa_fold_com_uma_classe_so():
-    a = _predicoes_modelo([0.9, 0.1, 0.8, 0.2, 0.9, 0.1, 0.8, 0.2])
-    a.loc[a["subject_uid"] == "H0", "fold"] = 1
-    a.loc[a["subject_uid"] == "P1", "fold"] = 0  # fold 0 só com pacientes, fold 1 só com controles
-    with pytest.raises(ValueError):
-        m.delta_por_fold(a, a.copy())
 
 
 def _predicoes_repeticoes():
