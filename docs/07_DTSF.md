@@ -29,6 +29,7 @@ Resultados: pendentes da rodada com a semente 20261108 ([Resultados](#resultados
   - `redes_dtsf.py`: os seis modelos (`MODELOS`, com o principal em `PRINCIPAL`) e a Frequency Attention (`AtencaoFrequencia`);
   - `treino.py`: o treino de um fold;
   - `rodar.py`: o runner;
+  - `epoca_um.py`: quantos folds escolhem a época 1 no early stopping e a AUC com e sem eles (descritivo, [abaixo](#época-1-no-early-stopping));
   - `avaliar.py`: o resumo do DTSF, o ΔAUC com IC de `D_pequeno` contra cada ablação, as comparações entre os DTSF (`D_FA` − `D`, `D` − `D_pequeno`, `D_FA` − `D_pequeno`) e a comparação pareada por pessoa (`comparacao_pareada`: Δ, IC e Δ por repetição), usada também pela etapa 08.
 - Saídas em `outputs/07_DTSF/`:
   - `cache/` e `cache_dtsf/`: o sinal a 125 Hz e o cache multibanda com a STFT;
@@ -136,9 +137,42 @@ Rodada oficial feita em GPU (`cuda`), semente 20261108, commit `7e69187` (manife
 - **Ordem:** o `D_FA` tem a maior AUC nos dois datasets, mas as diferenças para `D` e `D_pequeno` são pequenas (SZ: D_FA − D = +0,015 [+0,000, +0,051], com o `D_FA` melhor em 3 das 10 repetições; MDD: +0,003 [−0,013, +0,019]). Com 14+14 e 29+27 pessoas, não há evidência de que a FA ou o tamanho melhorem o resultado.
 - **Ablações do `D_pequeno`:** todos os ΔAUC têm IC que inclui zero. Em SZ, tirar a entrada espectral (`D_sem_E`, −0,051) e o Mixup (−0,036) são as maiores quedas, e tirar o ramo temporal (`D_sem_T`) não piora (+0,020 a favor da ablação).
 - **DeLong com Holm** (etapa 11, [11_graficos.md](11_graficos.md)): nenhuma das 10 comparações do `D_FA` é significativa depois do Holm.
-- **Épocas:** mediana de 12 (SZ) e 7 (MDD) para o `D_FA`; a perda de validação cai e se estabiliza perto delas (`p5_loss_d_fa`).
+- **Épocas:** mediana de 12 (SZ) e 7 (MDD) para o `D_FA`; a perda de validação cai e se estabiliza perto delas (`p5_loss_d_fa`). Em parte dos folds da SZ a época escolhida é a 1 ([abaixo](#época-1-no-early-stopping)).
 - Os checkpoints do `D_FA` ficam em `outputs/07_DTSF/checkpoints/` (fora do git).
 - Ordem usada: `rodar`, `avaliar`, etapa 08, etapa 10, etapa 11. Os hiperparâmetros ficam em constantes do código (`ConfigTreino` em `treino.py`, `MODELOS` em `redes_dtsf.py`) e, a cada tarefa, no `.json`.
+
+## Época 1 no early stopping
+
+**Limitação declarada (AL-05).** A parada usa a perda média por pessoa da validação interna, que na SZ tem só 4–5 pessoas (9 no MDD). Com tão poucas pessoas, uma pessoa errada com confiança pesa 20–25% da perda média. Em parte dos folds a perda não fica abaixo da perda da época 1 (rede quase sem treino, perda perto de ln 2) nas 10 épocas seguintes, e o modelo fica com os pesos da época 1. Não há critério de desempate nem época mínima, e o protocolo **não foi alterado**: a rodada oficial vale como está.
+
+```bash
+venv/bin/python -m pipeline.e07_DTSF.epoca_um     # → outputs/07_DTSF/epoca_um.{md,csv}; só lê, não treina
+```
+
+A análise é descritiva (código em `pipeline/e07_DTSF/epoca_um.py`, testes em `tests/e07_DTSF/test_epoca_um.py`). A AUC "sem época 1" retira os folds depois de olhar a época escolhida: dimensiona o efeito, mas não é estimativa de desempenho nem substitui as AUCs da tabela de resultados.
+
+Números calculados nesta máquina (CPU, rodada de 9/11) para os quatro modelos de ablação, e a rodada oficial em GPU para o `D_FA`, a partir de `outputs/10_resultados`. As demais linhas da rodada oficial (GPU) não estão aqui e precisam ser calculadas na máquina da rodada, com o mesmo comando (as perdas dos outros modelos não são exportadas):
+
+| Conjunto | Modelo | Dispositivo | Folds com época 1 | AUC por pessoa: todos / sem época 1 | AUC por repetição: todos / sem época 1 |
+| --- | --- | --- | --- | --- | --- |
+| SZ | `D_FA` | GPU | 7 de 50 (14%) | 0,852 / 0,827 | 0,816 / 0,815 |
+| SZ | `D_pequeno` | CPU | 11 de 50 (22%) | 0,827 / 0,842 | 0,781 / 0,810 |
+| SZ | `D_sem_E` | CPU | 14 de 50 (28%) | 0,760 / 0,770 | 0,677 / 0,739 |
+| SZ | `D_sem_T` | CPU | 14 de 50 (28%) | 0,827 / 0,847 | 0,769 / 0,832 |
+| SZ | `D_sem_mixup` | CPU | 21 de 50 (42%) | 0,806 / 0,821 | 0,739 / 0,801 |
+| MDD | `D_FA` | GPU | 3 de 50 (6%) | 0,964 / 0,963 | 0,937 / 0,938 |
+| MDD | `D_pequeno` | CPU | 1 de 50 (2%) | 0,958 / 0,958 | 0,937 / 0,934 |
+| MDD | `D_sem_E`, `D_sem_T` | CPU | 2 de 50 (4%) cada | 0,941–0,954 / 0,943–0,955 | 0,923–0,927 / 0,925–0,928 |
+| MDD | `D_sem_mixup` | CPU | 27 de 50 (54%) | 0,951 / 0,951 | 0,923 / 0,928 |
+
+Por tamanho da validação, em todos os modelos juntos: SZ com 4 pessoas, 24% dos folds com época 1; SZ com 5, 31%; MDD com 9, 14%.
+
+**Leitura.**
+- **`D_FA` (modelo principal):** o efeito é pequeno. Retirar os folds com época 1 não melhora a AUC (SZ: 0,852 → 0,827 por pessoa; 0,816 → 0,815 por repetição), e nesses folds as previsões não ficam constantes.
+- **Ablações da SZ (rodada em CPU):** a fração é maior (22–42%) e, nesses folds, as previsões do `D_pequeno` ficam quase constantes (desvio ~0,02) e a AUC por fold cai. Sem eles, a AUC por repetição sobe 0,03 a 0,06 e a ordem entre `D_pequeno` e `D_sem_T` se inverte. Por isso as diferenças de ablação na SZ (todas com IC que inclui zero) devem ser lidas como incertas.
+- **MDD:** o efeito é desprezível (≤ 0,005 de AUC), exceto pelo `D_sem_mixup`, em que 54% dos folds escolhem a época 1 sem mudar a AUC.
+- **Causa:** a validação pequena torna a perda ruidosa. Que a perda penalize a confiança e não o ranking, e que a AUC de validação melhore enquanto a perda piora, é hipótese ainda não testada (os retreinos de diagnóstico foram interrompidos).
+- **Se o protocolo for revisto** (por exemplo, época mínima fixada a priori, ou validação maior), a decisão precisa ser tomada antes da próxima rodada em GPU e sem olhar a AUC de teste.
 
 ## Análise anterior
 
