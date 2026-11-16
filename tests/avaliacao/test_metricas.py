@@ -56,10 +56,8 @@ def test_precisao_sem_nenhum_previsto_paciente_e_zero():
     assert r["precisao"] == 0 and r["f1"] == 0 and r["acuracia"] == 0.5
 
 
-def test_p_valor_de_permutacao():
-    nulas = np.array([0.4, 0.5, 0.6, 0.7, 0.8])
-    assert m.p_valor(0.7, nulas) == pytest.approx((2 + 1) / (5 + 1))
-    assert m.p_valor(0.9, nulas) == pytest.approx(1 / 6)
+def test_nao_ha_teste_de_permutacao_na_avaliacao():
+    assert not hasattr(m, "p_valor")
 
 
 def test_auc_vetorizada_bate_com_o_sklearn():

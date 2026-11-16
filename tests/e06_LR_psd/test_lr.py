@@ -65,13 +65,9 @@ def test_rotulo_do_teste_nao_influencia_a_previsao():
     assert pred2.loc[linha, "prob"].item() == alvo["prob"]
 
 
-def test_permutacao_e_reprodutivel_e_fica_perto_do_acaso():
-    x_treino, x_teste, y, folds = _cenario(n=40, separacao=0.0)
-    folds0 = folds[folds["repeticao"] == 0]
-    nulas = b.permutacao(x_treino, x_teste, y, folds0, n=50, semente=3)
-    assert len(nulas) == 50
-    np.testing.assert_array_equal(nulas, b.permutacao(x_treino, x_teste, y, folds0, n=50, semente=3))
-    assert 0.35 < np.mean(nulas) < 0.65
+def test_lr_nao_tem_teste_de_permutacao():
+    """O trabalho não tem teste contra o acaso: a incerteza da LR é o IC de 95% da AUC (como no resto)."""
+    assert not hasattr(b, "permutacao") and not hasattr(b, "PERMUTACOES")
 
 
 def test_regressao_usa_peso_de_classe():
@@ -81,3 +77,21 @@ def test_regressao_usa_peso_de_classe():
     pred = b.prever_cv(x_treino, x_teste, y_desbalanceado, folds)
     # sem peso de classe, a probabilidade média ficaria perto da prevalência (0,2)
     assert pred["prob"].mean() > 0.3
+
+
+def test_doc_06_bate_com_as_aucs_exportadas():
+    """A tabela de docs/06_LR_psd.md traz as AUCs de outputs/10_resultados/metricas.csv (única saída versionada)."""
+    from pathlib import Path
+    raiz = Path(__file__).resolve().parents[2]
+    metricas, doc = raiz / "outputs/10_resultados/metricas.csv", raiz / "docs/06_LR_psd.md"
+    if not metricas.exists():
+        import pytest
+        pytest.skip("outputs/10_resultados não gerado")
+    m = pd.read_csv(metricas).set_index(["dataset", "modelo"])
+    linhas = [l for l in doc.read_text(encoding="utf-8").splitlines() if l.startswith(("| SZ |", "| MDD |"))]
+    assert len(linhas) == 4
+    for linha in linhas:
+        c = [x.strip() for x in linha.strip("|").split("|")]
+        auc = float(c[2].split("[")[0].replace(",", "."))
+        nome = "LR_psd_" + c[1]
+        assert abs(m.loc[(c[0], nome), "auc_pessoa"] - auc) <= 0.0005, (c[0], nome)

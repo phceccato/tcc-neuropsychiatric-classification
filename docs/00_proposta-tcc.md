@@ -180,7 +180,7 @@ Todas as comparações são feitas **em cada transtorno separadamente** (SZ × H
 
 - **IC do ΔAUC:** bootstrap estratificado e pareado, condicional às previsões obtidas.
 - **Ablações que mudam mais de uma coisa:** `D_sem_T` e `D_sem_E` mudam também o número de tokens e de parâmetros. Por isso a comparação mostra a arquitetura com e sem o ramo, e não isola o ramo puro. O `D_sem_mixup` muda só o Mixup. As ablações derivam do `D_pequeno`, e não do `D_FA`: mostram o efeito de cada componente na arquitetura de dimensão 32.
-- **Sem teste contra o acaso:** o trabalho não treina o `D_FA` com rótulos permutados. O IC de 95% da AUC por pessoa e o bootstrap mostram a incerteza da estimativa.
+- **Sem teste contra o acaso:** o trabalho não treina nenhum modelo com rótulos permutados (nem o `D_FA` nem a LR de 76 bandas). O IC de 95% da AUC por pessoa e o bootstrap mostram a incerteza da estimativa.
 - **Validade:** a validação cruzada viola a independência que o DeLong supõe: as pessoas de um fold compartilham o modelo, os treinos se sobrepõem e o escore de cada pessoa é a média de 10 repetições com partições sobrepostas. Os p são aproximados e tendem a ser otimistas, e a aproximação normal é fraca com 14 + 14 pessoas.
 - **Limiar:** as métricas secundárias usam o limiar fixo 0,5, e não um limiar escolhido na validação.
 - **Leitura:** um resultado não significativo é inconclusivo e não demonstra equivalência. O poder é baixo, sobretudo na SZ, com 28 pessoas.

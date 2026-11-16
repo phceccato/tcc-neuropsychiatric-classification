@@ -11,7 +11,6 @@ linha por (repetição, pessoa) e as colunas repeticao, subject_uid, y (1 = paci
   quanto o resultado muda com a partição, não a incerteza sobre a população (as repetições reusam as pessoas);
 - secundárias (descritivas), no limiar 0,5 e com o paciente como classe positiva: acurácia, acurácia
   balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1;
-- permutação: p = (nº de nulas ≥ observado + 1) / (N + 1) (`p_valor`, usado só pela LR de 76 bandas);
 - `parear`: alinha os escores por pessoa de dois modelos e recusa pessoas ausentes, repetidas,
   rótulos divergentes ou escores inválidos;
 - ΔAUC entre dois modelos: `ic_bootstrap_delta` (IC de 95% por bootstrap estratificado e pareado) e
@@ -120,11 +119,6 @@ def tabela_media_desvio(linhas: list[tuple[list[str], pd.DataFrame | None]], rot
         md = media_desvio(predicoes)
         saida.append("| " + " | ".join([*chave, *(f"{md[m][0]:.3f} ± {md[m][1]:.3f}" for m in METRICAS_REPETICAO)]) + " |")
     return saida
-
-
-def p_valor(observado: float, nulas: np.ndarray) -> float:
-    nulas = np.asarray(nulas)
-    return float((np.sum(nulas >= observado) + 1) / (len(nulas) + 1))
 
 
 def avaliar(predicoes: pd.DataFrame, semente: int = 0) -> dict[str, float]:

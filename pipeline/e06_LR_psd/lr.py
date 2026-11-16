@@ -8,11 +8,12 @@ Segue docs/00_proposta-tcc.md ("Baselines clássicos por modalidade", referênci
 - z-score por feature com estatísticas só do treino de cada fold;
 - mesmas partições de outputs/05_folds/folds.csv; a LR não tem early stopping, então
   treino e validacao entram juntos no ajuste;
-- teste contra o acaso: 1000 permutações de rótulo com retreino, na repetição 0.
+- sem teste contra o acaso: a incerteza é o IC de 95% da AUC por pessoa (bootstrap) e a média ± desvio nas 10 repetições.
 
-Checagem no MDD: o mesmo modelo com potência relativa (banda ÷ potência de 2–30 Hz).
+Checagem no MDD: o mesmo modelo com potência relativa (banda ÷ potência de 2–30 Hz). Ela só afasta o ganho
+do aparelho: não elimina diferenças de ritmo entre sessões (pipeline/e06_LR_psd/checagem_lote.py).
 
-Grava em outputs/06_LR_psd/ as previsões, as AUCs nulas e resumo.md.
+Grava em outputs/06_LR_psd/ as previsões e resumo.md.
 """
 from __future__ import annotations
 
@@ -25,9 +26,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from pipeline.avaliacao.metricas import avaliar, p_valor, roc_auc_score, tabela_media_desvio
+from pipeline.avaliacao.metricas import avaliar, tabela_media_desvio
 
-PERMUTACOES = 1000
 SEMENTE = 20261108
 
 
@@ -56,22 +56,9 @@ def prever_cv(x_treino: pd.DataFrame, x_teste: pd.DataFrame, y: pd.Series, folds
     return pd.DataFrame(linhas)
 
 
-def permutacao(x_treino: pd.DataFrame, x_teste: pd.DataFrame, y: pd.Series, folds: pd.DataFrame,
-               n: int = PERMUTACOES, semente: int = SEMENTE) -> np.ndarray:
-    """AUCs com os rótulos das pessoas embaralhados e retreino completo nas mesmas partições."""
-    rng = np.random.default_rng(semente)
-    nulas = np.empty(n)
-    for i in range(n):
-        y_perm = pd.Series(rng.permutation(y.to_numpy()), index=y.index)
-        pred = prever_cv(x_treino, x_teste, y_perm, folds)
-        nulas[i] = roc_auc_score(pred["y"], pred["prob"])
-    return nulas
-
-
-def _formatar(nome: str, dataset: str, r: dict, p: float | None) -> str:
-    p_txt = "—" if p is None else f"{p:.3f}"
+def _formatar(nome: str, dataset: str, r: dict) -> str:
     return (f"| {dataset} | {nome} | {r['auc']:.3f} [{r['ic_baixo']:.3f}, {r['ic_alto']:.3f}] | "
-            f"{r['auc_rep_media']:.3f} ± {r['auc_rep_desvio']:.3f} | {p_txt} | {r['acuracia_balanceada']:.3f} | "
+            f"{r['auc_rep_media']:.3f} ± {r['auc_rep_desvio']:.3f} | {r['acuracia_balanceada']:.3f} | "
             f"{r['sensibilidade']:.3f} | {r['especificidade']:.3f} | {r['macro_f1']:.3f} |")
 
 
@@ -81,7 +68,6 @@ def main() -> None:
     parser.add_argument("--janelas", type=Path, default=Path("outputs/03_janelas/janelas.csv"))
     parser.add_argument("--folds", type=Path, default=Path("outputs/05_folds/folds.csv"))
     parser.add_argument("--saida", type=Path, default=Path("outputs/06_LR_psd"))
-    parser.add_argument("--permutacoes", type=int, default=PERMUTACOES)
     args = parser.parse_args()
 
     features = np.load(args.features)
@@ -93,12 +79,12 @@ def main() -> None:
 
     linhas = ["# LR_psd — resultados", "",
               "Regressão logística L2 (C = 1), com peso de classe, sobre a média das features por pessoa; z-score com estatísticas "
-              f"do treino de cada fold; 5 folds × 10 repetições. p: {args.permutacoes} permutações de rótulo "
-              "com retreino, na repetição 0. IC de 95% por bootstrap estratificado (2000 reamostragens).", "",
-              "| Conjunto | Features | AUC por pessoa [IC 95%] | AUC por repetição | p | Acurácia balanceada | "
+              "do treino de cada fold; 5 folds × 10 repetições. IC de 95% por bootstrap estratificado (2000 reamostragens). "
+              "Sem teste contra o acaso.", "",
+              "| Conjunto | Features | AUC por pessoa [IC 95%] | AUC por repetição | Acurácia balanceada | "
               "Sensibilidade | Especificidade | Macro F1 |",
-              "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-    predicoes, nulas_todas = [], []
+              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    predicoes = []
     for dataset, folds_ds in folds.groupby("dataset", sort=False):
         rotulos = folds_ds.drop_duplicates("subject_uid").set_index("subject_uid")["grupo"]
         y = (rotulos != "HC").astype(int)
@@ -109,26 +95,18 @@ def main() -> None:
             pred.insert(0, "features", nome)
             pred.insert(0, "dataset", dataset)
             predicoes.append(pred)
-            p = None
-            if nome == "absolutas":
-                rep0 = folds_ds[folds_ds["repeticao"] == 0]
-                observado = roc_auc_score(*pred.loc[pred["repeticao"] == 0, ["y", "prob"]].to_numpy().T)
-                nulas = permutacao(x_treino, x_teste, y, rep0, n=args.permutacoes)
-                nulas_todas.append(pd.DataFrame(dict(dataset=dataset, auc_nula=nulas)))
-                p = p_valor(observado, nulas)
             resultado = avaliar(pred, semente=SEMENTE)
-            linhas.append(_formatar(nome, dataset, resultado, p))
-            print(f"{dataset} {nome}: AUC {resultado['auc']:.3f}" + ("" if p is None else f", p = {p:.3f}"))
+            linhas.append(_formatar(nome, dataset, resultado))
+            print(f"{dataset} {nome}: AUC {resultado['auc']:.3f}")
 
     pd.concat(predicoes, ignore_index=True).to_csv(args.saida / "predicoes.csv", index=False)
-    pd.concat(nulas_todas, ignore_index=True).to_csv(args.saida / "permutacoes.csv", index=False)
     linhas += ["", "Média ± desvio nas 10 repetições: em cada repetição, as previsões fora do fold dos 5 folds juntas; "
                "limiar 0,5 nas secundárias. O desvio mostra a variação com a partição, não a incerteza sobre a "
                "população.", ""]
     linhas += tabela_media_desvio([([p["dataset"].iat[0], p["features"].iat[0]], p) for p in predicoes],
                                   ["Conjunto", "Features"])
-    linhas += ["", "A potência relativa é a checagem do MDD (docs/04_features.md): se a absoluta "
-               "vencer muito só no MDD, a suspeita é o ganho do aparelho."]
+    linhas += ["", "A potência relativa é a checagem do ganho do aparelho no MDD (docs/04_features.md). Ela não elimina "
+               "diferenças de ritmo entre sessões de gravação: ver docs/06_LR_psd.md e checagem_lote.py."]
     (args.saida / "resumo.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
 
 
