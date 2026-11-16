@@ -254,9 +254,8 @@ def test_formatacao_do_delong():
 
 
 def test_latex_do_delong_tem_as_duas_tabelas_balanceadas_e_sem_unicode(numeros_json):
-    from pipeline.e11_graficos.comum import checar_tex
     tex = dl.latex(numeros_json)
-    checar_tex(tex)
+    assert tex.count("{") == tex.count("}") and tex.count("\\begin") == tex.count("\\end")
     assert tex.count("\\midrule") == 2 and "D\\_FA vs. D\\_pequeno" in tex and "\\label{tab:res-delong}" in tex
     assert all(ord(c) < 128 for c in tex.replace("ç", "").replace("ã", "").replace("õ", "").replace("é", "")
                .replace("á", "").replace("í", "").replace("ó", "").replace("ê", "").replace("â", "").replace("ú", ""))

@@ -71,10 +71,8 @@ venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_inves
 venv/bin/python -m pipeline.e10_resultados.exportar   # previsões de todos os modelos (y_true, y_pred, y_prob), métricas e resumos → outputs/10_resultados/ (versionada)
 venv/bin/python -m pipeline.e11_graficos.numeros   # números dos gráficos, de outputs/10_resultados/, conferidos contra os resumos → outputs/11_graficos/numeros.json
 venv/bin/python -m pipeline.e11_graficos.graficos  # gráficos principais e suplementares (PDF e PNG) → outputs/11_graficos/principais/ e suplementares/
-venv/bin/python -m pipeline.e11_graficos.roc       # curvas ROC do D_FA e dos combinados (pgfplots) → outputs/11_graficos/pgfplots/fig_roc.tex
 venv/bin/python -m pipeline.e11_graficos.delong    # tabela do teste de DeLong (Holm sobre 5 p) em LaTeX → outputs/11_graficos/delong.tex
-venv/bin/python -m pipeline.e11_graficos.sessoes   # linha do tempo das gravações (pgfplots, precisa da etapa 02) → outputs/11_graficos/pgfplots/fig_sessoes.tex
-venv/bin/python -m pipeline.e11_graficos.previa    # PNG de conferência de cada .tex (precisa do pdflatex) → outputs/11_graficos/pgfplots/*.png
+venv/bin/python -m pipeline.e11_graficos.sessoes   # linha do tempo das gravações (precisa da etapa 02) → outputs/11_graficos/suplementares/s12_sessoes.pdf e .png
 venv/bin/python -m pipeline.e12_topomapa.topomapa --pessoa MDD-MDD-S27   # mapas topográficos por banda de uma pessoa → outputs/12_topomapa/
 venv/bin/python -m pipeline.e12_topomapa.todos                           # os mesmos mapas para as 84 pessoas → outputs/12_topomapa/<dataset>/<classe>/<sessão>/
 ```

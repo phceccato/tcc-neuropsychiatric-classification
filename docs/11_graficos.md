@@ -1,24 +1,21 @@
-# Gráficos de resultados (matplotlib e pgfplots)
+# Gráficos de resultados
 
-Gráficos do TCC e do material suplementar, em dois formatos: imagens prontas (matplotlib: PDF vetorial para `\includegraphics` e PNG de conferência) e figuras em pgfplots (`.tex` para dar `\input` no Overleaf, com um PNG de prévia). Esta etapa não treina nada e calcula o teste de DeLong com Holm, a análise estatística principal: lê a pasta versionada da etapa 10 (`outputs/10_resultados/`), recalcula os números a partir das previsões, confere cada um contra o resumo da etapa e desenha. Por isso, qualquer pessoa com o repositório gera os mesmos gráficos sem treinar nenhum modelo. A única exceção é a linha do tempo das gravações (`fig_sessoes`), que precisa das datas dos EDF (etapa 02).
+Gráficos do TCC e do material suplementar, como imagens prontas (matplotlib): PDF vetorial para `\includegraphics` no Overleaf e PNG de conferência. Esta etapa não treina nada e calcula o teste de DeLong com Holm, a análise estatística principal: lê a pasta versionada da etapa 10 (`outputs/10_resultados/`), recalcula os números a partir das previsões, confere cada um contra o resumo da etapa e desenha. Por isso, qualquer pessoa com o repositório gera os mesmos gráficos sem treinar nenhum modelo. A única exceção é a linha do tempo das gravações (`s12_sessoes`), que precisa das datas dos EDF (etapa 02).
 
 - Código: [pipeline/e11_graficos/](../pipeline/e11_graficos/)
   - `numeros.py`: lê as previsões (`previsoes/<dataset>/<modelo>.csv`), o histórico de perdas do D_FA e os resumos de `outputs/10_resultados/`; recalcula, com as mesmas funções e sementes das etapas, a AUC por pessoa com IC, a AUC de cada repetição, a média ± desvio de todas as métricas nas 10 repetições, as secundárias por pessoa, a matriz de confusão, os escores por pessoa (rótulo e escore médio, sem identificador) para as curvas ROC, o teste de DeLong de cada comparação, com Holm sobre os 5 p do transtorno (`delong`, e a tabela `delong.csv`; não há resumo de etapa para conferir, a conferência é o teste unitário), as curvas ROC de reamostras bootstrap do D_FA (`bootstrap`, com o IC conferido contra o resumo), as perdas do D_FA por (repetição, fold), conferidas (50 folds, épocas em sequência e a época escolhida é a de menor perda de validação; `Divergencia` se não for), as comparações descritivas (ΔAUC com IC e Δ por repetição: D_pequeno contra as ablações, D_FA contra os 9 baselines e entre os DTSF); confere contra os resumos e grava `numeros.json`;
   - `graficos.py`: as figuras em matplotlib;
-  - `comum.py`, `roc.py` e `sessoes.py`: as figuras em pgfplots (ambiente `figure` completo, com `\caption` e `\label` em português e os dados embutidos em `coordinates`). `roc` lê o `numeros.json`; `sessoes` lê o manifesto da etapa 02 e confere as contagens por sessão contra [09_investigacao.md](09_investigacao.md);
-  - `previa.py`: compila cada `.tex` num documento mínimo, recortado na figura e com 16 cm de largura de texto, e grava um PNG ao lado, só para conferência.
-- Testes: `tests/e11_graficos/`, com uma pasta `10_resultados` sintética que passa por `numeros`, `graficos` e pgfplots de ponta a ponta (com a compilação no pdflatex, quando ele está instalado).
-- Saídas em `outputs/11_graficos/` (versionada, como `outputs/10_resultados/`): `numeros.json`; `principais/` e `suplementares/`, com um `.pdf` e um `.png` de cada figura; e `pgfplots/`, com os `.tex` e as prévias em `.png`.
+  - `sessoes.py`: a linha do tempo das gravações (matplotlib). Lê o manifesto da etapa 02 e confere as contagens por sessão contra [09_investigacao.md](09_investigacao.md); roda à parte do `graficos.py`, porque o manifesto não vai para o git;
+- Testes: `tests/e11_graficos/`, com uma pasta `10_resultados` sintética que passa por `numeros` e `graficos` de ponta a ponta.
+- Saídas em `outputs/11_graficos/` (versionada, como `outputs/10_resultados/`): `numeros.json`; `principais/` e `suplementares/`, com um `.pdf` e um `.png` de cada figurapng`.
 
-Pré-requisitos: `outputs/10_resultados/` completa (etapa 10), com as previsões dos 17 modelos, o histórico de perdas do D_FA (`perdas/`) e os resumos; para `sessoes`, o manifesto da etapa 02; para a prévia, o pdflatex com pgfplots e o pdftocairo (`sudo apt install texlive-latex-extra texlive-pictures poppler-utils`).
+Pré-requisitos: `outputs/10_resultados/` completa (etapa 10), com as previsões dos 17 modelos, o histórico de perdas do D_FA (`perdas/`) e os resumos; para `sessoes`, o manifesto da etapa 02.
 
 ```bash
 venv/bin/python -m pipeline.e11_graficos.numeros    # recalcula e confere → outputs/11_graficos/numeros.json
 venv/bin/python -m pipeline.e11_graficos.graficos   # → outputs/11_graficos/principais/ e suplementares/
-venv/bin/python -m pipeline.e11_graficos.roc        # → outputs/11_graficos/pgfplots/fig_roc.tex
 venv/bin/python -m pipeline.e11_graficos.delong     # tabela do DeLong em LaTeX → outputs/11_graficos/delong.tex
-venv/bin/python -m pipeline.e11_graficos.sessoes    # → outputs/11_graficos/pgfplots/fig_sessoes.tex (precisa da etapa 02)
-venv/bin/python -m pipeline.e11_graficos.previa     # PNG de cada .tex → outputs/11_graficos/pgfplots/*.png
+venv/bin/python -m pipeline.e11_graficos.sessoes    # → outputs/11_graficos/suplementares/s12_sessoes.pdf e .png (precisa da etapa 02)
 ```
 
 O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com o resumo da etapa: |diferença| ≤ 0,0005 em AUC, IC e ΔAUC, e ≤ 0,00005 em p.
@@ -54,23 +51,7 @@ O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com 
 | `s6_delta_auc` | ΔAUC = referência − comparado, com IC de 95%, sem p-valor: D_pequeno contra as ablações, D_FA contra os 3 combinados, entre os DTSF e D_FA contra os 6 baselines de uma modalidade |
 | `s8_barras_ablacoes` | AUC por pessoa em barras do D_pequeno e das ablações |
 | `s9_barras_classicos` | AUC por pessoa em barras do D_FA e dos 9 baselines, com a cor pela modalidade |
-
-### Em pgfplots (Overleaf)
-
-| Arquivo | Conteúdo |
-| --- | --- |
-| `fig_roc` (`fig:res-roc`) | Curvas ROC por pessoa do D_FA e dos 3 baselines combinados |
-| `fig_sessoes` (`fig:des-sessoes`) | Data de gravação de cada participante por classe, com as sessões reconstruídas (nova sessão quando duas datas distam mais de 30 dias); nenhum identificador vai para o `.tex` |
-
-Preâmbulo do Overleaf:
-
-```latex
-\usepackage{pgfplots}
-\usepgfplotslibrary{groupplots}
-\pgfplotsset{compat=1.18}
-```
-
-Copie os `.tex` para a pasta do projeto e use `\input{fig_roc}` e `\input{fig_sessoes}`. Formato: largura de no máximo `\linewidth`, fonte `\footnotesize`, vírgula decimal nos eixos (`/pgf/number format/use comma, 1000 sep={.}`) e no texto, e séries diferenciadas também por marcador ou tracejado, para a leitura impressa em P&B. Na prévia em PNG, a legenda sai como "Figura 1", porque cada figura é compilada sozinha.
+| `s12_sessoes` | Data de gravação de cada participante por classe, com as sessões reconstruídas (nova sessão quando duas datas distam mais de 30 dias); gerada por `sessoes.py`, não pelo `graficos.py`; nenhum identificador vai para a figura |
 
 ## Formato
 
@@ -100,7 +81,7 @@ Copie os `.tex` para a pasta do projeto e use `\input{fig_roc}` e `\input{fig_se
 
 ## Resultados
 
-As figuras da rodada oficial (GPU) estão em `outputs/11_graficos/` (`principais/`, `suplementares/`, `pgfplots/`, `delong.csv`, `delong.tex`, `numeros.json`), geradas a partir de `outputs/10_resultados/`. As figuras de rodadas anteriores (`12_figuras_rodada2` e `13_graficos_rodada2`) e o experimento exploratório de FA e SDKA (`12_FA_SDKA`) foram arquivados fora do repositório, em `~/Documentos/TCC/arquivo_outputs_antigos/`, e não valem para esta rodada.
+As figuras da rodada oficial (GPU) estão em `outputs/11_graficos/` (`principais/`, `suplementares/`, `delong.csv`, `delong.tex`, `numeros.json`), geradas a partir de `outputs/10_resultados/`. As figuras de rodadas anteriores (`12_figuras_rodada2` e `13_graficos_rodada2`) e o experimento exploratório de FA e SDKA (`12_FA_SDKA`) foram arquivados fora do repositório, em `~/Documentos/TCC/arquivo_outputs_antigos/`, e não valem para esta rodada.
 
 DeLong bilateral do `D_FA` contra os outros cinco modelos principais, com Holm sobre os 5 p de cada dataset (α = 0,05). Nenhuma comparação é significativa depois do Holm:
 
