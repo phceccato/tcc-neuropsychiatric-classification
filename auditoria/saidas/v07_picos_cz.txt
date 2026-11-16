@@ -1,0 +1,64 @@
+        uid grupo       sessao  dur_s canal_cardiaco   bpm  autocorr                                                          picos_cz_hz
+  MDD-HC-S1    HC      HC 2011    300    EEG 24A-24R  74.9      0.86                                                                     
+ MDD-HC-S10    HC      HC 2011    376    EEG 24A-24R  42.9      0.70                                                                50.12
+ MDD-HC-S11    HC      HC 2011    300    EEG 24A-24R  62.7      0.91                                                                     
+ MDD-HC-S17    HC      HC 2011    309    EEG 24A-24R  65.4      0.83                                                                     
+  MDD-HC-S2    HC      HC 2011    302      EEG A2-A1  73.1      0.48                                                                     
+ MDD-HC-S20    HC      HC 2011    307    EEG 23A-23R  62.2      0.86                                                                     
+ MDD-HC-S29    HC      HC 2011    303    EEG 23A-23R  66.8      0.75                                                                     
+  MDD-HC-S3    HC      HC 2011    301    EEG 24A-24R 199.5      0.88                                                                     
+  MDD-HC-S7    HC      HC 2011    356    EEG 23A-23R  66.5      0.65                                                                     
+ MDD-HC-S13    HC  HC jan/2013    300      EEG A2-A1  60.0      0.10                5.00, 10.00, 15.00, 35.12, 40.12, 41.62, 50.25, 55.25
+ MDD-HC-S14    HC  HC jan/2013    302      EEG A2-A1  48.9      0.12                      5.62, 16.88, 38.75, 44.38, 50.12, 55.75, 105.75
+ MDD-HC-S15    HC  HC jan/2013    300      EEG A2-A1  36.4      0.26         5.50, 10.88, 16.38, 33.75, 39.12, 44.62, 50.12, 55.62, 61.00
+ MDD-HC-S19    HC  HC jan/2013    300      EEG A2-A1 210.4      0.19                                     5.38, 39.38, 44.75, 50.12, 55.50
+ MDD-HC-S21    HC  HC jan/2013    301      EEG A2-A1  36.2      0.18 5.50, 10.88, 16.38, 33.75, 39.25, 44.62, 50.12, 55.62, 61.00, 105.62
+ MDD-HC-S22    HC  HC jan/2013    301      EEG A2-A1  64.8      0.25                                                         50.12, 55.38
+ MDD-HC-S23    HC  HC jan/2013    302      EEG A2-A1  59.8      0.23 5.12, 10.38, 15.50, 34.62, 39.75, 45.00, 50.12, 55.38, 60.50, 105.50
+ MDD-HC-S26    HC  HC jan/2013    302      EEG A2-A1 165.2      0.13                             5.50, 39.00, 44.50, 50.12, 55.62, 105.75
+ MDD-HC-S28    HC  HC jan/2013    301      EEG A2-A1  47.7      0.25         5.62, 11.25, 16.75, 33.25, 38.88, 44.50, 50.12, 55.62, 61.25
+  MDD-HC-S4    HC  HC jan/2013    301      EEG A2-A1  28.9      0.17                                     4.38, 41.62, 50.38, 54.62, 59.00
+  MDD-HC-S5    HC  HC jan/2013    303      EEG A2-A1  28.7      0.18                                                  45.38, 50.25, 55.12
+  MDD-HC-S6    HC  HC jan/2013    301    EEG 23A-23R  31.0      0.48                                                                     
+  MDD-HC-S8    HC  HC jan/2013    302      EEG A2-A1  24.3      0.22                       5.25, 10.50, 15.75, 39.62, 44.88, 50.12, 55.38
+  MDD-HC-S9    HC  HC jan/2013    301      EEG A2-A1  22.4      0.28         5.25, 10.38, 15.62, 34.50, 39.75, 45.00, 50.12, 55.38, 60.62
+ MDD-HC-S16    HC abr–jul/2013    292      EEG A2-A1  74.9      0.58                                                                     
+ MDD-HC-S24    HC abr–jul/2013    299      EEG A2-A1 210.4      0.59                                                                50.00
+ MDD-HC-S25    HC abr–jul/2013    301      EEG A2-A1  80.8      0.43                                                         50.00, 55.75
+ MDD-HC-S27    HC abr–jul/2013    300      EEG A2-A1  60.0      0.87                                                                50.12
+ MDD-MDD-S1   MDD abr–jul/2013    303      EEG A2-A1  83.9      0.74                                                                     
+MDD-MDD-S10   MDD abr–jul/2013    301      EEG A2-A1  68.9      0.70                                                                50.00
+MDD-MDD-S11   MDD abr–jul/2013    299      EEG A2-A1  92.0      0.23                                                                     
+MDD-MDD-S13   MDD abr–jul/2013    300      EEG A2-A1 210.4      0.16                                                         50.12, 55.62
+MDD-MDD-S14   MDD abr–jul/2013    300      EEG A2-A1  54.7      0.38                                                         50.00, 55.75
+MDD-MDD-S15   MDD abr–jul/2013    300      EEG A2-A1  40.2      0.23                                                                50.00
+MDD-MDD-S17   MDD abr–jul/2013    297      EEG A2-A1  72.8      0.44                                                                     
+MDD-MDD-S18   MDD abr–jul/2013    300      EEG A2-A1  21.0      0.16                                                         10.50, 50.00
+MDD-MDD-S19   MDD abr–jul/2013    299      EEG A2-A1  23.8      0.09                                                                50.12
+ MDD-MDD-S2   MDD abr–jul/2013    297      EEG A2-A1  60.2      0.29                                                                     
+MDD-MDD-S20   MDD abr–jul/2013    299      EEG A2-A1  82.1      0.14                                                                     
+MDD-MDD-S21   MDD abr–jul/2013    300      EEG A2-A1 210.4      0.17                                                                50.00
+MDD-MDD-S22   MDD abr–jul/2013    297      EEG A2-A1  33.5      0.13                                                                50.12
+MDD-MDD-S23   MDD abr–jul/2013    303      EEG A2-A1 108.2      0.77                                                                50.00
+MDD-MDD-S24   MDD abr–jul/2013    301      EEG A2-A1  46.4      0.61                                                                49.88
+MDD-MDD-S25   MDD abr–jul/2013    300      EEG A2-A1 135.9      0.30                                                                50.12
+MDD-MDD-S26   MDD abr–jul/2013    300      EEG A2-A1 103.8      0.47                                                                     
+MDD-MDD-S27   MDD abr–jul/2013    301      EEG A2-A1  70.8      0.67                                                  38.00, 50.00, 56.00
+MDD-MDD-S28   MDD abr–jul/2013    301      EEG A2-A1 210.4      0.15                                                                50.00
+MDD-MDD-S29   MDD abr–jul/2013    300      EEG A2-A1  75.7      0.41                                                                50.12
+ MDD-MDD-S3   MDD abr–jul/2013    180      EEG A2-A1  74.2      0.16                                                                50.00
+MDD-MDD-S30   MDD abr–jul/2013    241      EEG A2-A1 105.9      0.51                                                                50.00
+MDD-MDD-S31   MDD abr–jul/2013    302      EEG A2-A1  70.1      0.71                                                                     
+MDD-MDD-S32   MDD abr–jul/2013    299      EEG A2-A1  66.8      0.39                                                                50.12
+MDD-MDD-S33   MDD abr–jul/2013    298      EEG A2-A1  33.1      0.05                                                                     
+ MDD-MDD-S5   MDD abr–jul/2013    302    EEG 24A-24R 168.8      0.32                                                         50.00, 56.00
+ MDD-MDD-S6   MDD abr–jul/2013    302      EEG A2-A1  79.2      0.47                                                                50.12
+ MDD-MDD-S7   MDD abr–jul/2013    300      EEG A2-A1  95.4      0.91                                                                50.00
+ MDD-MDD-S9   MDD abr–jul/2013    300      EEG A2-A1 207.6      0.14                                                                50.00
+
+Mediana de bpm (só autocorr ≥ 0,3) por sessão:
+              count   min    50%    max
+sessao                                 
+HC 2011         9.0  42.9  66.50  199.5
+HC jan/2013     1.0  31.0  31.00   31.0
+abr–jul/2013   20.0  46.4  77.45  210.4

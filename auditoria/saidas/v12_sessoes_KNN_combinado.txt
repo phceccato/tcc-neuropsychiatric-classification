@@ -1,0 +1,22 @@
+
+== KNN_combinado SZ: 5 folds, épocas escolhidas [{'n_neighbors': 31}, {'n_neighbors': 101}, {'n_neighbors': 31}, {'n_neighbors': 11}, {'n_neighbors': 11}]; AUC repetição 0 = 0.709 [0.495; 0.893]
+              count  median    min    max
+sessao                                   
+HC 2003          14   0.313  0.006  0.756
+SZ 2003           3   0.287  0.116  0.586
+SZ 2004–2008     11   0.595  0.379  0.838
+   AUC SZ 2003 × HC: 0.524
+   AUC SZ 2004–2008 × HC: 0.760
+
+== KNN_combinado MDD: 5 folds, épocas escolhidas [{'n_neighbors': 101}, {'n_neighbors': 101}, {'n_neighbors': 101}, {'n_neighbors': 101}, {'n_neighbors': 101}]; AUC repetição 0 = 0.914 [0.830; 0.977]
+                    count  median    min    max
+sessao                                         
+HC 2011                 9   0.244  0.073  0.619
+HC abr–jul/2013         4   0.334  0.074  0.813
+HC jan/2013            14   0.000  0.000  0.480
+MDD (abr–jul/2013)     29   0.751  0.007  0.999
+   AUC HC 2011 × pacientes: 0.875
+   AUC HC jan/2013 × pacientes: 0.975
+   AUC HC abr–jul/2013 × pacientes: 0.784
+   AUC sem o lote jan/2013 (treinado com ele): 0.847
+   Spearman(prob, fração de potência no pico estreito) entre os HC: -0.87 (n = 27)

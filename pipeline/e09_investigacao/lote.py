@@ -122,8 +122,8 @@ def main() -> None:
         print(f"{len(tarefas)} treinos pendentes ({args.dispositivo})", flush=True)
         with ProcessPoolExecutor(args.processos, initializer=_iniciar,
                                  mp_context=contexto_processos(args.dispositivo)) as executor:
-            futuros = [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados), None,
-                                       args.dispositivo) for r, f in tarefas]
+            futuros = [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados),
+                                       dispositivo=args.dispositivo) for r, f in tarefas]
             for i, futuro in enumerate(as_completed(futuros), 1):
                 print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 

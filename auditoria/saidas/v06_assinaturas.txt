@@ -1,0 +1,31 @@
+Lote MDD jan/2013 (14 HC): pico, largura e fração da potência de 2–30 Hz no pico
+       uid  pico_hz  largura_hz  frac_pico  pico_5hz_db
+MDD-HC-S13     5.00        0.50  19.311001     5.907000
+MDD-HC-S14     5.75        0.75  15.985000    13.033000
+MDD-HC-S15     5.50        0.50  23.139999    20.608000
+MDD-HC-S19     5.25        0.75  30.747999    20.173000
+MDD-HC-S21     5.50        0.50  17.375999    14.433000
+MDD-HC-S22     5.25        0.75   4.543000     4.972000
+MDD-HC-S23     5.00        0.75  27.473000    21.198999
+MDD-HC-S26     5.50        0.50  26.747000    16.632999
+MDD-HC-S28     5.50        0.75  25.945000    18.823000
+ MDD-HC-S4     4.25        0.75  22.525000   -15.772000
+ MDD-HC-S5     5.00        0.75   8.237000     7.018000
+ MDD-HC-S6     5.75        0.75  16.070000     3.288000
+ MDD-HC-S8     5.25        0.50  25.214001    16.948000
+ MDD-HC-S9     5.25        0.50  21.356001    19.855000
+
+AUC de cada assinatura sozinha (paciente = 1; < 0,5 = aponta para HC; reportamos max(AUC, 1−AUC)):
+        conjunto  n_hc  n_pac pico_5hz_db hp_in_db lp_in_db log_pot_total largura_hz frac_pico
+              SZ    14     14      0.607−   0.520−   0.612+        0.577+     0.510+    0.526−
+             MDD    27     29      0.658−   0.525−   0.577−        0.747−     0.787+    0.819−
+MDD sem jan/2013    13     29      0.631+   0.531−   0.501+        0.607−     0.590+    0.690−
+
+Medianas por classe:
+                        pico_5hz_db  hp_in_db  lp_in_db  log_pot_total  largura_hz  frac_pico
+dataset y lote_jan2013                                                                       
+MDD     0 False               -0.42     -1.73     -6.00           0.04        1.50   7.070000
+          True                15.53     -1.89     -5.43           0.41        0.75  21.940001
+        1 False               -0.02     -2.03     -6.17          -0.14        2.00   4.970000
+SZ      0 False               -0.37     -1.19     -6.13          -0.15        1.75   5.960000
+        1 False               -0.44     -1.09     -5.56           0.09        1.88   6.480000

@@ -1,0 +1,22 @@
+
+== LR_combinado SZ: 5 folds, épocas escolhidas [{'C': 0.01}, {'C': 0.01}, {'C': 0.1}, {'C': 0.1}, {'C': 1.0}]; AUC repetição 0 = 0.770 [0.582; 0.934]
+              count  median    min    max
+sessao                                   
+HC 2003          14   0.203  0.001  0.991
+SZ 2003           3   0.227  0.112  0.519
+SZ 2004–2008     11   0.893  0.454  0.998
+   AUC SZ 2003 × HC: 0.524
+   AUC SZ 2004–2008 × HC: 0.838
+
+== LR_combinado MDD: 5 folds, épocas escolhidas [{'C': 0.01}, {'C': 1.0}, {'C': 0.01}, {'C': 1.0}, {'C': 0.01}]; AUC repetição 0 = 0.935 [0.863; 0.985]
+                    count  median    min    max
+sessao                                         
+HC 2011                 9   0.127  0.011  0.819
+HC abr–jul/2013         4   0.418  0.071  0.830
+HC jan/2013            14   0.004  0.000  0.779
+MDD (abr–jul/2013)     29   0.959  0.009  1.000
+   AUC HC 2011 × pacientes: 0.923
+   AUC HC jan/2013 × pacientes: 0.961
+   AUC HC abr–jul/2013 × pacientes: 0.871
+   AUC sem o lote jan/2013 (treinado com ele): 0.907
+   Spearman(prob, fração de potência no pico estreito) entre os HC: -0.69 (n = 27)

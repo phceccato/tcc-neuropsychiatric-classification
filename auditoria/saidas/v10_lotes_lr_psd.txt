@@ -1,0 +1,22 @@
+
+===== LR_psd absolutas
+SZ todas as pessoas: 0.724 [0.520; 0.903] (HC 14, pac 14)
+SZ pacientes de 2003 × HC: 0.548 [0.214; 0.857] (HC 14, pac 3)
+SZ pacientes de 2004–2008 × HC: 0.773 [0.565; 0.935] (HC 14, pac 11)
+MDD todas as pessoas: 0.868 [0.761; 0.959] (HC 27, pac 29)
+MDD avaliado sem o lote jan/2013 (treinado com ele): 0.809 [0.650; 0.936] (HC 13, pac 29)
+MDD só HC jan/2013 × pacientes: 0.924 [0.828; 0.993] (HC 14, pac 29)
+MDD só HC 2011 × pacientes: 0.793 [0.605; 0.943] (HC 9, pac 29)
+MDD só sessão abr–jul/2013 (4 HC × 29 pac): 0.845 [0.672; 0.966] (HC 4, pac 29)
+MDD RETREINADO sem o lote jan/2013 (partições novas): 0.870 [0.716; 0.992] (HC 13, pac 29)
+
+===== LR_psd relativas
+SZ todas as pessoas: 0.668 [0.459; 0.857] (HC 14, pac 14)
+SZ pacientes de 2003 × HC: 0.405 [0.071; 0.762] (HC 14, pac 3)
+SZ pacientes de 2004–2008 × HC: 0.740 [0.513; 0.935] (HC 14, pac 11)
+MDD todas as pessoas: 0.879 [0.774; 0.962] (HC 27, pac 29)
+MDD avaliado sem o lote jan/2013 (treinado com ele): 0.825 [0.682; 0.939] (HC 13, pac 29)
+MDD só HC jan/2013 × pacientes: 0.929 [0.835; 0.995] (HC 14, pac 29)
+MDD só HC 2011 × pacientes: 0.831 [0.682; 0.946] (HC 9, pac 29)
+MDD só sessão abr–jul/2013 (4 HC × 29 pac): 0.810 [0.543; 0.991] (HC 4, pac 29)
+MDD RETREINADO sem o lote jan/2013 (partições novas): 0.881 [0.721; 0.995] (HC 13, pac 29)

@@ -1,0 +1,17 @@
+x_t (64, 19, 5, 500) torch.float32 | x_e (64, 19, 29, 16) torch.float32
+finitos: True True | x_t base: média -0.000 desvio 0.988 | x_e: min -4.74 max 6.30
+rótulo por janela coerente com a pessoa: True
+centroide espectral (Hz) por representação [base, δ, θ, α, β]: [ 9.4  3.   5.6 10.2 19. ]
+STFT independente: quadros 16 | erro máx log10 vs x_e (sem efeito de borda do resample): 0.0
+formas: {'conv_t[0]': (64, 64, 1, 250), 'fa': (64, 64, 1, 250), 'conv_t[1]': (64, 64, 1, 16), 'gru_t': (64, 16, 128), 'conv_e': (64, 64, 1, 16), 'gru_e': (64, 16, 128), 'embedding': (64, 32, 128), 'saida': (64, 1)} | logit (64,)
+perda 0.9549 | |grad| FA (fc1, fc2): [0.0552  0.02907] | |grad| conv_t[0]: 10.7 | conv_e: 10.9
+pesos da FA (sigmoid) no lote: média 0.495, desvio entre janelas por filtro (mediana) 0.0174, faixa [0.306, 0.701]
+eval determinístico: True
+  D_FA: 704.769
+  D_pequeno: 80.449
+  D: 702.721
+  D_sem_mixup: 80.449
+  D_sem_T: 48.881
+  D_sem_E: 47.825
+D_FA começa igual ao D nas chaves comuns: True
+campo receptivo de 1 posição do mapa: 61 amostras = 0.488 s a 125 Hz; cada token temporal resume ~15.6 posições (~0.74 s de sinal com o campo)

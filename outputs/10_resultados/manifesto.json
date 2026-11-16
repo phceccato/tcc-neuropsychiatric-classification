@@ -1,0 +1,304 @@
+{
+  "semente": 20261108,
+  "commit": "7e6918737b5edbf18ca804f865880c66cef60c21",
+  "limiar_y_pred": 0.5,
+  "modelos": {
+    "SZ/D_FA": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        704769
+      ],
+      "linhas": 280
+    },
+    "SZ/D_pequeno": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        80449
+      ],
+      "linhas": 280
+    },
+    "SZ/D": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        702721
+      ],
+      "linhas": 280
+    },
+    "SZ/D_sem_mixup": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        80449
+      ],
+      "linhas": 280
+    },
+    "SZ/D_sem_T": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        48881
+      ],
+      "linhas": 280
+    },
+    "SZ/D_sem_E": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        47825
+      ],
+      "linhas": 280
+    },
+    "SZ/LR_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/RF_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/KNN_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/LR_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/RF_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/KNN_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/LR_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/RF_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/KNN_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/LR_psd_absolutas": {
+      "etapa": "06",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "SZ/LR_psd_relativas": {
+      "etapa": "06",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 280
+    },
+    "MDD/D_FA": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        704769
+      ],
+      "linhas": 560
+    },
+    "MDD/D_pequeno": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        80449
+      ],
+      "linhas": 560
+    },
+    "MDD/D": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        702721
+      ],
+      "linhas": 560
+    },
+    "MDD/D_sem_mixup": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        80449
+      ],
+      "linhas": 560
+    },
+    "MDD/D_sem_T": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        48881
+      ],
+      "linhas": 560
+    },
+    "MDD/D_sem_E": {
+      "etapa": "07",
+      "dispositivo": [
+        "cuda"
+      ],
+      "parametros": [
+        47825
+      ],
+      "linhas": 560
+    },
+    "MDD/LR_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/RF_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/KNN_temporal": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/LR_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/RF_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/KNN_espectral": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/LR_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/RF_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/KNN_combinado": {
+      "etapa": "08",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/LR_psd_absolutas": {
+      "etapa": "06",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    },
+    "MDD/LR_psd_relativas": {
+      "etapa": "06",
+      "dispositivo": [
+        "cpu"
+      ],
+      "parametros": [],
+      "linhas": 560
+    }
+  },
+  "incompletos": []
+}

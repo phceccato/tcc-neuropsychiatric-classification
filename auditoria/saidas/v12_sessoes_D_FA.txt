@@ -1,0 +1,22 @@
+
+== D_FA SZ: 5 folds, épocas escolhidas [6, 12, 16, 4, 13]; AUC repetição 0 = 0.801 [0.622; 0.944]
+              count  median    min    max
+sessao                                   
+HC 2003          14   0.268  0.033  0.870
+SZ 2003           3   0.281  0.154  0.693
+SZ 2004–2008     11   0.812  0.307  0.946
+   AUC SZ 2003 × HC: 0.548
+   AUC SZ 2004–2008 × HC: 0.870
+
+== D_FA MDD: 5 folds, épocas escolhidas [1, 2, 12, 9, 10]; AUC repetição 0 = 0.935 [0.856; 0.989]
+                    count  median    min    max
+sessao                                         
+HC 2011                 9   0.236  0.037  0.656
+HC abr–jul/2013         4   0.272  0.050  0.742
+HC jan/2013            14   0.068  0.021  0.572
+MDD (abr–jul/2013)     29   0.781  0.028  0.974
+   AUC HC 2011 × pacientes: 0.939
+   AUC HC jan/2013 × pacientes: 0.953
+   AUC HC abr–jul/2013 × pacientes: 0.862
+   AUC sem o lote jan/2013 (treinado com ele): 0.915
+   Spearman(prob, fração de potência no pico estreito) entre os HC: -0.75 (n = 27)

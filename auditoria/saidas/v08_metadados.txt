@@ -1,0 +1,31 @@
+dataset                                                       metadados         modelo   auc             ic
+     SZ                                                         só data             LR 0.929 [0.786; 1.000]
+     SZ                                                         só data árvore prof. 2 0.964 [0.893; 1.000]
+     SZ        cabeçalho sem data (nº de sinais, faixa física, duração)             LR 0.638 [0.403; 0.867]
+     SZ        cabeçalho sem data (nº de sinais, faixa física, duração) árvore prof. 2 0.709 [0.485; 0.929]
+     SZ técnico fora de 2–30 Hz (passa-alta, passa-baixa, >45 Hz, rede)             LR 0.571 [0.337; 0.811]
+     SZ técnico fora de 2–30 Hz (passa-alta, passa-baixa, >45 Hz, rede) árvore prof. 2 0.592 [0.362; 0.816]
+     SZ                                    cabeçalho sem data + técnico             LR 0.628 [0.372; 0.857]
+     SZ                                    cabeçalho sem data + técnico árvore prof. 2 0.699 [0.472; 0.929]
+    MDD                                                         só data             LR 0.918 [0.817; 0.995]
+    MDD                                                         só data árvore prof. 2 0.852 [0.704; 0.963]
+    MDD        cabeçalho sem data (nº de sinais, faixa física, duração)             LR 0.808 [0.660; 0.937]
+    MDD        cabeçalho sem data (nº de sinais, faixa física, duração) árvore prof. 2 0.797 [0.639; 0.937]
+    MDD técnico fora de 2–30 Hz (passa-alta, passa-baixa, >45 Hz, rede)             LR 0.872 [0.761; 0.963]
+    MDD técnico fora de 2–30 Hz (passa-alta, passa-baixa, >45 Hz, rede) árvore prof. 2 0.886 [0.777; 0.973]
+    MDD                                    cabeçalho sem data + técnico             LR 0.856 [0.733; 0.966]
+    MDD                                    cabeçalho sem data + técnico árvore prof. 2 0.883 [0.775; 0.964]
+
+Tabela cruzada SZ: faixa física × classe
+grupo       HC  SZ
+fisico_max        
+4654.0       1   0
+4920.0       0   1
+5010.0      13   5
+5862.0       0   8
+
+Tabela cruzada MDD: nº de sinais no EDF × classe
+grupo     HC  MDD
+n_sinais         
+21.0       5   28
+23.0      22    1

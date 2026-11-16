@@ -1,0 +1,40 @@
+IDs únicos no manifesto: True | n por dataset: {'MDD': 56, 'SZ': 28}
+IDs compartilhados entre datasets: set()
+arquivo de origem repetido entre pessoas: False
+folds com problema: 0 de 100
+teste por (rep, pessoa): min 1 max 1 | pessoas×rep esperadas 840 = 840
+grupo coerente folds=manifesto=janelas: True
+grupo = rótulo do nome do arquivo: True
+média de pessoas por fold (papel × classe):
+dataset  papel      grupo
+MDD      teste      HC        5.4
+                    MDD       5.8
+         treino     HC       17.6
+                    MDD      18.2
+         validacao  HC        4.0
+                    MDD       5.0
+SZ       teste      HC        2.8
+                    SZ        2.8
+         treino     HC        9.0
+                    SZ        9.0
+         validacao  HC        2.2
+                    SZ        2.2
+janelas que ultrapassam a gravação: 0
+sem_overlap ⇔ início múltiplo de 1000: True
+passo de 500 amostras em todas as pessoas: True
+
+pessoas, gravações e janelas por dataset × classe:
+               pessoas  gravacoes  janelas_50  aceitas_50  aceitas_sem_overlap
+dataset grupo                                                                 
+MDD     HC          27         27        4098        4068                 2044
+        MDD         29         29        4225        4023                 2018
+SZ      HC          14         14        6479        6302                 3158
+        SZ          14         14        7879        7479                 3739
+
+janelas de avaliação por pessoa (min/mediana/max):
+               min  median  max
+dataset grupo                  
+MDD     HC      70    75.0   94
+        MDD     43    74.0   75
+SZ      HC     212   223.0  259
+        SZ     152   243.0  536

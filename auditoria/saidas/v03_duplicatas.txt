@@ -1,0 +1,23 @@
+pares (sonda, alvo) comparados: 11508
+NCC máximo por dataset (quantis):
+          count      mean       std       min       50%       99%     99.9%       max
+dataset                                                                              
+MDD      9240.0  0.103882  0.054443  0.029929  0.093387  0.327919  0.688216  0.778434
+SZ       2268.0  0.157734  0.057586  0.069064  0.143402  0.336272  0.429169  0.605944
+
+10 maiores NCC:
+dataset      sonda   pos_s       alvo  ncc_max  desloc_s
+    MDD MDD-HC-S23 151.000 MDD-HC-S19 0.778434   215.000
+    MDD MDD-HC-S23 251.800 MDD-HC-S19 0.754863   221.896
+    MDD MDD-HC-S26  30.200 MDD-HC-S15 0.735656   149.832
+    MDD MDD-HC-S15 150.000 MDD-HC-S26 0.734721   259.256
+    MDD  MDD-HC-S8 151.000 MDD-HC-S19 0.733977   148.560
+    MDD MDD-HC-S19 250.000 MDD-HC-S23 0.721577   109.632
+    MDD MDD-HC-S26 151.000 MDD-HC-S15 0.705743   168.608
+    MDD MDD-HC-S13 250.000  MDD-HC-S4 0.701885   206.704
+    MDD  MDD-HC-S4 250.904 MDD-HC-S13 0.700926   269.744
+    MDD  MDD-HC-S4  30.096 MDD-HC-S13 0.688677   274.024
+
+pares com NCC > 0,5: 58
+  dos quais com sonda e alvo no lote MDD jan/2013: 46 | na SZ: 1
+  NCC máximo entre pares que não são ambos do lote jan/2013: 0.654

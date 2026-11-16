@@ -1,0 +1,21 @@
+20 tarefas pendentes
+[1/20] SZ LR_combinado r0 f2: {'C': 0.1}, 9 s
+[2/20] SZ LR_combinado r0 f1: {'C': 0.01}, 9 s
+[3/20] SZ LR_combinado r0 f3: {'C': 0.1}, 10 s
+[4/20] SZ LR_combinado r0 f4: {'C': 1.0}, 10 s
+[5/20] SZ LR_combinado r0 f0: {'C': 0.01}, 12 s
+[6/20] MDD LR_combinado r0 f0: {'C': 0.01}, 15 s
+[7/20] MDD LR_combinado r0 f1: {'C': 1.0}, 17 s
+[8/20] MDD LR_combinado r0 f3: {'C': 1.0}, 17 s
+[9/20] SZ KNN_combinado r0 f1: {'n_neighbors': 101}, 8 s
+[10/20] SZ KNN_combinado r0 f2: {'n_neighbors': 31}, 8 s
+[11/20] MDD LR_combinado r0 f4: {'C': 0.01}, 18 s
+[12/20] MDD LR_combinado r0 f2: {'C': 0.01}, 18 s
+[13/20] SZ KNN_combinado r0 f4: {'n_neighbors': 11}, 8 s
+[14/20] SZ KNN_combinado r0 f0: {'n_neighbors': 31}, 11 s
+[15/20] SZ KNN_combinado r0 f3: {'n_neighbors': 11}, 12 s
+[16/20] MDD KNN_combinado r0 f0: {'n_neighbors': 101}, 9 s
+[17/20] MDD KNN_combinado r0 f2: {'n_neighbors': 101}, 7 s
+[18/20] MDD KNN_combinado r0 f3: {'n_neighbors': 101}, 7 s
+[19/20] MDD KNN_combinado r0 f4: {'n_neighbors': 101}, 7 s
+[20/20] MDD KNN_combinado r0 f1: {'n_neighbors': 101}, 8 s

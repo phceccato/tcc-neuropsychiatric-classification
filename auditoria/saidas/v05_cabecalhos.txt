@@ -1,0 +1,126 @@
+
+==== SZ
+-- ns:
+grupo    HC   SZ                         
+sessao 2003 2003 2004 2005 2006 2007 2008
+ns                                       
+19       14    3    2    1    6    1    1
+-- reserved:
+grupo      HC   SZ                         
+sessao   2003 2003 2004 2005 2006 2007 2008
+reserved                                   
+           14    3    2    1    6    1    1
+-- dur_registro:
+grupo          HC   SZ                         
+sessao       2003 2003 2004 2005 2006 2007 2008
+dur_registro                                   
+1               1    1    1    0    1    0    1
+5              12    2    1    1    5    1    0
+6.000           1    0    0    0    0    0    0
+-- rotulos:
+grupo         HC   SZ                         
+sessao      2003 2003 2004 2005 2006 2007 2008
+rotulos                                       
+Fp1|Fp2|F3…    1    0    0    0    0    0    0
+Fp2|F8|T4…    13    3    2    1    6    1    1
+-- extras:
+grupo    HC   SZ                         
+sessao 2003 2003 2004 2005 2006 2007 2008
+extras                                   
+         14    3    2    1    6    1    1
+-- unidade:
+grupo     HC   SZ                         
+sessao  2003 2003 2004 2005 2006 2007 2008
+unidade                                   
+uV        14    3    2    1    6    1    1
+-- fisico:
+grupo               HC   SZ                         
+sessao            2003 2003 2004 2005 2006 2007 2008
+fisico                                              
+-4654.4/4654.403     1    0    0    0    0    0    0
+-4919.97/4919.97     0    0    0    1    0    0    0
+-5010.24/5010.245   12    3    2    0    0    0    0
+-5010.39/5010.245    1    0    0    0    0    0    0
+-5861.72/5861.717    0    0    0    0    6    1    1
+-- digital:
+grupo          HC   SZ                         
+sessao       2003 2003 2004 2005 2006 2007 2008
+digital                                        
+-32767/32767   13    3    2    1    6    1    1
+-32768/32767    1    0    0    0    0    0    0
+-- prefiltro:
+grupo       HC   SZ                         
+sessao    2003 2003 2004 2005 2006 2007 2008
+prefiltro                                   
+            14    3    2    1    6    1    1
+-- transdutor:
+grupo        HC   SZ                         
+sessao     2003 2003 2004 2005 2006 2007 2008
+transdutor                                   
+             14    3    2    1    6    1    1
+-- amostras_reg:
+grupo          HC   SZ                         
+sessao       2003 2003 2004 2005 2006 2007 2008
+amostras_reg                                   
+1250           12    2    1    1    5    1    0
+1500            1    0    0    0    0    0    0
+250             1    1    1    0    1    0    1
+
+==== MDD
+-- ns:
+grupo    HC       MDD
+sessao 2011 2013 2013
+ns                   
+21        1    4   28
+23        8   14    1
+-- reserved:
+grupo      HC       MDD
+sessao   2011 2013 2013
+reserved               
+EDF+C       9   18   29
+-- dur_registro:
+grupo          HC       MDD
+sessao       2011 2013 2013
+dur_registro               
+1               9   18   29
+-- rotulos:
+grupo                             HC       MDD
+sessao                          2011 2013 2013
+rotulos                                       
+EEG Fp1-LE|EEG F3-LE|EEG C3-LE…    9   18   29
+-- extras:
+grupo                                               HC       MDD
+sessao                                            2011 2013 2013
+extras                                                          
+EEG A2-A1|EDF Annotations                            1    4   28
+EEG A2-A1|EEG 23A-23R|EEG 24A-24R|EDF Annotations    8   14    1
+-- unidade:
+grupo     HC       MDD
+sessao  2011 2013 2013
+unidade               
+uV         9   18   29
+-- fisico:
+grupo        HC       MDD
+sessao     2011 2013 2013
+fisico                   
+-3277/3277    9   18   29
+-- digital:
+grupo          HC       MDD
+sessao       2011 2013 2013
+digital                    
+-32768/32767    9   18   29
+-- prefiltro:
+grupo              HC       MDD
+sessao           2011 2013 2013
+prefiltro                      
+HP:0.5Hz LP:80Hz    9   18   29
+-- transdutor:
+grupo        HC       MDD
+sessao     2011 2013 2013
+transdutor               
+              9   18   29
+-- amostras_reg:
+grupo          HC       MDD
+sessao       2011 2013 2013
+amostras_reg               
+256             9   18   29

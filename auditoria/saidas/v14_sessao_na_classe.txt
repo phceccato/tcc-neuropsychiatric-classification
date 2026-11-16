@@ -1,0 +1,6 @@
+MDD, só HC: jan/2013 × outras sessões [absolutas]: AUC 0.973 [0.901; 1.000] (n = 14 × 13)
+MDD, só HC: jan/2013 × outras sessões [relativas]: AUC 0.989 [0.951; 1.000] (n = 14 × 13)
+MDD, só HC fora de jan/2013: 2011 × abr–jul/2013 [absolutas]: AUC 0.778 [0.472; 1.000] (n = 9 × 4)
+MDD, só HC fora de jan/2013: 2011 × abr–jul/2013 [relativas]: AUC 0.583 [0.194; 1.000] (n = 9 × 4)
+SZ, só pacientes: 2006–2008 (faixa física ±5862) × 2003–2005 [absolutas]: AUC 0.479 [0.146; 0.812] (n = 8 × 6)
+SZ, só pacientes: 2006–2008 (faixa física ±5862) × 2003–2005 [relativas]: AUC 0.688 [0.333; 0.958] (n = 8 × 6)
