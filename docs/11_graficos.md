@@ -100,6 +100,23 @@ Copie os `.tex` para a pasta do projeto e use `\input{fig_roc}` e `\input{fig_se
 
 ## Resultados
 
-Pendentes da rodada oficial: as figuras são geradas a partir de `outputs/10_resultados/` depois que a etapa 10 exportar os resultados, e `outputs/11_graficos/` ainda não existe. As figuras de rodadas anteriores (`12_figuras_rodada2` e `13_graficos_rodada2`) e o experimento exploratório de FA e SDKA (`12_FA_SDKA`) foram arquivados fora do repositório, em `~/Documentos/TCC/arquivo_outputs_antigos/`, e não valem para esta rodada.
+As figuras da rodada oficial (GPU) estão em `outputs/11_graficos/` (`principais/`, `suplementares/`, `pgfplots/`, `delong.csv`, `delong.tex`, `numeros.json`), geradas a partir de `outputs/10_resultados/`. As figuras de rodadas anteriores (`12_figuras_rodada2` e `13_graficos_rodada2`) e o experimento exploratório de FA e SDKA (`12_FA_SDKA`) foram arquivados fora do repositório, em `~/Documentos/TCC/arquivo_outputs_antigos/`, e não valem para esta rodada.
 
-As figuras `p5_loss_d_fa` e `s10_roc_todos_*` foram implementadas e testadas com dados sintéticos; falta vê-las com os resultados reais.
+DeLong bilateral do `D_FA` contra os outros cinco modelos principais, com Holm sobre os 5 p de cada dataset (α = 0,05). Nenhuma comparação é significativa depois do Holm:
+
+| Dataset | Comparação | ΔAUC | p | p Holm |
+| --- | --- | --- | --- | --- |
+| SZ | D_FA − D | +0,015 | 0,26 | 0,61 |
+| SZ | D_FA − D_pequeno | +0,026 | 0,26 | 0,61 |
+| SZ | D_FA − LR combinado | +0,041 | 0,20 | 0,61 |
+| SZ | D_FA − RF combinado | +0,158 | 0,057 | 0,29 |
+| SZ | D_FA − KNN combinado | +0,143 | 0,10 | 0,40 |
+| MDD | D_FA − D | +0,003 | 0,73 | 0,83 |
+| MDD | D_FA − D_pequeno | +0,006 | 0,41 | 0,83 |
+| MDD | D_FA − LR combinado | +0,026 | 0,040 | 0,16 |
+| MDD | D_FA − RF combinado | +0,061 | 0,025 | 0,12 |
+| MDD | D_FA − KNN combinado | +0,052 | 0,049 | 0,16 |
+
+Em MDD, três p brutos ficam abaixo de 0,05, mas nenhum resiste ao Holm. As ressalvas do teste (dependência entre folds, escores médios otimistas, poucas pessoas) estão em [avaliacao.md](avaliacao.md).
+
+`p5_loss_d_fa`: a perda de validação do `D_FA` cai e se estabiliza perto da época escolhida (mediana ~12 em SZ e ~7 em MDD); os 50 folds de cada transtorno são ruidosos, como esperado com tão poucas pessoas.

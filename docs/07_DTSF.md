@@ -122,21 +122,23 @@ A Tabela 1 do artigo é ambígua nos filtros ("Conv2d(64, …)" na coluna de par
 
 ## Resultados
 
-Pendentes da rodada oficial, com a semente 20261108, que será feita numa GPU. Estado em 14/11/2026, nesta máquina (CPU):
+Rodada oficial feita em GPU (`cuda`), semente 20261108, commit `7e69187` (manifesto da etapa 10): 6 modelos × 2 datasets × 50 treinos, todos completos. O resumo completo é [outputs/10_resultados/resumos/07_DTSF.md](../outputs/10_resultados/resumos/07_DTSF.md). AUC por pessoa [IC 95%] (média da probabilidade fora do fold nas 10 repetições):
 
-| Modelo | Treinos reais (de 100: 50 por transtorno) |
-| --- | --- |
-| `D_FA` (principal) | 0 |
-| `D` | 0 |
-| `D_pequeno`, `D_sem_mixup`, `D_sem_T`, `D_sem_E` | 100 cada (CPU, rodada de 9/11, sem a configuração no `.json`) |
+| Modelo | SZ | MDD |
+| --- | --- | --- |
+| `D_FA` (principal) | 0,852 [0,684, 0,969] | 0,964 [0,911, 0,996] |
+| `D` | 0,837 [0,658, 0,969] | 0,962 [0,909, 0,996] |
+| `D_pequeno` | 0,827 [0,643, 0,964] | 0,958 [0,902, 0,996] |
+| `D_sem_mixup` | 0,791 [0,592, 0,949] | 0,950 [0,885, 0,995] |
+| `D_sem_T` | 0,847 [0,684, 0,969] | 0,958 [0,908, 0,992] |
+| `D_sem_E` | 0,776 [0,566, 0,939] | 0,941 [0,858, 0,994] |
 
-O `D_FA` e o `D` somam 200 treinos reais. As permutações de rótulo foram retiradas do trabalho: as 22 que existiam em disco (interrompidas) não são mais usadas.
-
-- `outputs/07_DTSF/resultados/resumo_dtsf.md` não existe, e as comparações ainda não foram calculadas.
-- Para a rodada oficial, use uma cópia do repositório com `outputs/` vazio e o mesmo `--dispositivo` em todos os modelos: o runner recusa misturar CPU e GPU numa pasta, e os `.json` antigos contam como CPU. Faça o commit do código antes de rodar, porque o manifesto da etapa 10 grava o commit.
-- Os checkpoints do `D_FA` são gravados durante o `rodar` (nada a fazer à parte); a pasta `checkpoints/` fica fora do git, então copie-a da máquina da GPU junto com `outputs/10_resultados`. A etapa 10 exporta o histórico de perdas do `D_FA` (`perdas/<dataset>/D_FA.csv`).
-- Ordem: `rodar` (treinos), `avaliar`, etapa 08 e etapa 10.
-- Os hiperparâmetros ficam em constantes do código (`ConfigTreino` em `treino.py`, `MODELOS` em `redes_dtsf.py`) e, a cada tarefa, no `.json`; não há arquivo de configuração separado.
+- **Ordem:** o `D_FA` tem a maior AUC nos dois datasets, mas as diferenças para `D` e `D_pequeno` são pequenas (SZ: D_FA − D = +0,015 [+0,000, +0,051], com o `D_FA` melhor em 3 das 10 repetições; MDD: +0,003 [−0,013, +0,019]). Com 14+14 e 29+27 pessoas, não há evidência de que a FA ou o tamanho melhorem o resultado.
+- **Ablações do `D_pequeno`:** todos os ΔAUC têm IC que inclui zero. Em SZ, tirar a entrada espectral (`D_sem_E`, −0,051) e o Mixup (−0,036) são as maiores quedas, e tirar o ramo temporal (`D_sem_T`) não piora (+0,020 a favor da ablação).
+- **DeLong com Holm** (etapa 11, [11_graficos.md](11_graficos.md)): nenhuma das 10 comparações do `D_FA` é significativa depois do Holm.
+- **Épocas:** mediana de 12 (SZ) e 7 (MDD) para o `D_FA`; a perda de validação cai e se estabiliza perto delas (`p5_loss_d_fa`).
+- Os checkpoints do `D_FA` ficam em `outputs/07_DTSF/checkpoints/` (fora do git).
+- Ordem usada: `rodar`, `avaliar`, etapa 08, etapa 10, etapa 11. Os hiperparâmetros ficam em constantes do código (`ConfigTreino` em `treino.py`, `MODELOS` em `redes_dtsf.py`) e, a cada tarefa, no `.json`.
 
 ## Análise anterior
 

@@ -44,4 +44,4 @@ Com treino, do zero: os dados são públicos e a etapa 00 baixa e confere cada a
 
 ## Execução
 
-A exportação ainda **não foi feita**: `outputs/10_resultados/` não existe. Ela depende da rodada oficial (GPU) e das etapas anteriores, nesta ordem: `e07_DTSF.rodar`, `e07_DTSF.avaliar`, `e08_classicos.rodar` e `avaliar`. O `exportar` para com `Divergencia` se o `resumo_dtsf.md` da etapa 07 não existir, e deixa `D_FA` e `D` fora (listados como incompletos no manifesto) se eles não tiverem as 10 repetições. Depois da exportação, faça o commit da pasta. O teste da exportação (`tests/e10_resultados`, 5 testes) usa dados sintéticos.
+A exportação foi feita a partir da rodada oficial em GPU (semente 20261108, commit `7e69187`, todos os modelos completos, `incompletos` vazio no manifesto) e a pasta está versionada. A ordem é `e07_DTSF.rodar`, `e07_DTSF.avaliar`, `e08_classicos.rodar` e `avaliar`, e então o `exportar`, que para com `Divergencia` se o `resumo_dtsf.md` da etapa 07 não existir e deixa `D_FA` e `D` fora (listados como incompletos) se eles não tiverem as 10 repetições. O teste da exportação (`tests/e10_resultados`, 5 testes) usa dados sintéticos.

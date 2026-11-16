@@ -78,7 +78,15 @@ Testes em `tests/e08_classicos/`:
 
 ## Resultados
 
-Os 9 baselines estão completos nos dois datasets (50 tarefas por modelo e dataset, rodada em CPU de 9/11, semente 20261108), mas o `resumo.md` que está em `outputs/08_classicos/resultados/` é **anterior à etapa 07 de seis modelos**: ele compara com o `D` antigo (o de 80 mil parâmetros, hoje `D_pequeno`) e traz decisões de hipóteses que o trabalho não usa mais. Descarte-o: depois que o `D_FA` estiver completo em `outputs/07_DTSF/resultados` (rodada oficial), rode o `avaliar` de novo para gerar o ΔAUC do `D_FA` contra os 9 baselines.
+Os 9 baselines estão completos nos dois datasets (50 tarefas por modelo e dataset, semente 20261108) e foram avaliados contra o `D_FA` da rodada oficial em GPU. O resumo é [outputs/10_resultados/resumos/08_classicos.md](../outputs/10_resultados/resumos/08_classicos.md). Melhores baselines por AUC por pessoa:
+
+| Dataset | `D_FA` | LR combinado | LR espectral | RF combinado | KNN combinado |
+| --- | --- | --- | --- | --- | --- |
+| SZ | 0,852 | 0,811 | 0,852 | 0,694 | 0,709 |
+| MDD | 0,964 | 0,939 | 0,934 | 0,903 | 0,912 |
+
+- Em SZ, a LR espectral empata com o `D_FA` (ΔAUC +0,000 [−0,061, +0,061]); com as características só temporais, os baselines ficam perto do acaso (AUC 0,56–0,60) e o `D_FA` ganha por +0,25 a +0,29 com IC acima de zero.
+- No DeLong com Holm, o `D_FA` não é significativamente melhor que LR, RF ou KNN combinados em nenhum dataset (menor p Holm: 0,12 em MDD contra o RF).
 
 Cada `.json` grava, além dos hiperparâmetros escolhidos, o modelo, a semente, a grade de candidatos, o número de árvores, as partes internas e as janelas por pessoa. Os `.json` de 9/11 não têm os campos novos.
 
