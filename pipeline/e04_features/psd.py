@@ -5,7 +5,8 @@ Segue docs/00_proposta-tcc.md (referência adicional em "Baselines clássicos po
 - Welch na janela de 4 s: segmentos de 2 s, Hann, 50% de overlap (3 segmentos), 0,5 Hz;
 - bandas delta [2, 4), teta [4, 8), alfa [8, 13), beta [13, 30] Hz;
 - log10 da potência absoluta por canal × banda = 76 features;
-- checagem no MDD: potência relativa (banda ÷ potência total de 2–30 Hz).
+- checagem do ganho do aparelho no MDD: potência relativa (banda ÷ potência total de 2–30 Hz); ela não
+  elimina diferenças de ritmo entre sessões (docs/06_LR_psd.md).
 
 Usa o sinal em µV de outputs/03_janelas (2–30 Hz, sem z-score). Calcula todas as janelas de
 janelas.csv, inclusive as rejeitadas, para manter o alinhamento linha a linha com o índice;

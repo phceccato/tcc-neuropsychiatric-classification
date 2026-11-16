@@ -46,7 +46,7 @@ O `numeros` para com `Divergencia`, sem gravar, se algum número não bater com 
 | `s10_roc_todos_sz`, `s10_roc_todos_mdd` | Curvas ROC por pessoa dos 17 modelos, em seis painéis por transtorno (um por grupo, como em `p2`), com o D_FA como referência em cada painel e a AUC na legenda. Nos clássicos, a cor indica a modalidade (azul temporal, laranja espectral, verde combinado) e o tracejado, o classificador (LR contínuo, RF tracejado, KNN pontilhado) |
 | `s2_confusao_sz`, `s2_confusao_mdd` | Matriz de confusão por pessoa (limiar 0,5) dos 17 modelos, com contagem e porcentagem da classe real |
 | `s3_temporal_espectral` | AUC só com o temporal, só com o espectral e com os dois, no DTSF (D_sem_E, D_sem_T e D_pequeno) e em LR, RF e KNN |
-| `s4_absolutas_relativas` | LR de 76 bandas com potência absoluta e relativa: AUC por pessoa com IC e AUC de cada repetição |
+| `s4_absolutas_relativas` | LR de 76 bandas com potência absoluta e relativa: AUC por pessoa com IC e AUC de cada repetição. Não é uma checagem de lote: a potência relativa não elimina diferenças de ritmo entre sessões ([06_LR_psd.md](06_LR_psd.md#checagem-da-potência-relativa-por-sessão)) |
 | `s5_auc_repeticoes` | AUC de cada uma das 10 repetições e a média, dos 17 modelos |
 | `s6_delta_auc` | ΔAUC = referência − comparado, com IC de 95%, sem p-valor: D_pequeno contra as ablações, D_FA contra os 3 combinados, entre os DTSF e D_FA contra os 6 baselines de uma modalidade |
 | `s8_barras_ablacoes` | AUC por pessoa em barras do D_pequeno e das ablações |

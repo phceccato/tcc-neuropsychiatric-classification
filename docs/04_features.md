@@ -19,7 +19,7 @@ venv/bin/python -m pipeline.e04_features.psd    # → outputs/04_features/psd.np
 | Bandas | delta [2, 4), teta [4, 8), alfa [8, 13), beta [13, 30] Hz |
 | Potência de banda | soma dos bins × 0,5 Hz, em µV² |
 | `absolutas` | log10 da potência de cada banda × canal: 76 features (entrada principal) |
-| `relativas` | potência da banda ÷ soma das 4 bandas, por canal: 76 features (checagem do MDD) |
+| `relativas` | potência da banda ÷ soma das 4 bandas, por canal: 76 features (checagem do ganho do aparelho no MDD; não elimina diferenças de ritmo entre sessões, ver [06_LR_psd.md](06_LR_psd.md#checagem-da-potência-relativa-por-sessão)) |
 
 Um teste unitário confirma que uma senoide de 10 Hz devolve a variância esperada na banda alfa, com erro abaixo de 5%.
 
@@ -46,6 +46,6 @@ As tabelas mostram a média entre pessoas (± desvio) de cada banda, calculada a
 | MDD | MDD | 0,10 | 0,20 | 0,37 | **0,32** |
 
 O que chama atenção:
-- **Teta nos controles do MDD.** A potência teta é ~4× a dos pacientes e tem desvio grande. Isso combina com o lote de controles gravados em 12–14/01/2013, que têm ritmo dominante de ~5 Hz.
-- **Beta relativa no MDD.** Ela é maior nos pacientes (0,32 contra 0,13).
+- **Teta nos controles do MDD.** A potência teta é ~4× a dos pacientes e tem desvio grande. Isso vem dos 14 controles gravados em 12–14/01/2013, com ritmo dominante de ~5 Hz: os outros 13 controles têm teta relativa de 0,17 a 0,25, igual à dos pacientes (0,20). A normalização não remove esse efeito (ver [06_LR_psd.md](06_LR_psd.md#checagem-da-potência-relativa-por-sessão)).
+- **Beta relativa no MDD.** Ela é maior nos pacientes (0,32 contra 0,13), mas os controles misturam três sessões (jan/2013: 0,09; 2011: 0,16; abr–jul/2013: 0,19), então a diferença também pode refletir sessão ([06_LR_psd.md](06_LR_psd.md#checagem-da-potência-relativa-por-sessão)).
 - **SZ.** As diferenças entre as classes são pequenas perto do desvio entre pessoas.
