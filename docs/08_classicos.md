@@ -68,6 +68,22 @@ Feita antes de autorizar a rodada, sem treinar nenhum modelo com dados reais.
   - As janelas de previsão do teste são exatamente as aceitas sem overlap.
   - Os pesos respeitam as três propriedades acima. A razão entre o maior e o menor peso chega a 1,81 no MDD (a pessoa com 83 janelas) e fica em ≤ 1,14 na SZ, onde é só o desequilíbrio de classes (11 × 12 pessoas), igual ao `class_weight` antigo.
 
+## Seleção na borda das grades (limitação declarada)
+
+As grades são pequenas e foram fixadas antes de qualquer resultado, para limitar o sobreajuste de seleção ([00_proposta-tcc.md](00_proposta-tcc.md)): LR com C ∈ {0,01; 0,1; 1}, RF com `min_samples_leaf` ∈ {1; 5; 20} e KNN com k ∈ {11; 31; 101}. Em alguns modelos, a seleção interna escolhe o valor da **borda** da grade em boa parte dos 50 folds. Contagem nos `.json` (rodada de 9/11, semente 20261108):
+
+| Dataset | Modelo | Valor da borda | Folds (de 50) |
+| --- | --- | --- | --- |
+| MDD | `LR_temporal` | C = 0,01 (o menor) | 42 |
+| SZ | `KNN_temporal` | k = 11 (o menor) | 39 |
+| SZ | `KNN_espectral` | k = 11 (o menor) | 38 |
+| MDD | `KNN_temporal` | k = 101 (o maior) | 32 |
+| MDD | `RF_temporal` | `min_samples_leaf` = 20 (o maior) | 31 |
+
+Nos demais modelos a escolha se espalha pelos três valores. Quando o melhor valor está na borda, o ótimo pode estar fora da grade, e o modelo pode estar um pouco subajustado. Isso poderia **subestimar os clássicos** e favorecer a leitura de que o `D_FA` é melhor.
+
+**Decisão (17/11/2026): o protocolo não muda.** As grades continuam as pré-fixadas, e a limitação fica só declarada aqui e no texto. Os motivos: alargar as grades agora, depois de ver quais valores foram escolhidos, seria um ajuste pós-resultado; exigiria refazer a etapa 08 inteira; e a conclusão central não depende disso: o `D_FA` não é significativamente melhor que nenhum clássico no DeLong com Holm (menor p ajustado 0,12), e na SZ a LR espectral já o iguala (AUC 0,852). Quem for ler a tabela de comparação deve ter em mente que os clássicos, sobretudo os temporais, podem estar um pouco abaixo do que conseguiriam com grades mais largas.
+
 ## Testes
 
 Testes em `tests/e08_classicos/`:

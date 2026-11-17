@@ -175,7 +175,7 @@ Por tamanho da validação, em todos os modelos juntos: SZ com 4 pessoas, 24% do
 - **Ablações da SZ (rodada em CPU):** a fração é maior (22–42%) e, nesses folds, as previsões do `D_pequeno` ficam quase constantes (desvio ~0,02) e a AUC por fold cai. Sem eles, a AUC por repetição sobe 0,03 a 0,06 e a ordem entre `D_pequeno` e `D_sem_T` se inverte. Por isso as diferenças de ablação na SZ (todas com IC que inclui zero) devem ser lidas como incertas.
 - **MDD:** o efeito é desprezível (≤ 0,005 de AUC), exceto pelo `D_sem_mixup`, em que 54% dos folds escolhem a época 1 sem mudar a AUC.
 - **Causa:** a validação pequena torna a perda ruidosa. Que a perda penalize a confiança e não o ranking, e que a AUC de validação melhore enquanto a perda piora, é hipótese ainda não testada (os retreinos de diagnóstico foram interrompidos).
-- **Se o protocolo for revisto** (por exemplo, época mínima fixada a priori, ou validação maior), a decisão precisa ser tomada antes da próxima rodada em GPU e sem olhar a AUC de teste.
+- **Decisão (17/11/2026): o protocolo não muda.** O early stopping continua sem época mínima e sem desempate, e a limitação fica só declarada aqui e no texto. Os motivos: uma regra nova escolhida depois de ver estas AUCs seria um ajuste pós-resultado, o efeito no modelo principal é pequeno (`D_FA`: 14% dos folds na SZ e 6% no MDD, sem ganho de AUC ao tirá-los) e mudar a regra exigiria refazer os 600 treinos em GPU. Falta só rodar `epoca_um` na máquina da GPU para completar a tabela com os outros 5 modelos.
 
 ## Análise anterior
 
