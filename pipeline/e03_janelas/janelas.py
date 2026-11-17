@@ -25,11 +25,13 @@ import numpy as np
 import pandas as pd
 from scipy.signal import butter, sosfiltfilt
 
+from pipeline.constantes import JANELAS_POR_PESSOA_DTSF
+
 PASSA_ALTA_HZ, PASSA_BAIXA_HZ = 2.0, 30.0
 ORDEM_BUTTER = 4                 # por passada; sosfiltfilt dá fase zero
 JANELA_S, PASSO_S = 4.0, 2.0     # 50% de overlap
 LIMIAR_PICO_A_PICO_UV = 150.0
-JANELAS_POR_PESSOA = 60          # sorteadas a cada época no treino
+JANELAS_POR_PESSOA = JANELAS_POR_PESSOA_DTSF   # sorteadas a cada época no treino do DTSF (pipeline/constantes.py)
 LIMIARES_COMPARADOS_UV = (100.0, 150.0, 200.0, 300.0)
 
 

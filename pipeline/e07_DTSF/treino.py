@@ -33,12 +33,13 @@ import pandas as pd
 import torch
 from torch.nn import functional as F
 
+from pipeline.constantes import JANELAS_POR_PESSOA_DTSF
 from pipeline.e07_DTSF.dados import janelas_avaliacao, sortear
 from pipeline.e07_DTSF.dados_dtsf import estatisticas_stft
 from pipeline.e07_DTSF.redes_dtsf import ALFA_MIXUP, DROPOUT, DROPOUT_ENCODER, DTSF, misturar, sortear_mixup
 
 MAX_EPOCAS, PACIENCIA = 100, 10
-JANELAS_POR_PESSOA = 60
+JANELAS_POR_PESSOA = JANELAS_POR_PESSOA_DTSF
 TAMANHO_LOTE = 64
 LR, WEIGHT_DECAY = 1e-3, 1e-4
 LOTE_INFERENCIA = 256

@@ -27,8 +27,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from pipeline.avaliacao.metricas import avaliar, tabela_media_desvio
+from pipeline.constantes import SEMENTE
 
-SEMENTE = 20261108
 
 
 def media_por_pessoa(x: np.ndarray, janelas: pd.DataFrame, so_sem_overlap: bool) -> pd.DataFrame:

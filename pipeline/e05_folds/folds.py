@@ -16,9 +16,10 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold, train_test_split
 
+from pipeline.constantes import SEMENTE
+
 K, REPETICOES = 5, 10
 FRACAO_VALIDACAO = 0.2
-SEMENTE = 20261108
 
 
 def gerar(pessoas: pd.DataFrame, repeticoes: int = REPETICOES, k: int = K,

@@ -27,5 +27,5 @@ venv/bin/python -m pipeline.e05_folds.folds
 
 | Constante | Onde | Valor |
 | --- | --- | --- |
-| `SEMENTE` | `e05_folds/folds.py` (partições), `e06_LR_psd/lr.py`, `e07_DTSF/rodar.py` (treino do DTSF e dos clássicos da 08), `e07_DTSF/avaliar.py` (bootstrap) | 20261108 |
+| `SEMENTE` | definida só em `pipeline/constantes.py` e usada por `e05_folds/folds.py` (partições), `e06_LR_psd/lr.py`, `e07_DTSF/rodar.py` (treino do DTSF e dos clássicos da 08) e `e07_DTSF/avaliar.py` (bootstrap); um teste (`tests/test_constantes.py`) falha se ela for copiada para outro módulo | 20261108 |
 | `SEMENTE_SHAP` | `e09_investigacao/explicar.py` | 1108 |

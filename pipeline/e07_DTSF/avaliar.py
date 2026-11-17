@@ -24,10 +24,10 @@ import pandas as pd
 
 from pipeline.avaliacao.metricas import (auc_em_lote, avaliar, delta_por_repeticao, escores_por_pessoa, ic_bootstrap_delta,
                                          parear, tabela_media_desvio)
+from pipeline.constantes import SEMENTE
 from pipeline.e07_DTSF.redes_dtsf import DTSF, PRINCIPAL, TIPOS_DTSF
 
 ALFA = 0.05
-SEMENTE = 20261108
 REFERENCIA_ABLACOES = "D_pequeno"
 ABLACOES = ("D_sem_T", "D_sem_E", "D_sem_mixup")
 DESCRITIVAS = (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))

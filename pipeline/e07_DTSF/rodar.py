@@ -35,11 +35,11 @@ import numpy as np
 import pandas as pd
 import torch
 
+from pipeline.constantes import SEMENTE
 from pipeline.e07_DTSF.dados_dtsf import FonteDTSF
 from pipeline.e07_DTSF.redes_dtsf import MODELOS, PRINCIPAL, TIPOS_DTSF
 from pipeline.e07_DTSF.treino import JANELAS_POR_PESSOA, PADRAO, prever, salvar_checkpoint, treinar
 
-SEMENTE = 20261108
 JANELAS_CSV = Path("outputs/03_janelas/janelas.csv")
 CACHE_DTSF = Path("outputs/07_DTSF/cache_dtsf")
 CHECKPOINTS = Path("outputs/07_DTSF/checkpoints")

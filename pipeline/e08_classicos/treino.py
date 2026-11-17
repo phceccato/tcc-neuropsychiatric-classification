@@ -38,9 +38,10 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from pipeline.constantes import JANELAS_POR_PESSOA_CLASSICOS
 from pipeline.e07_DTSF.dados import janelas_avaliacao, sortear
 
-JANELAS_POR_PESSOA = 150
+JANELAS_POR_PESSOA = JANELAS_POR_PESSOA_CLASSICOS
 PARTES_INTERNAS = 3
 ARVORES = 300
 CLASSIFICADORES = ("LR", "RF", "KNN")
