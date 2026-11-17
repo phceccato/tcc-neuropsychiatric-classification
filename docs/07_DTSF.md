@@ -57,7 +57,8 @@ venv/bin/python -m pipeline.e07_DTSF.rodar --dispositivo cuda --processos 14 2>&
 - Com `cuda`, os processos são criados com `spawn` (a GPU não sobrevive a `fork`) e a cuDNN fica em modo determinístico.
 - **A GPU não reproduz bit a bit as contas da CPU.** Uma rodada em GPU dá números próximos, mas não idênticos aos de uma rodada em CPU (a época escolhida pelo early stopping pode mudar). Cada `.json` registra o dispositivo, e o runner se recusa a completar uma pasta que já tem tarefas feitas em outro dispositivo: para trocar, use outra `--saida` ou apague as tarefas antigas.
 - Na CPU com 1 thread, um fold retreinado do modelo de 80 mil parâmetros (hoje `D_pequeno`; SZ, repetição 0, fold 0) dá probabilidades idênticas às gravadas na 2ª rodada (diferença máxima 0).
-- A etapa 09 (`explicar` e `lote`) continua treinando o D na CPU.
+- A etapa 09 (`explicar` e `lote`) retreina o `D_FA` e aceita `--dispositivo cuda`: use o mesmo dispositivo desta etapa ([09_investigacao.md](09_investigacao.md)).
+- **Repetibilidade na GPU: ainda não medida.** O treino liga `cudnn.deterministic` e desliga `benchmark`, mas não chama `torch.use_deterministic_algorithms`, e pela documentação do PyTorch o backward do `AdaptiveMaxPool2d` em CUDA não tem versão determinística (não testado aqui, sem GPU); ligar a flag pode, portanto, quebrar o treino. `venv/bin/python -m pipeline.e07_DTSF.repetibilidade --dispositivo cuda` treina o mesmo fold duas vezes e imprime a diferença máxima das probabilidades; rode na máquina da GPU e registre o valor aqui.
 
 ## Modelos
 
