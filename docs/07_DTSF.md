@@ -133,7 +133,9 @@ Rodada oficial feita em GPU (`cuda`), semente 20261108, commit `7e69187` (manife
 | `D_sem_mixup` | 0,791 [0,592, 0,949] | 0,950 [0,885, 0,995] |
 | `D_sem_T` | 0,847 [0,684, 0,969] | 0,958 [0,908, 0,992] |
 | `D_sem_E` | 0,776 [0,566, 0,939] | 0,941 [0,858, 0,994] |
+| *Referência: só a data de gravação, como escore de paciente* | *0,929* | *0,928* |
 
+- **Referência da data de gravação:** a última linha da tabela é a AUC que um classificador teria só com a data do cabeçalho do EDF ([09_investigacao.md](09_investigacao.md#1-data-de-gravação--diagnóstico), sem IC e sem treino). Na SZ, nenhum modelo da tabela passa dela (o `D_FA` tem 0,852), e no MDD o `D_FA` (0,964) e o `D` (0,962) ficam só um pouco acima (0,928). Como a data separa as classes (na SZ nenhuma das 9 sessões tem as duas), as AUCs dos modelos podem refletir a sessão de gravação, e esta é a limitação central do trabalho (ver [00_proposta-tcc.md](00_proposta-tcc.md), Interpretação).
 - **Ordem:** o `D_FA` tem a maior AUC nos dois datasets, mas as diferenças para `D` e `D_pequeno` são pequenas (SZ: D_FA − D = +0,015 [+0,000, +0,051], com o `D_FA` melhor em 3 das 10 repetições; MDD: +0,003 [−0,013, +0,019]). Com 14+14 e 29+27 pessoas, não há evidência de que a FA ou o tamanho melhorem o resultado.
 - **Ablações do `D_pequeno`:** todos os ΔAUC têm IC que inclui zero. Em SZ, tirar a entrada espectral (`D_sem_E`, −0,051) e o Mixup (−0,036) são as maiores quedas, e tirar o ramo temporal (`D_sem_T`) não piora (+0,020 a favor da ablação).
 - **DeLong com Holm** (etapa 11, [11_graficos.md](11_graficos.md)): nenhuma das 10 comparações do `D_FA` é significativa depois do Holm.
