@@ -83,6 +83,13 @@ def folds_sem_lote(manifesto: pd.DataFrame, lote: set[str]) -> pd.DataFrame:
     return particoes
 
 
+def submeter_retreinos(executor, tarefas: list[tuple[int, int]], folds_csv: Path, resultados: Path,
+                       dispositivo: str) -> list:
+    """Envia o retreino do D_FA no MDD (um por (repetição, fold)) ao executor, com `rodar_tarefa` da etapa 07."""
+    return [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados),
+                            dispositivo=dispositivo) for r, f in tarefas]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--manifesto", type=Path, default=Path("outputs/02_harmonizacao/manifesto.csv"))
@@ -122,8 +129,7 @@ def main() -> None:
         print(f"{len(tarefas)} treinos pendentes ({args.dispositivo})", flush=True)
         with ProcessPoolExecutor(args.processos, initializer=_iniciar,
                                  mp_context=contexto_processos(args.dispositivo)) as executor:
-            futuros = [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados),
-                                       dispositivo=args.dispositivo) for r, f in tarefas]
+            futuros = submeter_retreinos(executor, tarefas, folds_csv, resultados, args.dispositivo)
             for i, futuro in enumerate(as_completed(futuros), 1):
                 print(f"[{i}/{len(tarefas)}] {futuro.result()}", flush=True)
 
