@@ -120,3 +120,33 @@ def test_exporta_o_historico_de_perdas_so_do_modelo_principal(tmp_path):
     assert p.groupby(["repeticao", "fold"])["melhor"].sum().eq(1).all() and set(p.loc[p["melhor"] == 1, "epoca"]) == {1}
     assert not (saida / "perdas/MDD").exists()          # sem histórico nos .json: nada a exportar
     assert not list((saida / "perdas").rglob("LR*"))
+
+
+def test_recusa_exportar_sem_o_modelo_principal_e_nao_apaga_a_saida(tmp_path):
+    raiz, saida = _outputs(tmp_path), tmp_path / "10_resultados"
+    ex.exportar(raiz, saida)                                    # exportação completa, como a que está no git
+    antes = (saida / "metricas.csv").read_text()
+    import shutil
+    shutil.rmtree(raiz / "07_DTSF/resultados/SZ/D_FA")           # máquina sem o D_FA (rodada parcial)
+    with pytest.raises(ex.RodadaIncompleta, match="D_FA ausente"):
+        ex.exportar(raiz, saida)
+    assert (saida / "metricas.csv").read_text() == antes        # a pasta exportada continua intacta
+
+
+def test_recusa_misturar_dispositivos_nos_dtsf(tmp_path):
+    raiz, saida = _outputs(tmp_path), tmp_path / "10_resultados"
+    for d in ex.DATASETS:   # um segundo DTSF completo, mas em CPU
+        _gravar_modelo(raiz / "07_DTSF/resultados" / d / "D", _predicoes(30), dispositivo="cpu")
+        md = raiz / "07_DTSF/resultados/resumo_dtsf.md"
+        md.write_text(md.read_text() + f"\n## {d}\n\n" + _linha_auc("D", _predicoes(30)))
+    with pytest.raises(ex.RodadaIncompleta, match="dispositivos diferentes"):
+        ex.exportar(raiz, saida)
+    assert not saida.exists()
+
+
+def test_permitir_parcial_exporta_mesmo_sem_o_principal(tmp_path):
+    raiz, saida = _outputs(tmp_path), tmp_path / "10_resultados"
+    import shutil
+    shutil.rmtree(raiz / "07_DTSF/resultados/SZ/D_FA")
+    manifesto = ex.exportar(raiz, saida, permitir_parcial=True)
+    assert "SZ/D_FA" in manifesto["incompletos"] and "SZ/D_FA" not in manifesto["modelos"]

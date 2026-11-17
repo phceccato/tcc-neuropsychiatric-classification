@@ -18,7 +18,8 @@ Lê as saídas das etapas 05 (partições), 06 (LR_psd), 07 (DTSF) e 08 (clássi
 
 Só entram modelos com as 10 repetições completas; os incompletos são listados no manifesto. Antes de gravar, a AUC
 por pessoa recalculada de cada modelo é conferida contra o resumo da etapa (|diferença| ≤ 0,0005): se não bater, o
-script para sem gravar.
+script para sem gravar. Também para, antes de apagar a pasta de saída, se o D_FA não estiver completo nos dois
+datasets ou se os DTSF vierem de dispositivos diferentes (`--permitir-parcial` desliga essa trava).
 """
 from __future__ import annotations
 
@@ -44,6 +45,26 @@ COLUNAS = ["repeticao", "fold", "subject_uid", "y_true", "y_pred", "y_prob"]
 
 class Divergencia(ValueError):
     """A métrica recalculada das previsões exportadas não bate com o resumo da etapa."""
+
+
+class RodadaIncompleta(ValueError):
+    """As saídas não são uma rodada completa e única: falta o modelo principal ou os DTSF vêm de dispositivos diferentes."""
+
+
+def verificar_rodada(modelos: dict) -> None:
+    """Recusa exportar uma rodada parcial, que apagaria a exportação completa que já está no git.
+
+    Exige o modelo principal (D_FA) completo nos dois datasets e todos os DTSF da etapa 07 no mesmo dispositivo
+    (uma rodada em CPU e outra em GPU não se misturam: docs/07_DTSF.md).
+    """
+    faltam = [d for d in DATASETS if (d, PRINCIPAL) not in modelos]
+    if faltam:
+        raise RodadaIncompleta(f"{PRINCIPAL} ausente ou incompleto em {', '.join(faltam)}; a exportação recriaria "
+                               "outputs/10_resultados sem ele. Rode a rodada completa ou use --permitir-parcial.")
+    dispositivos = {tuple(i["dispositivo"]) for i in modelos.values() if i["etapa"] == "07"}
+    if len(dispositivos) > 1:
+        raise RodadaIncompleta("os DTSF da etapa 07 vêm de dispositivos diferentes "
+                               f"({sorted(dispositivos)}); não misture CPU e GPU. Use --permitir-parcial para ignorar.")
 
 
 def padronizar(predicoes: pd.DataFrame, chave: str = "repeticao") -> pd.DataFrame:
@@ -185,11 +206,13 @@ print(roc_auc_score(pessoa["y"], pessoa["prob"]))
 """
 
 
-def exportar(raiz: Path = Path("outputs"), saida: Path = SAIDA) -> dict:
+def exportar(raiz: Path = Path("outputs"), saida: Path = SAIDA, permitir_parcial: bool = False) -> dict:
     dados = coletar(raiz)
     modelos = dados["modelos"]
     if not modelos:
         raise ValueError("nenhum modelo completo para exportar")
+    if not permitir_parcial:
+        verificar_rodada(modelos)
     conferir(modelos, raiz)
 
     if saida.exists():
@@ -221,8 +244,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--outputs", type=Path, default=Path("outputs"))
     parser.add_argument("--saida", type=Path, default=SAIDA)
+    parser.add_argument("--permitir-parcial", action="store_true",
+                        help="exporta mesmo sem o D_FA completo ou com dispositivos misturados (apaga a pasta de saída)")
     args = parser.parse_args()
-    manifesto = exportar(args.outputs, args.saida)
+    manifesto = exportar(args.outputs, args.saida, args.permitir_parcial)
     print(f"{len(manifesto['modelos'])} (dataset, modelo) exportados em {args.saida}")
     if manifesto["incompletos"]:
         print(f"fora por estarem incompletos: {', '.join(manifesto['incompletos'])}")

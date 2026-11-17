@@ -30,7 +30,7 @@ venv/bin/python -m pipeline.e10_resultados.exportar     # → outputs/10_resulta
 
 - Só entram modelos com as 10 repetições completas. Os incompletos não são gravados e ficam listados no manifesto.
 - Antes de gravar, a AUC por pessoa de cada modelo é recalculada **a partir do arquivo exportado** e comparada com a AUC do resumo da etapa (|diferença| ≤ 0,0005). Se algum não bater, ou se um modelo não aparecer no resumo, o script para com `Divergencia` e não grava nada.
-- A pasta é recriada do zero a cada exportação, então não sobram arquivos de uma rodada anterior.
+- A pasta é recriada do zero a cada exportação, então não sobram arquivos de uma rodada anterior. Por isso o script **recusa rodar** (`RodadaIncompleta`, antes de apagar qualquer coisa) se o `D_FA` não estiver completo nos dois datasets ou se os DTSF da etapa 07 vierem de dispositivos diferentes: numa máquina só com a rodada parcial, isso apagaria a exportação completa que está no git. `--permitir-parcial` desliga a trava.
 - Os dispositivos ficam no manifesto: uma rodada em GPU e uma em CPU dão números próximos, mas não idênticos ([07_DTSF.md](07_DTSF.md#cpu-ou-gpu)).
 
 ## Reprodução
