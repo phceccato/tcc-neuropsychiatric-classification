@@ -11,7 +11,7 @@ efeito, não como estimativa do desempenho.
 
 Entradas (as que existirem):
 - outputs/07_DTSF/resultados/<dataset>/<modelo>/r<rep>_f<fold>.{json,csv}: todos os modelos da etapa 07;
-- outputs/10_resultados (versionada): só o D_FA, quando ele não está em resultados/ (perdas/ e previsoes/).
+- outputs/10_resultados (versionada): só o DTSF_FA, quando ele não está em resultados/ (perdas/ e previsoes/).
 
 Grava outputs/07_DTSF/epoca_um.md e epoca_um.csv.
 """
@@ -26,6 +26,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 from pipeline.avaliacao.metricas import escores_por_pessoa
+from pipeline.nomes import nome_novo, resolver_arquivo
 
 CHAVE = ["dataset", "modelo", "repeticao", "fold"]
 
@@ -34,7 +35,7 @@ def carregar_resultados(raiz: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(folds, previsoes) de outputs/07_DTSF/resultados. Folds: CHAVE, melhor_epoca, dispositivo."""
     folds, previsoes = [], []
     for csv in sorted(raiz.glob("*/*/r*_f*.csv")):
-        dataset, modelo = csv.parent.parent.name, csv.parent.name
+        dataset, modelo = csv.parent.parent.name, nome_novo(csv.parent.name)
         info = json.loads(csv.with_suffix(".json").read_text())
         p = pd.read_csv(csv)
         rep, fold = int(p["repeticao"].iat[0]), int(p["fold"].iat[0])
@@ -47,12 +48,13 @@ def carregar_resultados(raiz: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 def carregar_exportados(raiz: Path, modelo: str, dispositivo: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(folds, previsoes) de um modelo em outputs/10_resultados (época escolhida em perdas/, previsões em previsoes/)."""
     folds, previsoes = [], []
-    for perdas in sorted(raiz.glob(f"perdas/*/{modelo}.csv")):
-        dataset = perdas.parent.name
+    perdas_todas = {p.parent.name: p for p in raiz.glob("perdas/*/*.csv")
+                    if nome_novo(p.stem) == modelo}                 # aceita o nome antigo, de uma exportação anterior
+    for dataset, perdas in sorted(perdas_todas.items()):
         p = pd.read_csv(perdas)
         escolhida = p[p["melhor"] == 1].groupby(["repeticao", "fold"])["epoca"].first().rename("melhor_epoca").reset_index()
         folds.append(escolhida.assign(dataset=dataset, modelo=modelo, dispositivo=dispositivo))
-        pr = pd.read_csv(raiz / "previsoes" / dataset / f"{modelo}.csv").rename(columns={"y_true": "y", "y_prob": "prob"})
+        pr = pd.read_csv(resolver_arquivo(raiz / "previsoes" / dataset / f"{modelo}.csv")).rename(columns={"y_true": "y", "y_prob": "prob"})
         previsoes.append(pr.assign(dataset=dataset, modelo=modelo))
     if not folds:
         return pd.DataFrame(), pd.DataFrame()
@@ -127,7 +129,7 @@ def main() -> None:
     parser.add_argument("--exportados", type=Path, default=Path("outputs/10_resultados"))
     parser.add_argument("--folds", type=Path, default=Path("outputs/05_folds/folds.csv"))
     parser.add_argument("--saida", type=Path, default=Path("outputs/07_DTSF"))
-    parser.add_argument("--principal", default="D_FA")
+    parser.add_argument("--principal", default="DTSF_FA")
     args = parser.parse_args()
 
     folds, previsoes = carregar_resultados(args.resultados)

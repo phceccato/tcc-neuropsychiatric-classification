@@ -4,40 +4,40 @@ Lê outputs/11_graficos/numeros.json (pipeline/e11_graficos/numeros.py, já conf
 etapas) e grava em duas pastas de outputs/11_graficos/.
 
 principais/ — os gráficos do texto:
-  p1_roc_principais: curvas ROC por pessoa dos 6 modelos principais (D_FA, D, D_pequeno e LR, RF e KNN combinados);
+  p1_roc_principais: curvas ROC por pessoa dos 6 modelos principais (DTSF_FA, DTSF, DTSF_Lite e LR, RF e KNN combinados);
   p2_auc_modelos: AUC por pessoa com IC de 95% de todos os modelos (etapas 06, 07 e 08);
   p3_metricas_principais: AUC, acurácia, precisão, recall e F1 dos 6 principais, média ± desvio nas 10 repetições;
   p4_sz_mdd: AUC por pessoa com IC de 95% de cada modelo em SZ e em MDD, lado a lado;
-  p9_delong_sz, p9_delong_mdd: curvas ROC do D_FA contra cada um dos outros 5 modelos principais (D, D_pequeno e os
+  p9_delong_sz, p9_delong_mdd: curvas ROC do DTSF_FA contra cada um dos outros 5 modelos principais (DTSF, DTSF_Lite e os
      3 combinados), com a área entre as curvas, a diferença de AUC e o p do teste de DeLong, bruto e ajustado por Holm;
   p10_delong_tabela: a tabela do DeLong (AUCs, ΔAUC, Z, p bruto, p de Holm e decisão) dos dois transtornos;
-  p8_roc_bootstrap_d_fa: curvas ROC de reamostras bootstrap (cinza) e a curva original (preto) do D_FA, com a AUC por
+  p8_roc_bootstrap_dtsf_fa: curvas ROC de reamostras bootstrap (cinza) e a curva original (preto) do DTSF_FA, com a AUC por
      pessoa e o IC de 95%, em SZ e em MDD;
   p7_metricas_limiar: gráfico de linhas com acurácia, precisão, recall e F1 (limiar 0,5) dos 6 modelos principais,
      um painel por transtorno (média nas 10 repetições);
   p6_roc_pr_sz, p6_roc_pr_mdd: curvas ROC (esquerda) e Precision-Recall (direita) por pessoa dos 6 modelos principais,
      com a AUC e a AP (average precision) na legenda, uma figura por transtorno;
-  p5_loss_d_fa: perda de treino e de validação interna do D_FA por época, nos 50 folds de cada transtorno (só se
+  p5_loss_dtsf_fa: perda de treino e de validação interna do DTSF_FA por época, nos 50 folds de cada transtorno (só se
      numeros.json tiver as perdas; a perda de treino é a do lote com Mixup, a de validação é sem Mixup).
 
 suplementares/ — o material suplementar:
-  s1_roc_ablacoes: curvas ROC do D_pequeno e das suas 3 ablações;
+  s1_roc_ablacoes: curvas ROC do DTSF_Lite e das suas 3 ablações;
   s11_metricas_limiar_todos: o mesmo gráfico de linhas para os 17 modelos, agrupados como em p2;
-  s10_roc_todos_sz, s10_roc_todos_mdd: curvas ROC por pessoa de todos os 17 modelos, um painel por grupo, com o D_FA
+  s10_roc_todos_sz, s10_roc_todos_mdd: curvas ROC por pessoa de todos os 17 modelos, um painel por grupo, com o DTSF_FA
      como referência em cada painel;
   s2_confusao_sz, s2_confusao_mdd: matriz de confusão por pessoa (limiar 0,5) de todos os modelos;
   s3_temporal_espectral: AUC só com o ramo ou as características temporais, só com as espectrais e com as duas,
-     no DTSF (ablações do D_pequeno) e nos clássicos;
+     no DTSF (ablações do DTSF_Lite) e nos clássicos;
   s4_absolutas_relativas: LR de 76 bandas com potência absoluta e relativa (AUC por pessoa e por repetição);
   s5_auc_repeticoes: AUC de cada uma das 10 repetições e a média, mesmos modelos de p2;
-  s6_delta_auc: ΔAUC = referência − comparado, com IC de 95% (descritivo, sem p-valor), das ablações do D_pequeno,
-     do D_FA contra os baselines e entre os DTSF;
-  s8_barras_ablacoes, s9_barras_classicos (coloridas): AUC por pessoa em barras do D_pequeno e das ablações e do
-     D_FA e dos 9 baselines.
+  s6_delta_auc: ΔAUC = referência − comparado, com IC de 95% (descritivo, sem p-valor), das ablações do DTSF_Lite,
+     do DTSF_FA contra os baselines e entre os modelos da família DTSF;
+  s8_barras_ablacoes, s9_barras_classicos (coloridas): AUC por pessoa em barras do DTSF_Lite e das ablações e do
+     DTSF_FA e dos 9 baselines.
 
 As figuras de pontos (p2, p4 sem cor de modelo, s5, s6) são pensadas para impressão: preto e cinza; os grupos se
-distinguem por marcador (LR círculo, RF quadrado, KNN triângulo, LR de 76 bandas losango; D_FA círculo, D quadrado e
-D_pequeno triângulo, preenchidos; as ablações, círculos vazados). As curvas ROC diferenciam os modelos também pelo
+distinguem por marcador (LR círculo, RF quadrado, KNN triângulo, LR de 76 bandas losango; DTSF_FA círculo, DTSF quadrado e
+DTSF_Lite triângulo, preenchidos; as ablações, círculos vazados). As curvas ROC diferenciam os modelos também pelo
 tracejado, para a leitura em P&B. As figuras de barras usam a paleta categórica de referência, validada para
 daltonismo nos pares vizinhos; a cor nunca é a única pista (legenda e eixo nomeiam o modelo). Vírgula decimal nos
 eixos e nos textos; largura de 16 cm, para caber em `\\linewidth` com margens ABNT.
@@ -57,6 +57,7 @@ import numpy as np  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MultipleLocator  # noqa: E402
 from pipeline.avaliacao.metricas import tpr_na_grade  # noqa: E402
+from pipeline.nomes import MODALIDADES_EN, nome_classico  # noqa: E402
 from pipeline.e11_graficos.delong import CABECALHO as DELONG_CABECALHO_TXT, COMPARADOS as COMPARADOS_DELONG, linhas as delong_linhas  # noqa: E402
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_curve  # noqa: E402
 
@@ -68,25 +69,23 @@ DATASETS = ("SZ", "MDD")
 TITULOS = {"SZ": "Esquizofrenia × controles (14 + 14)", "MDD": "Depressão maior × controles (29 + 27)"}
 CURTOS = {"SZ": "SZ × HC", "MDD": "MDD × HC"}
 
-PRINCIPAL, REFERENCIA_ABLACOES = "D_FA", "D_pequeno"
+PRINCIPAL, REFERENCIA_ABLACOES = "DTSF_FA", "DTSF_Lite"
 CLASSIFICADORES = ("LR", "RF", "KNN")
-MODELOS_PRINCIPAIS = ["D_FA", "D", "D_pequeno", "LR_combinado", "RF_combinado", "KNN_combinado"]
-ABLACOES = ["D_sem_T", "D_sem_E", "D_sem_mixup"]
+MODELOS_PRINCIPAIS = ["DTSF_FA", "DTSF", "DTSF_Lite", "LR_Combined", "RF_Combined", "KNN_Combined"]
+ABLACOES = ["DTSF_Lite_SpectralOnly", "DTSF_Lite_TemporalOnly", "DTSF_Lite_NoMixup"]
 GRUPOS = [
-    ("DTSF (etapa 07)", ["D_FA", "D", "D_pequeno"]),
-    ("Ablações do D_pequeno (etapa 07)", ABLACOES),
-    ("Clássicos temporais (etapa 08)", [f"{c}_temporal" for c in CLASSIFICADORES]),
-    ("Clássicos espectrais (etapa 08)", [f"{c}_espectral" for c in CLASSIFICADORES]),
-    ("Clássicos combinados (etapa 08)", [f"{c}_combinado" for c in CLASSIFICADORES]),
-    ("LR de 76 bandas (etapa 06)", ["LR_psd_absolutas", "LR_psd_relativas"]),
+    ("Família DTSF (etapa 07)", ["DTSF_FA", "DTSF", "DTSF_Lite"]),
+    ("Ablações do DTSF_Lite (etapa 07)", ABLACOES),
+    ("Clássicos temporais (etapa 08)", [nome_classico(c, "temporal") for c in CLASSIFICADORES]),
+    ("Clássicos espectrais (etapa 08)", [nome_classico(c, "espectral") for c in CLASSIFICADORES]),
+    ("Clássicos combinados (etapa 08)", [nome_classico(c, "combinado") for c in CLASSIFICADORES]),
+    ("LR de 76 bandas (etapa 06)", ["LR_PSD_Absolute", "LR_PSD_Relative"]),
 ]
-NOMES = {"D_FA": "D_FA (principal)", "D": "D (artigo, sem FA)", "D_pequeno": "D_pequeno",
-         "D_sem_T": "sem ramo temporal", "D_sem_E": "sem ramo espectral", "D_sem_mixup": "sem Mixup",
-         "LR_psd_absolutas": "LR, potência absoluta", "LR_psd_relativas": "LR, potência relativa"}
-NOMES |= {f"{c}_{m}": f"{c} {m}" for c in CLASSIFICADORES for m in ("temporal", "espectral", "combinado")}
-NOMES_CURTOS = NOMES | {"D_FA": "D_FA", "D": "D", "D_sem_T": "D_peq. sem T", "D_sem_E": "D_peq. sem E",
-                        "D_sem_mixup": "D_peq. sem Mixup", "LR_psd_absolutas": "LR absolutas",
-                        "LR_psd_relativas": "LR relativas"}
+NOMES = {"DTSF_FA": "DTSF_FA (principal)", "DTSF": "DTSF (artigo, sem FA)", "DTSF_Lite": "DTSF_Lite",
+         "DTSF_Lite_SpectralOnly": "DTSF_Lite_SpectralOnly", "DTSF_Lite_TemporalOnly": "DTSF_Lite_TemporalOnly",
+         "DTSF_Lite_NoMixup": "DTSF_Lite_NoMixup", "LR_PSD_Absolute": "LR_PSD_Absolute", "LR_PSD_Relative": "LR_PSD_Relative"}
+NOMES |= {nome_classico(c, m): nome_classico(c, m) for c in CLASSIFICADORES for m in MODALIDADES_EN}
+NOMES_CURTOS = NOMES | {"DTSF_FA": "DTSF_FA", "DTSF": "DTSF"}
 METRICAS_FIG = [("auc", "AUC"), ("acuracia", "Acurácia"), ("precisao", "Precisão"), ("sensibilidade", "Recall"),
                 ("f1", "F1")]
 
@@ -102,14 +101,14 @@ def virgula(x: float, casas: int = 3, sinal: bool = False) -> str:
 
 def estilo(m: str) -> dict:
     """Marcador e cor de cada modelo (sem cor: preto para o DTSF, cinza para os demais)."""
-    dtsf = {"D_FA": ("o", 5.5), "D": ("s", 4.5), "D_pequeno": ("^", 5)}
+    dtsf = {"DTSF_FA": ("o", 5.5), "DTSF": ("s", 4.5), "DTSF_Lite": ("^", 5)}
     if m in dtsf:
         marcador, tamanho = dtsf[m]
         return dict(marker=marcador, color=PRETO, mfc=PRETO, ms=tamanho)
-    if m.startswith("D_"):
+    if m.startswith("DTSF_Lite"):
         return dict(marker="o", color=PRETO, mfc="white", ms=5)
-    if m.startswith("LR_psd"):
-        return dict(marker="D", color=CINZA, mfc="white" if "relativas" in m else CINZA, ms=4.5)
+    if m.startswith("LR_PSD"):
+        return dict(marker="D", color=CINZA, mfc="white" if "Relative" in m else CINZA, ms=4.5)
     marcador = {"LR": "o", "RF": "s", "KNN": "^"}[m.split("_")[0]]
     return dict(marker=marcador, color=CINZA, mfc=CINZA, ms=4.5 if marcador != "^" else 5)
 
@@ -168,12 +167,12 @@ def curva_roc(escores: dict) -> tuple[np.ndarray, np.ndarray]:
 
 
 ESTILO_ROC = {
-    "D_FA": dict(color=PRETO, ls="-", lw=1.8), "D": dict(color=PRETO, ls="--", lw=1.1),
-    "D_pequeno": dict(color=PRETO, ls=":", lw=1.3),
-    "LR_combinado": dict(color="#eb6834", ls="-", lw=1.1), "RF_combinado": dict(color="#eb6834", ls="--", lw=1.1),
-    "KNN_combinado": dict(color="#eb6834", ls=":", lw=1.3),
-    "D_sem_T": dict(color="#2a78d6", ls="--", lw=1.1), "D_sem_E": dict(color="#2a78d6", ls=":", lw=1.3),
-    "D_sem_mixup": dict(color="#2a78d6", ls="-.", lw=1.1),
+    "DTSF_FA": dict(color=PRETO, ls="-", lw=1.8), "DTSF": dict(color=PRETO, ls="--", lw=1.1),
+    "DTSF_Lite": dict(color=PRETO, ls=":", lw=1.3),
+    "LR_Combined": dict(color="#eb6834", ls="-", lw=1.1), "RF_Combined": dict(color="#eb6834", ls="--", lw=1.1),
+    "KNN_Combined": dict(color="#eb6834", ls=":", lw=1.3),
+    "DTSF_Lite_SpectralOnly": dict(color="#2a78d6", ls="--", lw=1.1), "DTSF_Lite_TemporalOnly": dict(color="#2a78d6", ls=":", lw=1.3),
+    "DTSF_Lite_NoMixup": dict(color="#2a78d6", ls="-.", lw=1.1),
 }
 
 
@@ -207,7 +206,7 @@ def fig_roc_principais(numeros: dict, saida: Path) -> list[Path]:
 
 
 def fig_roc_ablacoes(numeros: dict, saida: Path) -> list[Path]:
-    rotulos = {m: f"D_pequeno {nome(m)}" for m in ABLACOES}
+    rotulos = {m: nome(m) for m in ABLACOES}
     return _fig_roc(numeros, [REFERENCIA_ABLACOES, *ABLACOES], saida / SUPLEMENTARES, "s1_roc_ablacoes", rotulos,
                     {REFERENCIA_ABLACOES: dict(color=PRETO, ls="-", lw=1.8)})
 
@@ -266,7 +265,7 @@ def fig_metricas_limiar(numeros: dict, saida: Path) -> list[Path]:
     return _gravar(fig, saida / PRINCIPAIS, "p7_metricas_limiar")
 
 
-TITULOS_CURTOS_GRUPOS = {"DTSF (etapa 07)": "DTSF", "Ablações do D_pequeno (etapa 07)": "Ablações",
+TITULOS_CURTOS_GRUPOS = {"Família DTSF (etapa 07)": "Família DTSF", "Ablações do DTSF_Lite (etapa 07)": "Ablações",
                          "Clássicos temporais (etapa 08)": "Temporais", "Clássicos espectrais (etapa 08)": "Espectrais",
                          "Clássicos combinados (etapa 08)": "Combinados", "LR de 76 bandas (etapa 06)": "LR 76 bandas"}
 
@@ -328,7 +327,7 @@ def fig_roc_bootstrap(numeros: dict, saida: Path) -> list[Path]:
     fig.text(0.5, -0.1, f"Modelo principal ({PRINCIPAL}). Bootstrap estratificado por pessoa, sobre o escore médio nas 10 "
              "repetições; o IC é o percentil 2,5–97,5 das AUCs das reamostras (o mesmo IC do restante do trabalho).",
              ha="center", va="top", fontsize=6.4, color=TEXTO_2, wrap=True)
-    return _gravar(fig, saida / PRINCIPAIS, "p8_roc_bootstrap_d_fa")
+    return _gravar(fig, saida / PRINCIPAIS, "p8_roc_bootstrap_dtsf_fa")
 
 
 def _fmt_p(p: float) -> str:
@@ -336,7 +335,7 @@ def _fmt_p(p: float) -> str:
 
 
 def _fig_delong(numeros: dict, d: str, saida: Path) -> list[Path]:
-    """O D_FA contra cada um dos outros 5 modelos principais: as duas curvas ROC, a área entre elas e o DeLong."""
+    """O DTSF_FA contra cada um dos outros 5 modelos principais: as duas curvas ROC, a área entre elas e o DeLong."""
     fig, eixos = plt.subplots(2, 3, figsize=(LARGURA, 5.6), gridspec_kw=dict(wspace=0.32, hspace=0.75))
     r = numeros["modelos"][d]
     grade = np.linspace(0, 1, 101)
@@ -380,8 +379,8 @@ def fig_delong(numeros: dict, saida: Path) -> list[Path]:
 def fig_delong_tabela(numeros: dict, saida: Path) -> list[Path]:
     """A tabela do DeLong (comparação, AUCs, ΔAUC, Z, p bruto, p de Holm e decisão), um bloco por transtorno."""
     fig, eixos = plt.subplots(2, 1, figsize=(LARGURA, 4.3), gridspec_kw=dict(hspace=0.35))
-    larguras = [0.27, 0.07, 0.11, 0.14, 0.09, 0.09, 0.12, 0.11]
-    cabecalho = [c.replace(" (", "\n(").replace("AUC D_FA", "AUC\nD_FA").replace("AUC do comparado", "AUC do\ncomparado").replace("Z de DeLong", "Z de\nDeLong").replace("p bruto", "p\nbruto") for c in DELONG_CABECALHO_TXT]
+    larguras = [0.29, 0.08, 0.10, 0.165, 0.075, 0.075, 0.105, 0.11]
+    cabecalho = [c.replace(" (", "\n(").replace("AUC DTSF_FA", "AUC\nDTSF_FA").replace("AUC do comparado", "AUC do\ncomparado").replace("Z de DeLong", "Z de\nDeLong").replace("p bruto", "p\nbruto") for c in DELONG_CABECALHO_TXT]
     for ax, d in zip(eixos, DATASETS):
         ax.axis("off")
         tabela = ax.table(cellText=delong_linhas(numeros, d), colLabels=cabecalho, colWidths=larguras,
@@ -398,7 +397,7 @@ def fig_delong_tabela(numeros: dict, saida: Path) -> list[Path]:
                 celula.set_text_props(ha="left")
                 celula._loc = "left"
         ax.set_title(TITULOS[d], loc="left", fontsize=8)
-    fig.text(0.5, 0.01, "DeLong bicaudal; ΔAUC = AUC do D_FA − AUC do outro modelo.\nSignificativo: p ajustado por Holm ≤ 0,05 "
+    fig.text(0.5, 0.01, "DeLong bicaudal; ΔAUC = AUC do DTSF_FA − AUC do outro modelo.\nSignificativo: p ajustado por Holm ≤ 0,05 "
              "(Holm sobre os 5 p de cada transtorno). p aproximado.", ha="center", va="top",
              fontsize=6.0, color=TEXTO_2)
     return _gravar(fig, saida / PRINCIPAIS, "p10_delong_tabela")
@@ -451,12 +450,12 @@ def fig_roc_pr(numeros: dict, saida: Path) -> list[Path]:
 
 def estilo_roc_todos(m: str) -> dict:
     """Cor pela modalidade (clássicos) e tracejado pelo classificador; o DTSF e a LR de 76 bandas em preto e amarelo."""
-    if m in ("D_FA", "D", "D_pequeno") or m in ABLACOES:
-        return ESTILO_ROC[m] | ({} if m in ("D_FA", "D", "D_pequeno") else dict(color=PRETO))
-    if m.startswith("LR_psd"):
-        return dict(color=CORES_ROC[3], ls="-" if "absolutas" in m else "--", lw=1.2)
+    if m in ("DTSF_FA", "DTSF", "DTSF_Lite") or m in ABLACOES:
+        return ESTILO_ROC[m] | ({} if m in ("DTSF_FA", "DTSF", "DTSF_Lite") else dict(color=PRETO))
+    if m.startswith("LR_PSD"):
+        return dict(color=CORES_ROC[3], ls="-" if "Absolute" in m else "--", lw=1.2)
     classificador, modalidade = m.split("_")
-    return dict(color=CORES_ROC[("temporal", "espectral", "combinado").index(modalidade)],
+    return dict(color=CORES_ROC[("Temporal", "Spectral", "Combined").index(modalidade)],
                 ls={"LR": "-", "RF": "--", "KNN": ":"}[classificador], lw=1.2)
 
 
@@ -464,7 +463,7 @@ CORES_ROC = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")
 
 
 def _fig_roc_todos(numeros: dict, d: str, saida: Path, base: str) -> list[Path]:
-    """Seis painéis (um por grupo de modelos) com as curvas ROC de um transtorno; o D_FA aparece em todos."""
+    """Seis painéis (um por grupo de modelos) com as curvas ROC de um transtorno; o DTSF_FA aparece em todos."""
     r = numeros["modelos"][d]
     fig, eixos = plt.subplots(2, 3, figsize=(LARGURA, 5.9), gridspec_kw=dict(wspace=0.4, hspace=0.8))
     for ax, (titulo, modelos) in zip(eixos.flat, GRUPOS):
@@ -493,7 +492,7 @@ def fig_roc_todos(numeros: dict, saida: Path) -> list[Path]:
     return [c for d in DATASETS for c in _fig_roc_todos(numeros, d, saida, f"s10_roc_todos_{d.lower()}")]
 
 
-# ---------------------------------------------------------------- perda de treino e de validação do D_FA
+# ---------------------------------------------------------------- perda de treino e de validação do DTSF_FA
 
 NOTA_LOSS = ("Perda de treino: lote com Mixup e dropout. Perda de validação: pessoas do split interno do treino (nunca o "
              "teste), sem Mixup. As escalas não são diretamente comparáveis.")
@@ -514,7 +513,7 @@ def _mediana_por_epoca(series: list[list[float]], minimo: int) -> tuple[np.ndarr
 def fig_loss_d_fa(numeros: dict, saida: Path) -> list[Path]:
     perdas = numeros.get("perdas")
     if not perdas:
-        print("p5_loss_d_fa: numeros.json sem as perdas do D_FA (perdas/<dataset>/D_FA.csv da etapa 10); figura não gerada")
+        print("p5_loss_dtsf_fa: numeros.json sem as perdas do DTSF_FA (perdas/<dataset>/DTSF_FA.csv da etapa 10); figura não gerada")
         return []
     fig, eixos = plt.subplots(1, 2, figsize=(LARGURA, 4.0), gridspec_kw=dict(wspace=0.22))
     for ax, d in zip(eixos, DATASETS):
@@ -545,7 +544,7 @@ def fig_loss_d_fa(numeros: dict, saida: Path) -> list[Path]:
     fig.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, 0.02), ncol=2, handlelength=2.4,
                columnspacing=1.6)
     fig.text(0.5, -0.1, NOTA_LOSS, ha="center", va="top", fontsize=6.4, color=TEXTO_2, wrap=True)
-    return _gravar(fig, saida / PRINCIPAIS, "p5_loss_d_fa")
+    return _gravar(fig, saida / PRINCIPAIS, "p5_loss_dtsf_fa")
 
 
 # ---------------------------------------------------------------- AUC de todos os modelos
@@ -696,12 +695,12 @@ def _barras(ax, x, alturas, ics, cores, larguras=0.8, valores: bool = True) -> N
 
 
 MODALIDADES = [("temporal", "Só temporal"), ("espectral", "Só espectral"), ("combinado", "Temporal + espectral")]
-DTSF_MODALIDADE = {"temporal": "D_sem_E", "espectral": "D_sem_T", "combinado": "D_pequeno"}
+DTSF_MODALIDADE = {"temporal": "DTSF_Lite_TemporalOnly", "espectral": "DTSF_Lite_SpectralOnly", "combinado": "DTSF_Lite"}
 
 
 def fig_temporal_espectral(numeros: dict, saida: Path) -> list[Path]:
-    familias = [("DTSF (D_pequeno)", lambda mod: DTSF_MODALIDADE[mod])] + \
-               [(c, lambda mod, c=c: f"{c}_{mod}") for c in CLASSIFICADORES]
+    familias = [("DTSF_Lite", lambda mod: DTSF_MODALIDADE[mod])] + \
+               [(c, lambda mod, c=c: nome_classico(c, mod)) for c in CLASSIFICADORES]
     fig, eixos = plt.subplots(2, 1, figsize=(LARGURA, 5.2), gridspec_kw=dict(hspace=0.45))
     largura = 0.26
     for ax, d in zip(eixos, DATASETS):
@@ -721,7 +720,7 @@ def fig_temporal_espectral(numeros: dict, saida: Path) -> list[Path]:
 
 
 def fig_absolutas_relativas(numeros: dict, saida: Path) -> list[Path]:
-    modelos = ["LR_psd_absolutas", "LR_psd_relativas"]
+    modelos = ["LR_PSD_Absolute", "LR_PSD_Relative"]
     fig, ax = plt.subplots(figsize=(LARGURA * 0.7, 2.9))
     largura = 0.34
     rng = np.random.default_rng(0)
@@ -776,18 +775,17 @@ def fig_auc_repeticoes(numeros: dict, saida: Path) -> list[Path]:
 
 # ---------------------------------------------------------------- ΔAUC
 
-UMA_MODALIDADE = [f"{c}_{m}" for m in ("temporal", "espectral") for c in CLASSIFICADORES]
+UMA_MODALIDADE = [nome_classico(c, m) for m in ("temporal", "espectral") for c in CLASSIFICADORES]
 # (título do grupo, [(comparação "A − B", modelo que dá o marcador, rótulo)])
 GRUPOS_DELTA = [
-    ("Ablações: D_pequeno contra", [(f"{REFERENCIA_ABLACOES} − {m}", m, rotulo) for m, rotulo in
-                                    (("D_sem_T", "sem ramo temporal"), ("D_sem_E", "sem ramo espectral"),
-                                     ("D_sem_mixup", "sem Mixup"))]),
-    ("Clássicos combinados: D_FA contra", [(f"{PRINCIPAL} − {c}_combinado", f"{c}_combinado", f"{c} combinado")
+    ("Ablações: DTSF_Lite contra", [(f"{REFERENCIA_ABLACOES} − {m}", m, rotulo) for m, rotulo in
+                                    (("DTSF_Lite_SpectralOnly",) * 2, ("DTSF_Lite_TemporalOnly",) * 2, ("DTSF_Lite_NoMixup",) * 2)]),
+    ("Clássicos combinados: DTSF_FA contra", [(f"{PRINCIPAL} − {nome_classico(c, 'combinado')}", nome_classico(c, "combinado"), nome_classico(c, "combinado"))
                                           for c in CLASSIFICADORES]),
-    ("Entre os DTSF", [("D_FA − D", "D", "D_FA − D (FA)"),
-                       ("D − D_pequeno", "D_pequeno", "D − D_pequeno (tamanho)"),
-                       ("D_FA − D_pequeno", "D_pequeno", "D_FA − D_pequeno")]),
-    ("Clássicos de uma modalidade: D_FA contra", [(f"{PRINCIPAL} − {m}", m, m.replace("_", " ")) for m in UMA_MODALIDADE]),
+    ("Entre modelos da família DTSF", [("DTSF_FA − DTSF", "DTSF", "DTSF_FA − DTSF (FA)"),
+                       ("DTSF − DTSF_Lite", "DTSF_Lite", "DTSF − DTSF_Lite (tamanho)"),
+                       ("DTSF_FA − DTSF_Lite", "DTSF_Lite", "DTSF_FA − DTSF_Lite")]),
+    ("Clássicos de uma modalidade: DTSF_FA contra", [(f"{PRINCIPAL} − {m}", m, m) for m in UMA_MODALIDADE]),
 ]
 
 
@@ -831,7 +829,7 @@ def fig_barras_ablacoes(numeros: dict, saida: Path) -> list[Path]:
     ax.set_xticks(range(len(DATASETS)), [TITULOS[d] for d in DATASETS])
     ax.tick_params(axis="x", length=0)
     ax.set_ylabel("AUC por pessoa")
-    legenda = [plt.Rectangle((0, 0), 1, 1, color=CORES[i], label=nome(m) if i == 0 else f"D_pequeno {nome(m)}")
+    legenda = [plt.Rectangle((0, 0), 1, 1, color=CORES[i], label=nome(m))
                for i, m in enumerate(modelos)]
     ax.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, handlelength=1.2,
               columnspacing=1.4)
@@ -844,12 +842,12 @@ def fig_barras_classicos(numeros: dict, saida: Path) -> list[Path]:
     fig, eixos = plt.subplots(2, 1, figsize=(LARGURA, 5.6), gridspec_kw=dict(hspace=0.42))
     for ax, d in zip(eixos, DATASETS):
         r = numeros["modelos"][d]
-        x, alturas, ics, cores, rotulos = [0.0], [r[PRINCIPAL]["auc"]], [r[PRINCIPAL]["ic"]], [CORES[0]], ["D_FA"]
+        x, alturas, ics, cores, rotulos = [0.0], [r[PRINCIPAL]["auc"]], [r[PRINCIPAL]["ic"]], [CORES[0]], ["DTSF_FA"]
         posicao = 0.6
         for j, (modalidade, _) in enumerate(MODALIDADES):
             posicao += 0.6
             for c in CLASSIFICADORES:
-                m = f"{c}_{modalidade}"
+                m = nome_classico(c, modalidade)
                 x.append(posicao)
                 alturas.append(r[m]["auc"])
                 ics.append(r[m]["ic"])
@@ -863,10 +861,10 @@ def fig_barras_classicos(numeros: dict, saida: Path) -> list[Path]:
         ax.set_ylabel("AUC por pessoa")
         ax.set_xlim(-0.7, x[-1] + 0.7)
         ax.set_title(TITULOS[d], loc="left")
-    legenda = [plt.Rectangle((0, 0), 1, 1, color=CORES[0], label="DTSF (D_FA)")]
+    legenda = [plt.Rectangle((0, 0), 1, 1, color=CORES[0], label="DTSF_FA")]
     legenda += [plt.Rectangle((0, 0), 1, 1, color=CORES[j + 1], label=f"Clássicos: {t.lower()}")
                 for j, (_, t) in enumerate(MODALIDADES)]
-    legenda += [Line2D([], [], color=CORES[0], lw=0.8, ls=":", label="AUC do D_FA"),
+    legenda += [Line2D([], [], color=CORES[0], lw=0.8, ls=":", label="AUC do DTSF_FA"),
                 Line2D([], [], color=TEXTO_2, lw=0.7, ls="--", label="acaso (0,5)")]
     fig.legend(handles=legenda, loc="upper center", bbox_to_anchor=(0.5, 0.045), ncol=3, handlelength=1.4,
                columnspacing=1.6)

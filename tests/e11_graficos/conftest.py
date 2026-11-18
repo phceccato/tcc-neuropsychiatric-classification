@@ -49,7 +49,7 @@ def _resultados_sinteticos(raiz, comparar) -> None:
             p = _previsoes(10 * k + i, 0.4 + 0.05 * (i % 5))
             p.to_csv(raiz / "previsoes" / d / f"{m}.csv", index=False)
             previsoes[(d, m)] = n.ler_previsoes(raiz / "previsoes" / d / f"{m}.csv")
-        _perdas(k).to_csv(raiz / "perdas" / d / "D_FA.csv", index=False)
+        _perdas(k).to_csv(raiz / "perdas" / d / "DTSF_FA.csv", index=False)
 
     md07, md08, md06 = ["# 07"], ["# 08"], ["# 06"]
     for d in n.DATASETS:
@@ -58,8 +58,8 @@ def _resultados_sinteticos(raiz, comparar) -> None:
         for m in n.MODELOS:
             r = n.avaliar(previsoes[(d, m)], semente=n.SEMENTE)
             linha = f"{r['auc']:.3f} [{r['ic_baixo']:.3f}, {r['ic_alto']:.3f}]"
-            if m.startswith("LR_psd"):
-                md06.append(f"| {d} | {m.split('_')[-1]} | {linha} | x |")
+            if m.startswith("LR_PSD"):
+                md06.append(f"| {d} | {'absolutas' if m.endswith('Absolute') else 'relativas'} | {linha} | x |")
             else:
                 (md07 if m in n.TIPOS_DTSF else md08).append(f"| {m} | {linha} | x |")
     for d in n.DATASETS:

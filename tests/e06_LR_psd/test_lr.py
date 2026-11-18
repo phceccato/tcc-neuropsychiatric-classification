@@ -93,5 +93,5 @@ def test_doc_06_bate_com_as_aucs_exportadas():
     for linha in linhas:
         c = [x.strip() for x in linha.strip("|").split("|")]
         auc = float(c[2].split("[")[0].replace(",", "."))
-        nome = "LR_psd_" + c[1]
+        nome = {"absolutas": "LR_PSD_Absolute", "relativas": "LR_PSD_Relative"}[c[1]]
         assert abs(m.loc[(c[0], nome), "auc_pessoa"] - auc) <= 0.0005, (c[0], nome)

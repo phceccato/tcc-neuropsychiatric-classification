@@ -8,9 +8,9 @@ from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
 
 
 def test_ablacoes_sao_as_variantes_do_dtsf():
-    assert a.ABLACOES == ("D_sem_T", "D_sem_E", "D_sem_mixup")
-    assert a.REFERENCIA_ABLACOES == "D_pequeno"
-    assert a.DESCRITIVAS == (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
+    assert a.ABLACOES == ("DTSF_Lite_SpectralOnly", "DTSF_Lite_TemporalOnly", "DTSF_Lite_NoMixup")
+    assert a.REFERENCIA_ABLACOES == "DTSF_Lite"
+    assert a.DESCRITIVAS == (("DTSF_FA", "DTSF"), ("DTSF", "DTSF_Lite"), ("DTSF_FA", "DTSF_Lite"))
 
 
 def test_nao_ha_hipoteses_nem_teste_de_permutacao_na_avaliacao():
@@ -75,12 +75,12 @@ def test_main_escreve_o_resumo_do_dtsf_sem_tocar_no_resumo_historico(tmp_path, m
     monkeypatch.setattr("sys.argv", ["avaliar", "--modelos", str(tmp_path / "modelos")])
     a.main()
     resumo = (tmp_path / "modelos" / "resumo_dtsf.md").read_text()
-    assert "| D | incompleto" not in resumo
-    assert "## Ablações do D_pequeno" in resumo and "D_pequeno − D_sem_mixup" in resumo
-    assert "D_pequeno − D_sem_T" in resumo and "D_pequeno − D_sem_E" in resumo
-    assert "| SZ | D_FA − D |" in resumo and "| SZ | D − D_pequeno |" in resumo and "| MDD | D_FA − D_pequeno |" in resumo
-    assert "| D_FA | 704.769 |" in resumo and "| D_pequeno | 80.449 |" in resumo
-    assert "Média ± desvio nas 10 repetições" in resumo and resumo.count("| D_FA | 0.") >= 2
+    assert "| DTSF | incompleto" not in resumo
+    assert "## Ablações do DTSF_Lite" in resumo and "DTSF_Lite − DTSF_Lite_NoMixup" in resumo
+    assert "DTSF_Lite − DTSF_Lite_SpectralOnly" in resumo and "DTSF_Lite − DTSF_Lite_TemporalOnly" in resumo
+    assert "| SZ | DTSF_FA − DTSF |" in resumo and "| SZ | DTSF − DTSF_Lite |" in resumo and "| MDD | DTSF_FA − DTSF_Lite |" in resumo
+    assert "| DTSF_FA | 704.769 |" in resumo and "| DTSF_Lite | 80.449 |" in resumo
+    assert "Média ± desvio nas 10 repetições" in resumo and resumo.count("| DTSF_FA | 0.") >= 2
     for proibido in ("H1", "H2", "H3", "p (ranks)", "contra o acaso", "Holm"[:0] or "interseção-união"):
         assert proibido not in resumo
     assert (tmp_path / "modelos" / "resumo.md").read_text() == "histórico"

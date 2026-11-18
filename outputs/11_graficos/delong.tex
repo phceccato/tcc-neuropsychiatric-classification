@@ -3,23 +3,23 @@
 \footnotesize
 \begin{tabular}{lrrrrrrc}
 \toprule
-Comparação & AUC D\_FA & AUC do comparado & $\Delta$AUC (D\_FA $-$ outro) & Z de DeLong & p bruto & p ajustado (Holm) & Significativo \\
+Comparação & AUC DTSF\_FA & AUC do comparado & $\Delta$AUC (DTSF\_FA $-$ outro) & Z de DeLong & p bruto & p ajustado (Holm) & Significativo \\
 \midrule
 \multicolumn{8}{l}{\textit{Esquizofrenia $\times$ controles}} \\
-D\_FA vs. D (sem FA) & 0,8520 & 0,8367 & +0,0153 & +1,1157 & 0,2646 & 0,6125 & Não \\
-D\_FA vs. D\_pequeno & 0,8520 & 0,8265 & +0,0255 & +1,1224 & 0,2617 & 0,6125 & Não \\
-D\_FA vs. LR combinado & 0,8520 & 0,8112 & +0,0408 & +1,2698 & 0,2042 & 0,6125 & Não \\
-D\_FA vs. RF combinado & 0,8520 & 0,6939 & +0,1582 & +1,9018 & 0,0572 & 0,2860 & Não \\
-D\_FA vs. KNN combinado & 0,8520 & 0,7092 & +0,1429 & +1,6420 & 0,1006 & 0,4023 & Não \\
+DTSF\_FA vs. DTSF (sem FA) & 0,8520 & 0,8367 & +0,0153 & +1,1157 & 0,2646 & 0,6125 & Não \\
+DTSF\_FA vs. DTSF\_Lite & 0,8520 & 0,8265 & +0,0255 & +1,1224 & 0,2617 & 0,6125 & Não \\
+DTSF\_FA vs. LR\_Combined & 0,8520 & 0,8112 & +0,0408 & +1,2698 & 0,2042 & 0,6125 & Não \\
+DTSF\_FA vs. RF\_Combined & 0,8520 & 0,6939 & +0,1582 & +1,9018 & 0,0572 & 0,2860 & Não \\
+DTSF\_FA vs. KNN\_Combined & 0,8520 & 0,7092 & +0,1429 & +1,6420 & 0,1006 & 0,4023 & Não \\
 \midrule
 \multicolumn{8}{l}{\textit{Depressão maior $\times$ controles}} \\
-D\_FA vs. D (sem FA) & 0,9642 & 0,9617 & +0,0026 & +0,3487 & 0,7273 & 0,8293 & Não \\
-D\_FA vs. D\_pequeno & 0,9642 & 0,9579 & +0,0064 & +0,8157 & 0,4147 & 0,8293 & Não \\
-D\_FA vs. LR combinado & 0,9642 & 0,9387 & +0,0255 & +2,0547 & 0,0399 & 0,1596 & Não \\
-D\_FA vs. RF combinado & 0,9642 & 0,9029 & +0,0613 & +2,2432 & 0,0249 & 0,1244 & Não \\
-D\_FA vs. KNN combinado & 0,9642 & 0,9119 & +0,0524 & +1,9698 & 0,0489 & 0,1596 & Não \\
+DTSF\_FA vs. DTSF (sem FA) & 0,9642 & 0,9617 & +0,0026 & +0,3487 & 0,7273 & 0,8293 & Não \\
+DTSF\_FA vs. DTSF\_Lite & 0,9642 & 0,9579 & +0,0064 & +0,8157 & 0,4147 & 0,8293 & Não \\
+DTSF\_FA vs. LR\_Combined & 0,9642 & 0,9387 & +0,0255 & +2,0547 & 0,0399 & 0,1596 & Não \\
+DTSF\_FA vs. RF\_Combined & 0,9642 & 0,9029 & +0,0613 & +2,2432 & 0,0249 & 0,1244 & Não \\
+DTSF\_FA vs. KNN\_Combined & 0,9642 & 0,9119 & +0,0524 & +1,9698 & 0,0489 & 0,1596 & Não \\
 \bottomrule
 \end{tabular}
-\caption{Teste de DeLong para a diferença entre as AUCs por pessoa do D\_FA e dos outros modelos principais (bicaudal). O p bruto de cada transtorno é ajustado por Holm sobre as cinco comparações; significativo se o p ajustado é no máximo 0,05. A validação cruzada viola a independência das pessoas que o DeLong supõe, e as AUCs são as dos escores médios das repetições, então os p são aproximados.}
+\caption{Teste de DeLong para a diferença entre as AUCs por pessoa do DTSF\_FA e dos outros modelos principais (bicaudal). O p bruto de cada transtorno é ajustado por Holm sobre as cinco comparações; significativo se o p ajustado é no máximo 0,05. A validação cruzada viola a independência das pessoas que o DeLong supõe, e as AUCs são as dos escores médios das repetições, então os p são aproximados.}
 \label{tab:res-delong}
 \end{table}

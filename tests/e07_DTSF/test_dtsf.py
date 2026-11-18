@@ -22,8 +22,8 @@ def _n(m):
 # ---------- redes ----------
 
 def test_os_seis_modelos_da_etapa_e_o_principal():
-    assert rd.TIPOS_DTSF == ("D_FA", "D_pequeno", "D", "D_sem_mixup", "D_sem_T", "D_sem_E")
-    assert rd.PRINCIPAL == "D_FA"
+    assert rd.TIPOS_DTSF == ("DTSF_FA", "DTSF_Lite", "DTSF", "DTSF_Lite_NoMixup", "DTSF_Lite_SpectralOnly", "DTSF_Lite_TemporalOnly")
+    assert rd.PRINCIPAL == "DTSF_FA"
 
 
 @pytest.mark.parametrize("tipo", TIPOS)
@@ -32,22 +32,22 @@ def test_cada_variante_devolve_um_logit_por_janela(tipo):
 
 
 def test_numero_de_parametros():
-    assert _n(rd.DTSF("D_pequeno")) == 80_449        # o D das rodadas anteriores
-    assert _n(rd.DTSF("D")) == 702_721               # dimensões do artigo
-    assert _n(rd.DTSF("D_FA")) == 704_769            # + FA: FC(64 → 16) e FC(16 → 64), sem viés
-    assert _n(rd.DTSF("D_sem_mixup")) == _n(rd.DTSF("D_pequeno"))
+    assert _n(rd.DTSF("DTSF_Lite")) == 80_449        # o DTSF das rodadas anteriores
+    assert _n(rd.DTSF("DTSF")) == 702_721               # dimensões do artigo
+    assert _n(rd.DTSF("DTSF_FA")) == 704_769            # + FA: FC(64 → 16) e FC(16 → 64), sem viés
+    assert _n(rd.DTSF("DTSF_Lite_NoMixup")) == _n(rd.DTSF("DTSF_Lite"))
 
 
 def test_dimensoes_do_artigo_e_reduzidas():
     for tipo in TIPOS:
         v = rd.MODELOS[tipo]
-        esperado = (64, 128, 4, 2) if tipo in ("D_FA", "D") else (16, 32, 2, 2)
+        esperado = (64, 128, 4, 2) if tipo in ("DTSF_FA", "DTSF") else (16, 32, 2, 2)
         assert (v.filtros, v.oculto, v.cabecas, v.camadas) == esperado
-    m = rd.DTSF("D_FA")
+    m = rd.DTSF("DTSF_FA")
     assert m.encoder[0].atencao.num_heads == 4 and len(m.encoder) == 2
 
 
-@pytest.mark.parametrize("tipo, oculto", [("D_pequeno", 32), ("D", 128), ("D_FA", 128)])
+@pytest.mark.parametrize("tipo, oculto", [("DTSF_Lite", 32), ("DTSF", 128), ("DTSF_FA", 128)])
 def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
     modelo = rd.DTSF(tipo).eval()
     x_t, x_e = _entradas(3)
@@ -57,17 +57,17 @@ def test_formas_dos_ramos_e_dos_tokens(tipo, oculto):
 
 
 def test_so_o_d_fa_tem_fa_e_ela_tem_64_filtros_em_4_grupos():
-    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "D_FA" for t in TIPOS}
-    fa = rd.DTSF("D_FA").fa
+    assert {tipo: rd.DTSF(tipo).usa_fa for tipo in TIPOS} == {t: t == "DTSF_FA" for t in TIPOS}
+    fa = rd.DTSF("DTSF_FA").fa
     assert fa.filtro_dct.shape == (64, 250) and fa.componentes == (0, 35, 70, 105)
     assert all(torch.equal(fa.filtro_dct[16 * g], fa.filtro_dct[16 * g + 15]) for g in range(4))  # 16 filtros por grupo
 
 
 def test_d_fa_comeca_com_os_pesos_do_d():
     torch.manual_seed(3)
-    a = rd.DTSF("D_FA")
+    a = rd.DTSF("DTSF_FA")
     torch.manual_seed(3)
-    b = rd.DTSF("D")
+    b = rd.DTSF("DTSF")
     comuns = {k: v for k, v in a.state_dict().items() if not k.startswith("fa.")}
     assert comuns.keys() == b.state_dict().keys()
     assert all(torch.equal(v, b.state_dict()[k]) for k, v in comuns.items())
@@ -75,7 +75,7 @@ def test_d_fa_comeca_com_os_pesos_do_d():
 
 def test_fa_reescala_cada_filtro_do_mapa_temporal():
     torch.manual_seed(0)
-    m = rd.DTSF("D_FA").eval()
+    m = rd.DTSF("DTSF_FA").eval()
     x_t, _ = _entradas(2)
     mapa = m.conv_t[0](x_t)
     pesos = m.fa.pesos(mapa)
@@ -98,34 +98,34 @@ def test_fa_exige_filtros_divisiveis_pelos_4_componentes():
 def test_d_sem_t_ignora_o_sinal_e_d_sem_e_ignora_a_stft():
     torch.manual_seed(0)
     x_t, x_e = _entradas()
-    sem_t, sem_e = rd.DTSF("D_sem_T").eval(), rd.DTSF("D_sem_E").eval()
+    sem_t, sem_e = rd.DTSF("DTSF_Lite_SpectralOnly").eval(), rd.DTSF("DTSF_Lite_TemporalOnly").eval()
     assert torch.equal(sem_t(x_t, x_e), sem_t(torch.randn_like(x_t), x_e))
     assert torch.equal(sem_e(x_t, x_e), sem_e(x_t, torch.randn_like(x_e)))
     assert sem_t.tokens(x_t, x_e).shape[1] == 17 and sem_e.tokens(x_t, x_e).shape[1] == 17
-    assert not sem_t.usa_fa and _n(sem_t) < _n(rd.DTSF("D"))
+    assert not sem_t.usa_fa and _n(sem_t) < _n(rd.DTSF("DTSF"))
 
 
 def test_so_d_sem_mixup_desliga_o_mixup():
-    assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {t: t != "D_sem_mixup" for t in TIPOS}
+    assert {tipo: rd.DTSF(tipo).mixup for tipo in TIPOS} == {t: t != "DTSF_Lite_NoMixup" for t in TIPOS}
 
 
 def test_ablacoes_do_d_pequeno_mudam_uma_coisa_so():
     v, pequeno = rd.MODELOS, dict(filtros=rd.FILTROS, oculto=rd.OCULTO, cabecas=rd.CABECAS)
-    assert v["D_sem_mixup"] == rd.Variante(mixup=False, **pequeno) and v["D_sem_E"] == rd.Variante(espectral=False, **pequeno)
-    assert v["D_sem_T"] == rd.Variante(temporal=False, **pequeno) and v["D_pequeno"] == rd.Variante(**pequeno)
-    assert v["D"] == rd.Variante() and v["D_FA"] == rd.Variante(fa=True)
+    assert v["DTSF_Lite_NoMixup"] == rd.Variante(mixup=False, **pequeno) and v["DTSF_Lite_TemporalOnly"] == rd.Variante(espectral=False, **pequeno)
+    assert v["DTSF_Lite_SpectralOnly"] == rd.Variante(temporal=False, **pequeno) and v["DTSF_Lite"] == rd.Variante(**pequeno)
+    assert v["DTSF"] == rd.Variante() and v["DTSF_FA"] == rd.Variante(fa=True)
     torch.manual_seed(2)
-    a = rd.DTSF("D_pequeno")
+    a = rd.DTSF("DTSF_Lite")
     torch.manual_seed(2)
-    b = rd.DTSF("D_sem_mixup")
+    b = rd.DTSF("DTSF_Lite_NoMixup")
     assert all(torch.equal(x, b.state_dict()[k]) for k, x in a.state_dict().items())   # mesma rede, só o treino muda
 
 
 def test_dimensoes_explicitas_substituem_as_do_modelo():
     torch.manual_seed(5)
-    a = rd.DTSF("D", filtros=16, oculto=32, cabecas=2, camadas=2)
+    a = rd.DTSF("DTSF", filtros=16, oculto=32, cabecas=2, camadas=2)
     torch.manual_seed(5)
-    b = rd.DTSF("D_pequeno")
+    b = rd.DTSF("DTSF_Lite")
     assert all(torch.equal(v, b.state_dict()[k]) for k, v in a.state_dict().items())
 
 
@@ -140,7 +140,7 @@ def test_tipo_desconhecido_falha():
 
 def test_a_stft_e_normalizada_pelos_buffers():
     torch.manual_seed(0)
-    modelo = rd.DTSF("D").eval()
+    modelo = rd.DTSF("DTSF").eval()
     x_t, x_e = _entradas()
     media, desvio = torch.full((19, 29), 3.0), torch.full((19, 29), 2.0)
     esperado = modelo(x_t, x_e)
@@ -288,14 +288,14 @@ def test_normalizacao_da_stft_usa_so_pessoas_de_treino():
     treino, validacao, teste = _papeis(fonte)
     fora = fonte.indice["subject_uid"].isin(validacao + teste).to_numpy()
     fonte.x_e[fora] = 1000.0
-    modelo = t.treinar("D", fonte, treino, validacao, fonte.y, semente=0, max_epocas=1).modelo
+    modelo = t.treinar("DTSF", fonte, treino, validacao, fonte.y, semente=0, max_epocas=1).modelo
     linhas = fonte.indice.loc[fonte.indice["subject_uid"].isin(treino), "linha"].to_numpy()
     esperado = torch.from_numpy(fonte.x_e[linhas]).mean(dim=(0, 3))
     assert torch.allclose(modelo.stft_media, esperado, atol=1e-4)
     assert float(modelo.stft_media.max()) < 100
 
 
-@pytest.mark.parametrize("tipo, com_mixup", [("D", True), ("D_sem_mixup", False)])
+@pytest.mark.parametrize("tipo, com_mixup", [("DTSF", True), ("DTSF_Lite_NoMixup", False)])
 def test_mixup_so_no_treino(monkeypatch, tipo, com_mixup):
     chamadas = []
     original = t.misturar
@@ -317,26 +317,26 @@ def test_mixup_so_no_treino(monkeypatch, tipo, com_mixup):
 
 def test_mixup_nao_muda_o_sorteio_de_janelas():
     sorteios = {}
-    for tipo in ("D", "D_sem_mixup"):
+    for tipo in ("DTSF", "DTSF_Lite_NoMixup"):
         fonte = _FonteSintetica()
         treino, validacao, _ = _papeis(fonte)
         t.treinar(tipo, fonte, treino, validacao, fonte.y, semente=4, max_epocas=2)
         sorteios[tipo] = np.concatenate(fonte.pedidas[1:])  # [0] é a normalização
-    np.testing.assert_array_equal(sorteios["D"], sorteios["D_sem_mixup"])
+    np.testing.assert_array_equal(sorteios["DTSF"], sorteios["DTSF_Lite_NoMixup"])
 
 
 def test_treino_do_d_e_reprodutivel():
     fonte = _FonteSintetica()
     treino, validacao, teste = _papeis(fonte)
-    a = t.prever(t.treinar("D", fonte, treino, validacao, fonte.y, semente=3, max_epocas=2).modelo, fonte, teste)
-    b = t.prever(t.treinar("D", fonte, treino, validacao, fonte.y, semente=3, max_epocas=2).modelo, fonte, teste)
+    a = t.prever(t.treinar("DTSF", fonte, treino, validacao, fonte.y, semente=3, max_epocas=2).modelo, fonte, teste)
+    b = t.prever(t.treinar("DTSF", fonte, treino, validacao, fonte.y, semente=3, max_epocas=2).modelo, fonte, teste)
     assert a == b
 
 
 def test_previsao_da_pessoa_e_a_media_das_janelas_aceitas_sem_overlap():
     fonte = _FonteSintetica()
     treino, validacao, teste = _papeis(fonte)
-    modelo = t.treinar("D", fonte, treino, validacao, fonte.y, semente=0, max_epocas=1).modelo
+    modelo = t.treinar("DTSF", fonte, treino, validacao, fonte.y, semente=0, max_epocas=1).modelo
     prob = t.prever(modelo, fonte, teste)
     uid = teste[0]
     linhas = fonte.indice.loc[(fonte.indice["subject_uid"] == uid) & fonte.indice["sem_overlap"], "linha"].to_numpy()
@@ -356,12 +356,12 @@ def test_gerador_do_mixup_e_derivado_da_semente_mas_independente_do_sorteio():
 def test_checkpoint_guarda_o_melhor_modelo_e_reproduz_as_previsoes(tmp_path):
     fonte = _FonteSintetica()
     treino, validacao, teste = _papeis(fonte)
-    resultado = t.treinar("D_FA", fonte, treino, validacao, fonte.y, semente=5, max_epocas=2)
-    caminho = tmp_path / "SZ" / "D_FA" / "r0_f0.pt"
+    resultado = t.treinar("DTSF_FA", fonte, treino, validacao, fonte.y, semente=5, max_epocas=2)
+    caminho = tmp_path / "SZ" / "DTSF_FA" / "r0_f0.pt"
     t.salvar_checkpoint(caminho, resultado.modelo, resultado.melhor_epoca, semente=5, configuracao=dict(a=1))
     assert caminho.exists() and not list(tmp_path.rglob("*.tmp"))
     modelo, meta = t.carregar_checkpoint(caminho)
-    assert meta["modelo"] == "D_FA" and meta["melhor_epoca"] == resultado.melhor_epoca and meta["semente"] == 5
+    assert meta["modelo"] == "DTSF_FA" and meta["melhor_epoca"] == resultado.melhor_epoca and meta["semente"] == 5
     assert not modelo.training and modelo.usa_fa
     for k, v in resultado.modelo.state_dict().items():        # inclui a STFT normalizada e os componentes da FA
         assert torch.equal(modelo.state_dict()[k], v.cpu())
@@ -371,7 +371,7 @@ def test_checkpoint_guarda_o_melhor_modelo_e_reproduz_as_previsoes(tmp_path):
 def test_historico_tem_treino_e_validacao_de_cada_epoca_e_a_melhor_e_a_de_menor_validacao():
     fonte = _FonteSintetica()
     treino, validacao, _ = _papeis(fonte)
-    r = t.treinar("D_pequeno", fonte, treino, validacao, fonte.y, semente=1, max_epocas=4, paciencia=2)
+    r = t.treinar("DTSF_Lite", fonte, treino, validacao, fonte.y, semente=1, max_epocas=4, paciencia=2)
     h = r.historico
     assert [x["epoca"] for x in h] == list(range(1, len(h) + 1)) and 2 <= len(h) <= 4
     assert all(set(x) == {"epoca", "perda_treino", "perda_validacao"} and np.isfinite(list(x.values())).all() for x in h)

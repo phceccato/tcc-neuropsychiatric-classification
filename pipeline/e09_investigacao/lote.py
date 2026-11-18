@@ -2,7 +2,7 @@
 
 Duas análises, com as sessões reconstruídas pela data de gravação (pipeline/e09_investigacao/datas.py):
 
-1. **Subconjuntos, sem retreino.** As previsões fora do fold já gravadas (o modelo principal, D_FA, da etapa 07, os 9
+1. **Subconjuntos, sem retreino.** As previsões fora do fold já gravadas (o modelo principal, DTSF_FA, da etapa 07, os 9
    baselines da 08 e a LR de 76 bandas da 06) são reavaliadas só nas pessoas de um subconjunto em
    que a data se confunde menos com o diagnóstico. O modelo continua treinado com todas as pessoas.
    - SZ: os 3 pacientes gravados em 2003 contra os 14 HC (todos de 2003), e os 11 pacientes de
@@ -10,14 +10,14 @@ Duas análises, com as sessões reconstruídas pela data de gravação (pipeline
    - MDD: sem o lote de jan/2013; só a sessão de abr–jul/2013, a única com as duas classes (4 HC);
      e cada sessão de HC separada contra todos os pacientes.
 2. **Retreino sem o lote de jan/2013 (MDD).** Novas partições 5 × 10 (mesmo procedimento de
-   pipeline/e05_folds) nas 42 pessoas restantes e o D_FA treinado do zero com
+   pipeline/e05_folds) nas 42 pessoas restantes e o DTSF_FA treinado do zero com
    pipeline/e07_DTSF/rodar.py. Na SZ não há retreino equivalente: os 14 HC estão numa sessão só.
 
 Validação por sessão (deixar uma sessão de fora) não é possível: quase todas as sessões têm uma
 classe só (ver outputs/09_investigacao/datas/resumo.md).
 
 Grava em outputs/09_investigacao/lote/: subconjuntos.csv, folds_mdd_sem_jan2013.csv,
-resultados/MDD/D_FA/r<rep>_f<fold>.{csv,json} e resumo.md.
+resultados/MDD/DTSF_FA/r<rep>_f<fold>.{csv,json} e resumo.md.
 """
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ def folds_sem_lote(manifesto: pd.DataFrame, lote: set[str]) -> pd.DataFrame:
 
 def submeter_retreinos(executor, tarefas: list[tuple[int, int]], folds_csv: Path, resultados: Path,
                        dispositivo: str) -> list:
-    """Envia o retreino do D_FA no MDD (um por (repetição, fold)) ao executor, com `rodar_tarefa` da etapa 07."""
+    """Envia o retreino do DTSF_FA no MDD (um por (repetição, fold)) ao executor, com `rodar_tarefa` da etapa 07."""
     return [executor.submit(rodar_tarefa, "MDD", PRINCIPAL, r, f, str(folds_csv), str(resultados),
                             dispositivo=dispositivo) for r, f in tarefas]
 

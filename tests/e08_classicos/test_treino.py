@@ -69,7 +69,7 @@ def test_pesos_recusam_uma_classe_so():
         ct.pesos_janelas([150, 150], [1, 1])
 
 
-@pytest.mark.parametrize("modelo", ["LR_espectral", "RF_temporal", "RF_espectral"])
+@pytest.mark.parametrize("modelo", ["LR_Spectral", "RF_Temporal", "RF_Spectral"])
 def test_os_pesos_chegam_ao_classificador(monkeypatch, modelo):
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
@@ -93,13 +93,13 @@ def test_os_pesos_chegam_ao_classificador(monkeypatch, modelo):
 
 
 def test_nove_modelos_com_nomes_proprios():
-    assert ct.MODELOS == ("LR_temporal", "RF_temporal", "KNN_temporal", "LR_espectral", "RF_espectral", "KNN_espectral",
-                          "LR_combinado", "RF_combinado", "KNN_combinado")
+    assert ct.MODELOS == ("LR_Temporal", "RF_Temporal", "KNN_Temporal", "LR_Spectral", "RF_Spectral", "KNN_Spectral",
+                          "LR_Combined", "RF_Combined", "KNN_Combined")
     from pipeline.e07_DTSF.redes_dtsf import TIPOS_DTSF
     historicos = {"T", "E", "F", "E_bins", "F_aux", "E_rel", "E_1_40", "baseline"}  # pastas com resultados gravados
     assert not set(ct.MODELOS) & ({*TIPOS_DTSF, *historicos})
     with pytest.raises(ValueError):
-        ct.separar("XYZ_temporal")
+        ct.separar("XYZ_Temporal")
 
 
 def test_grades_pequenas_e_do_mais_regularizado_para_o_menos():
@@ -115,7 +115,7 @@ def test_empate_na_selecao_fica_com_o_mais_regularizado(monkeypatch):
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
     monkeypatch.setattr(ct, "roc_auc_score", lambda *a, **k: 0.5)
-    assert ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=0).parametros == dict(C=0.01)
+    assert ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=0).parametros == dict(C=0.01)
 
 
 def test_normalizacao_ajustada_so_nas_janelas_de_quem_e_ajustado(monkeypatch):
@@ -131,7 +131,7 @@ def test_normalizacao_ajustada_so_nas_janelas_de_quem_e_ajustado(monkeypatch):
         return m
 
     monkeypatch.setattr(ct, "construir", espiao)
-    ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=0)
+    ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=0)
     final = ajustados[-1]
     rng = np.random.default_rng(0)
     from pipeline.e07_DTSF.dados import sortear
@@ -157,18 +157,18 @@ def test_pessoa_no_ajuste_e_no_teste_falha():
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
     with pytest.raises(ValueError):
-        ct.treinar_e_prever("LR_temporal", x, indice, ajuste + teste[:1], teste, y, semente=0)
+        ct.treinar_e_prever("LR_Temporal", x, indice, ajuste + teste[:1], teste, y, semente=0)
 
 
 def test_selecao_e_ajuste_nao_veem_o_teste():
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
-    a = ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=2)
+    a = ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=2)
     x2, y2 = x.copy(), y.copy()
     no_teste = indice["subject_uid"].isin(teste).to_numpy() & ~indice["rejeitada"].to_numpy()
     x2[no_teste] = np.random.default_rng(9).normal(size=(no_teste.sum(), x.shape[1]))
     y2[teste] = 1 - y2[teste]
-    b = ct.treinar_e_prever("LR_temporal", x2, indice, ajuste, teste, y2, semente=2)
+    b = ct.treinar_e_prever("LR_Temporal", x2, indice, ajuste, teste, y2, semente=2)
     assert a.parametros == b.parametros and a.auc_interna == b.auc_interna and a.partes_internas == b.partes_internas
 
 
@@ -179,7 +179,7 @@ def _final(monkeypatch, modelo, x, indice, y, ajuste, teste):
     return ct.treinar_e_prever(modelo, x, indice, ajuste, teste, y, semente=0), ajustados[-1]
 
 
-@pytest.mark.parametrize("modelo", ["LR_temporal", "RF_espectral"])
+@pytest.mark.parametrize("modelo", ["LR_Temporal", "RF_Spectral"])
 def test_lr_e_rf_pessoa_e_a_media_das_probabilidades_das_janelas(monkeypatch, modelo):
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
@@ -204,7 +204,7 @@ def test_150_janelas_so_no_ajuste_e_todas_as_aceitas_sem_overlap_na_previsao(mon
 
     monkeypatch.setattr(ct, "_ajustar", espiao_ajustar)
     monkeypatch.setattr(ct, "escore_pessoa", espiao_escore)
-    ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=0)
+    ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=0)
     assert ajustes == [ct.JANELAS_POR_PESSOA] * (3 * 3 + 1)      # 3 candidatos × 3 partes + reajuste final
     # 3 candidatos × todas as pessoas de ajuste (validação interna) + as pessoas de teste, nessa ordem
     assert len(previsoes) == 3 * len(ajuste) + len(teste)
@@ -221,10 +221,10 @@ def test_janela_rejeitada_nunca_entra():
     ajuste, teste = _papeis(uids)
     rejeitadas = indice["rejeitada"].to_numpy()
     assert np.isnan(x[rejeitadas]).all()
-    ct.treinar_e_prever("RF_temporal", x, indice, ajuste, teste, y, semente=0)  # falharia com NaN
+    ct.treinar_e_prever("RF_Temporal", x, indice, ajuste, teste, y, semente=0)  # falharia com NaN
 
 
-@pytest.mark.parametrize("modelo", ["RF_espectral", "LR_temporal", "LR_espectral"])
+@pytest.mark.parametrize("modelo", ["RF_Spectral", "LR_Temporal", "LR_Spectral"])
 def test_reprodutivel_com_a_mesma_semente(modelo):
     x, indice, y, uids = _cenario()
     ajuste, teste = _papeis(uids)
@@ -275,15 +275,15 @@ def test_rodar_tarefa_nas_duas_tarefas_grava_csv_e_json(tmp_path, dataset):
     carac = _arquivos_runner(tmp_path)
     cr._DADOS.clear()
     saida = tmp_path / "res"
-    cr.rodar_tarefa(dataset, "LR_espectral", 1, 3, str(tmp_path / "folds.csv"), str(saida),
+    cr.rodar_tarefa(dataset, "LR_Spectral", 1, 3, str(tmp_path / "folds.csv"), str(saida),
                     caracteristicas=str(carac), janelas_csv=str(tmp_path / "janelas.csv"))
-    pred = pd.read_csv(saida / dataset / "LR_espectral" / "r1_f3.csv")
+    pred = pd.read_csv(saida / dataset / "LR_Spectral" / "r1_f3.csv")
     folds = pd.read_csv(tmp_path / "folds.csv")
     g = folds[(folds["dataset"] == dataset) & (folds["repeticao"] == 1) & (folds["fold"] == 3)]
     assert sorted(pred["subject_uid"]) == sorted(g.loc[g["papel"] == "teste", "subject_uid"])
     assert list(pred.columns) == ["repeticao", "fold", "subject_uid", "y", "prob"]
     assert (pred["y"] == pred["subject_uid"].map(g.set_index("subject_uid")["grupo"] != "HC").astype(int)).all()
-    meta = json.loads((saida / dataset / "LR_espectral" / "r1_f3.json").read_text())
+    meta = json.loads((saida / dataset / "LR_Spectral" / "r1_f3.json").read_text())
     assert meta["parametros"] in ct.GRADES["LR"] and len(meta["auc_interna"]) == 3
     internas = {u for parte in meta["partes_internas"] for u in parte}
     assert internas == set(g.loc[g["papel"] != "teste", "subject_uid"])   # treino + validação, nunca teste
@@ -295,7 +295,7 @@ def test_combinado_concatena_temporais_e_espectrais(tmp_path):
     x, _ = cr._dados(str(carac), str(tmp_path / "janelas.csv"))
     assert x["combinado"].shape[1] == x["temporal"].shape[1] + x["espectral"].shape[1]
     np.testing.assert_array_equal(x["combinado"], np.concatenate([x["temporal"], x["espectral"]], axis=1))
-    assert ct.separar("RF_combinado") == ("RF", "combinado")
+    assert ct.separar("RF_Combined") == ("RF", "combinado")
 
 
 def test_rodar_nao_tem_mais_permutacao():
@@ -343,7 +343,7 @@ def test_peso_muda_o_ajuste_e_e_o_mesmo_de_um_ajuste_feito_a_mao(classificador):
     assert not np.allclose(saida(m), saida(sem))
 
 
-@pytest.mark.parametrize("modelo", ["LR_temporal", "LR_espectral", "RF_temporal"])
+@pytest.mark.parametrize("modelo", ["LR_Temporal", "LR_Spectral", "RF_Temporal"])
 def test_cada_ajuste_da_selecao_e_o_final_recebem_os_pesos_das_suas_proprias_pessoas(monkeypatch, modelo):
     x, indice, y, uids = _cenario_desigual()
     ajuste, teste = _papeis(uids)
@@ -393,7 +393,7 @@ def test_janelas_ajustadas_sao_so_das_pessoas_do_ajuste_e_aceitas(monkeypatch):
         return original(classificador, parametros, semente, x_, sorteadas, uids_, y_)
 
     monkeypatch.setattr(ct, "_ajustar", espiao)
-    ct.treinar_e_prever("LR_espectral", x, indice, ajuste, teste, y, semente=0)
+    ct.treinar_e_prever("LR_Spectral", x, indice, ajuste, teste, y, semente=0)
     pessoa = indice.set_index("linha")["subject_uid"]
     for uids_, linhas in vistas:
         assert set(pessoa[linhas]) == uids_ and not indice.loc[linhas, "rejeitada"].any()
@@ -410,7 +410,7 @@ def test_janelas_de_previsao_nao_dependem_do_numero_sorteado_para_o_ajuste(monke
         monkeypatch.setattr(ct, "JANELAS_POR_PESSOA", k)
         vistas, original = [], ct.escore_pessoa
         monkeypatch.setattr(ct, "escore_pessoa", lambda m, x_, vistas=vistas, original=original: vistas.append(x_) or original(m, x_))
-        ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=0)
+        ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=0)
         monkeypatch.setattr(ct, "escore_pessoa", original)
         entradas[k] = vistas
     assert len(entradas[60]) == len(entradas[150])
@@ -421,12 +421,12 @@ def test_janelas_de_previsao_nao_dependem_do_numero_sorteado_para_o_ajuste(monke
 def test_previsao_de_uma_pessoa_de_teste_nao_depende_das_outras_nem_dos_rotulos_do_teste():
     x, indice, y, uids = _cenario_desigual()
     ajuste, teste = _papeis(uids)
-    a = ct.treinar_e_prever("LR_temporal", x, indice, ajuste, teste, y, semente=1)
+    a = ct.treinar_e_prever("LR_Temporal", x, indice, ajuste, teste, y, semente=1)
     x2, y2 = x.copy(), y.copy()
     outras = indice["subject_uid"].isin(teste[1:]).to_numpy() & ~indice["rejeitada"].to_numpy()
     x2[outras] += 5.0
     y2[teste] = 1 - y2[teste]
-    b = ct.treinar_e_prever("LR_temporal", x2, indice, ajuste, teste, y2, semente=1)
+    b = ct.treinar_e_prever("LR_Temporal", x2, indice, ajuste, teste, y2, semente=1)
     assert a.prob[teste[0]] == b.prob[teste[0]] and a.parametros == b.parametros
 
 
@@ -444,6 +444,6 @@ def test_knn_e_ajustado_sem_pesos(monkeypatch):
         return m
 
     monkeypatch.setattr(ct, "construir", espiao)
-    r = ct.treinar_e_prever("KNN_espectral", x, indice, ajuste, teste, y, semente=0)
+    r = ct.treinar_e_prever("KNN_Spectral", x, indice, ajuste, teste, y, semente=0)
     assert len(recebidos) == 10 and all(kw == {} for kw in recebidos)
     assert set(r.prob) == set(teste) and r.parametros in ct.GRADES["KNN"]

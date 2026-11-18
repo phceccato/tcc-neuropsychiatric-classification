@@ -21,7 +21,7 @@ venv/bin/python -m pipeline.e06_LR_psd.checagem_lote   # ~10 s
 - **Entrada:** média das features nas janelas aceitas de cada pessoa. As pessoas de treino usam a grade com 50% de overlap, e as de teste a grade sem overlap.
 - **Normalização:** z-score por feature, com estatísticas só do treino de cada fold.
 - **Validação:** as partições de [05_folds.md](05_folds.md), 5 folds × 10 repetições.
-- **Sem teste contra o acaso:** o trabalho não usa p-valores de permutação (nem para o `D_FA`). A incerteza é o IC de 95% da AUC por pessoa. Um teste de permutação da LR existiu até a revisão de 16/11/2026 (SZ p = 0,056; MDD p = 0,001) e foi removido por coerência; as AUCs e as previsões não mudaram.
+- **Sem teste contra o acaso:** o trabalho não usa p-valores de permutação (nem para o `DTSF_FA`). A incerteza é o IC de 95% da AUC por pessoa. Um teste de permutação da LR existiu até a revisão de 16/11/2026 (SZ p = 0,056; MDD p = 0,001) e foi removido por coerência; as AUCs e as previsões não mudaram.
 
 ## Resultados
 

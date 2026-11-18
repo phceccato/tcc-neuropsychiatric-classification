@@ -28,7 +28,7 @@ Em cada uma das 10 repetições, as previsões fora do fold dos 5 folds formam u
 ## Teste de DeLong com Holm (análise principal)
 
 O trabalho não formula hipóteses a decidir. A inferência é o teste de DeLong, que compara as AUCs de dois modelos por vez, nas mesmas pessoas, e depois ajusta os p por Holm. Ele é calculado na etapa 11 ([11_graficos.md](11_graficos.md)) sobre os escores por pessoa (média das 10 repetições):
-1. **Comparações:** o modelo principal (`D_FA`) contra os outros 5 modelos principais: `D` (dimensões do artigo, sem FA), `D_pequeno` e os 3 baselines combinados (LR, RF e KNN). Em cada uma, `teste_delong` dá a AUC dos dois modelos, ΔAUC = AUC(`D_FA`) − AUC(outro), o erro-padrão, o Z, o p bruto (bicaudal) e o IC de 95% do Δ.
+1. **Comparações:** o modelo principal (`DTSF_FA`) contra os outros 5 modelos principais: `DTSF` (dimensões do artigo, sem FA), `DTSF_Lite` e os 3 baselines combinados (LR, RF e KNN). Em cada uma, `teste_delong` dá a AUC dos dois modelos, ΔAUC = AUC(`DTSF_FA`) − AUC(outro), o erro-padrão, o Z, o p bruto (bicaudal) e o IC de 95% do Δ.
 2. **Holm:** os 5 p brutos de cada transtorno são ajustados por Holm (`holm`, α = 0,05, separadamente em SZ e em MDD). "Significativo" é a decisão do Holm.
 
 A tabela (comparação, AUC dos dois modelos, ΔAUC, Z, p bruto, p ajustado e decisão) sai em `outputs/11_graficos/delong.tex` (LaTeX, booktabs), `delong.csv` e na figura `p10_delong_tabela`.
@@ -44,6 +44,6 @@ Validação: `tests/avaliacao/test_metricas.py` confere o teste contra uma imple
 ## Comparações descritivas
 
 `comparacao_pareada` ([pipeline/e07_DTSF/avaliar.py](../pipeline/e07_DTSF/avaliar.py)) compara dois modelos nas mesmas pessoas e devolve o ΔAUC (a − b) sobre os escores por pessoa, o IC de 95% (`ic_bootstrap_delta`) e o Δ de cada repetição (`delta_por_repeticao`). Ela é usada:
-- na etapa 07, para `D_pequeno` − ablação (`D_sem_T`, `D_sem_E`, `D_sem_mixup`) e para `D_FA` − `D`, `D` − `D_pequeno` e `D_FA` − `D_pequeno`;
-- na etapa 08, para `D_FA` − cada um dos 9 baselines clássicos;
+- na etapa 07, para `DTSF_Lite` − ablação (`DTSF_Lite_SpectralOnly`, `DTSF_Lite_TemporalOnly`, `DTSF_Lite_NoMixup`) e para `DTSF_FA` − `DTSF`, `DTSF` − `DTSF_Lite` e `DTSF_FA` − `DTSF_Lite`;
+- na etapa 08, para `DTSF_FA` − cada um dos 9 baselines clássicos;
 - na etapa 11 (`numeros.py`), que recalcula essas comparações das previsões exportadas e as confere contra as tabelas dos resumos.

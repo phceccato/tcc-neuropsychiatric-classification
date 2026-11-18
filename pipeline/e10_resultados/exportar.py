@@ -5,7 +5,7 @@ Lê as saídas das etapas 05 (partições), 06 (LR_psd), 07 (DTSF) e 08 (clássi
 
 - previsoes/<dataset>/<modelo>.csv: uma linha por (repetição, fold, pessoa de teste), com y_true (1 = paciente),
   y_prob (probabilidade de paciente, fora do fold) e y_pred (y_prob ≥ 0,5);
-- perdas/<dataset>/<modelo>.csv, só do modelo principal (D_FA): a perda de treino e a de validação interna de cada
+- perdas/<dataset>/<modelo>.csv, só do modelo principal (DTSF_FA): a perda de treino e a de validação interna de cada
   época de cada (repetição, fold), com a época escolhida (`melhor`); a validação é o split interno do treino, nunca o
   teste, e a perda de treino é a do lote com Mixup;
 - folds.csv: as partições (dataset, repetição, fold, pessoa, grupo, papel), cópia de outputs/05_folds/folds.csv;
@@ -18,8 +18,8 @@ Lê as saídas das etapas 05 (partições), 06 (LR_psd), 07 (DTSF) e 08 (clássi
 
 Só entram modelos com as 10 repetições completas; os incompletos são listados no manifesto. Antes de gravar, a AUC
 por pessoa recalculada de cada modelo é conferida contra o resumo da etapa (|diferença| ≤ 0,0005): se não bater, o
-script para sem gravar. Também para, antes de apagar a pasta de saída, se o D_FA não estiver completo nos dois
-datasets ou se os DTSF vierem de dispositivos diferentes (`--permitir-parcial` desliga essa trava).
+script para sem gravar. Também para, antes de apagar a pasta de saída, se o DTSF_FA não estiver completo nos dois
+datasets ou se os modelos da família DTSF vierem de dispositivos diferentes (`--permitir-parcial` desliga essa trava).
 """
 from __future__ import annotations
 
@@ -36,6 +36,7 @@ from pipeline.avaliacao.metricas import LIMIAR, METRICAS_REPETICAO, avaliar, med
 from pipeline.e07_DTSF.avaliar import SEMENTE, completo, ler_modelo
 from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS
+from pipeline.nomes import LR_PSD, nome_novo, resolver_pasta
 
 DATASETS = ("SZ", "MDD")
 SAIDA = Path("outputs/10_resultados")
@@ -48,13 +49,13 @@ class Divergencia(ValueError):
 
 
 class RodadaIncompleta(ValueError):
-    """As saídas não são uma rodada completa e única: falta o modelo principal ou os DTSF vêm de dispositivos diferentes."""
+    """As saídas não são uma rodada completa e única: falta o modelo principal ou os modelos da família DTSF vêm de dispositivos diferentes."""
 
 
 def verificar_rodada(modelos: dict) -> None:
     """Recusa exportar uma rodada parcial, que apagaria a exportação completa que já está no git.
 
-    Exige o modelo principal (D_FA) completo nos dois datasets e todos os DTSF da etapa 07 no mesmo dispositivo
+    Exige o modelo principal (DTSF_FA) completo nos dois datasets e todos os modelos da família DTSF da etapa 07 no mesmo dispositivo
     (uma rodada em CPU e outra em GPU não se misturam: docs/07_DTSF.md).
     """
     faltam = [d for d in DATASETS if (d, PRINCIPAL) not in modelos]
@@ -63,7 +64,7 @@ def verificar_rodada(modelos: dict) -> None:
                                "outputs/10_resultados sem ele. Rode a rodada completa ou use --permitir-parcial.")
     dispositivos = {tuple(i["dispositivo"]) for i in modelos.values() if i["etapa"] == "07"}
     if len(dispositivos) > 1:
-        raise RodadaIncompleta("os DTSF da etapa 07 vêm de dispositivos diferentes "
+        raise RodadaIncompleta("os modelos da família DTSF da etapa 07 vêm de dispositivos diferentes "
                                f"({sorted(dispositivos)}); não misture CPU e GPU. Use --permitir-parcial para ignorar.")
 
 
@@ -92,14 +93,14 @@ def aucs_do_resumo(md: str) -> dict[tuple[str, str], float]:
             dataset = linha[3:].strip() if linha[3:].strip() in DATASETS else None
         m = re.match(r"^\| (\S+) \|(?: [\d.]+ \|)? (\d\.\d{3}) \[\d\.\d{3}, \d\.\d{3}\] \|", linha)
         if dataset and m:
-            saida[(dataset, m.group(1))] = float(m.group(2))
+            saida[(dataset, nome_novo(m.group(1)))] = float(m.group(2))
     return saida
 
 
 def aucs_do_resumo_06(md: str) -> dict[tuple[str, str], float]:
     saida = {}
     for m in re.finditer(r"^\| (SZ|MDD) \| (absolutas|relativas) \| (\d\.\d{3}) \[", md, re.M):
-        saida[(m.group(1), f"LR_psd_{m.group(2)}")] = float(m.group(3))
+        saida[(m.group(1), LR_PSD[m.group(2)])] = float(m.group(3))
     return saida
 
 
@@ -122,7 +123,7 @@ def coletar(raiz: Path) -> dict:
     modelos, incompletos = {}, []
     lr = pd.read_csv(raiz / "06_LR_psd/predicoes.csv")
     for d in DATASETS:
-        fontes = {m: ("07", raiz / "07_DTSF/resultados" / d / m) for m in TIPOS_DTSF}
+        fontes = {m: ("07", resolver_pasta(raiz / "07_DTSF/resultados" / d / m)) for m in TIPOS_DTSF}
         fontes |= {m: ("08", raiz / "08_classicos/resultados" / d / m) for m in CLASSICOS}
         for m, (etapa, pasta) in fontes.items():
             p = ler_modelo(pasta)
@@ -134,13 +135,13 @@ def coletar(raiz: Path) -> dict:
             parametros = sorted({j["parametros"] for j in js if isinstance(j.get("parametros"), int)})
             perdas = ler_perdas(pasta) if etapa == "07" and m == PRINCIPAL else pd.DataFrame()
             modelos[(d, m)] = dict(etapa=etapa, previsoes=p, dispositivo=dispositivos, parametros=parametros, perdas=perdas)
-        for nome in ("absolutas", "relativas"):
+        for nome, modelo in LR_PSD.items():
             g = lr[(lr["dataset"] == d) & (lr["features"] == nome)]
             p = g[["repeticao", "fold", "subject_uid", "y", "prob"]].reset_index(drop=True)
             if not completo(p):
-                incompletos.append(f"{d}/LR_psd_{nome}")
+                incompletos.append(f"{d}/{modelo}")
                 continue
-            modelos[(d, f"LR_psd_{nome}")] = dict(etapa="06", previsoes=p, dispositivo=["cpu"], parametros=[],
+            modelos[(d, modelo)] = dict(etapa="06", previsoes=p, dispositivo=["cpu"], parametros=[],
                                                    perdas=pd.DataFrame())
     return dict(modelos=modelos, incompletos=incompletos)
 
@@ -188,7 +189,7 @@ treinar nada. Gerado por `python -m pipeline.e10_resultados.exportar`; o método
 | Arquivo | Conteúdo |
 | --- | --- |
 | `previsoes/<dataset>/<modelo>.csv` | uma linha por (repetição, fold, pessoa de teste): `y_true` (1 = paciente), `y_prob` (probabilidade de paciente), `y_pred` (`y_prob` ≥ 0,5) |
-| `perdas/<dataset>/D_FA.csv` | perda de treino e de validação interna por época, em cada (repetição, fold), do modelo principal; `melhor` marca a época escolhida |
+| `perdas/<dataset>/DTSF_FA.csv` | perda de treino e de validação interna por época, em cada (repetição, fold), do modelo principal; `melhor` marca a época escolhida |
 | `folds.csv` | as partições: 5 folds × 10 repetições, por pessoa, com o papel (treino, validação, teste) |
 | `metricas.csv` | AUC por pessoa com IC de 95%; acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 e Macro F1 no limiar 0,5; e a média ± desvio de todas nas 10 repetições, recalculadas destes arquivos |
 | `resumos/` | os resumos das etapas 06, 07 e 08, com as comparações entre modelos |
@@ -199,7 +200,7 @@ AUC por pessoa: média de `y_prob` de cada pessoa nas 10 repetições, e uma AUC
 ```python
 import pandas as pd
 from sklearn.metrics import roc_auc_score
-p = pd.read_csv("previsoes/SZ/D_FA.csv")
+p = pd.read_csv("previsoes/SZ/DTSF_FA.csv")
 pessoa = p.groupby("subject_uid").agg(y=("y_true", "first"), prob=("y_prob", "mean"))
 print(roc_auc_score(pessoa["y"], pessoa["prob"]))
 ```
@@ -245,7 +246,7 @@ def main() -> None:
     parser.add_argument("--outputs", type=Path, default=Path("outputs"))
     parser.add_argument("--saida", type=Path, default=SAIDA)
     parser.add_argument("--permitir-parcial", action="store_true",
-                        help="exporta mesmo sem o D_FA completo ou com dispositivos misturados (apaga a pasta de saída)")
+                        help="exporta mesmo sem o DTSF_FA completo ou com dispositivos misturados (apaga a pasta de saída)")
     args = parser.parse_args()
     manifesto = exportar(args.outputs, args.saida, args.permitir_parcial)
     print(f"{len(manifesto['modelos'])} (dataset, modelo) exportados em {args.saida}")

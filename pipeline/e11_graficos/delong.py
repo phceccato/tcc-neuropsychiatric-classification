@@ -1,9 +1,9 @@
-"""Tabela do teste de DeLong (análise principal): o D_FA contra os outros 5 modelos principais, com Holm.
+"""Tabela do teste de DeLong (análise principal): o DTSF_FA contra os outros 5 modelos principais, com Holm.
 
 Cada comparação testa a diferença entre as AUCs de dois modelos nas mesmas pessoas (`teste_delong`, bicaudal, sobre o
 escore médio das 10 repetições). Os 5 p brutos de cada transtorno são ajustados por Holm (α = 0,05), e a coluna
-"Significativo" é a decisão do Holm. As comparações (`COMPARADOS`) são o D (dimensões do artigo, sem FA), o
-D_pequeno e os 3 baselines combinados (LR, RF e KNN).
+"Significativo" é a decisão do Holm. As comparações (`COMPARADOS`) são o DTSF (dimensões do artigo, sem FA), o
+DTSF_Lite e os 3 baselines combinados (LR, RF e KNN).
 
 Lê outputs/11_graficos/numeros.json (`numeros.py`, chave `delong`) e grava outputs/11_graficos/delong.tex, uma tabela
 em LaTeX (booktabs) para o Overleaf. O preâmbulo precisa de `\\usepackage{booktabs}`. A mesma tabela, em texto, sai
@@ -15,11 +15,11 @@ import argparse
 import json
 from pathlib import Path
 
-PRINCIPAL = "D_FA"
-COMPARADOS = ("D", "D_pequeno", "LR_combinado", "RF_combinado", "KNN_combinado")
-ROTULOS = {"D": "D (sem FA)", "D_pequeno": "D_pequeno", "LR_combinado": "LR combinado",
-           "RF_combinado": "RF combinado", "KNN_combinado": "KNN combinado"}
-CABECALHO = ["Comparação", "AUC D_FA", "AUC do comparado", "ΔAUC (D_FA − outro)", "Z de DeLong", "p bruto",
+PRINCIPAL = "DTSF_FA"
+COMPARADOS = ("DTSF", "DTSF_Lite", "LR_Combined", "RF_Combined", "KNN_Combined")
+ROTULOS = {"DTSF": "DTSF (sem FA)", "DTSF_Lite": "DTSF_Lite", "LR_Combined": "LR_Combined",
+           "RF_Combined": "RF_Combined", "KNN_Combined": "KNN_Combined"}
+CABECALHO = ["Comparação", "AUC DTSF_FA", "AUC do comparado", "ΔAUC (DTSF_FA − outro)", "Z de DeLong", "p bruto",
              "p ajustado (Holm)", "Significativo"]
 TITULOS = {"SZ": "Esquizofrenia × controles", "MDD": "Depressão maior × controles"}
 SAIDA = Path("outputs/11_graficos")
@@ -61,7 +61,7 @@ def latex(numeros: dict) -> str:
         corpo += [" & ".join(_tex(c) for c in linha) + " \\\\" for linha in linhas(numeros, d)]
     return ("\\begin{table}[htbp]\n\\centering\n\\footnotesize\n"
             f"\\begin{{tabular}}{{{colunas}}}\n\\toprule\n{cabecalho} \\\\\n" + "\n".join(corpo) + "\n\\bottomrule\n"
-            "\\end{tabular}\n\\caption{Teste de DeLong para a diferença entre as AUCs por pessoa do D\\_FA e dos outros "
+            "\\end{tabular}\n\\caption{Teste de DeLong para a diferença entre as AUCs por pessoa do DTSF\\_FA e dos outros "
             "modelos principais (bicaudal). O p bruto de cada transtorno é ajustado por Holm sobre as cinco "
             "comparações; significativo se o p ajustado é no máximo 0,05. A validação cruzada viola a "
             "independência das pessoas que o DeLong supõe, e as AUCs são as dos escores médios das repetições, então os "

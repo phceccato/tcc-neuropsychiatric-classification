@@ -22,9 +22,9 @@ def _predicoes(semente, ruido, n=16, repeticoes=10, folds=4):
 
 def test_comparacoes_usam_a_comparacao_pareada():
     d = _predicoes(0, 0.5)
-    b = {"LR_temporal": _predicoes(1, 2.0)}
-    r = ca.comparacoes(d, b)["LR_temporal"]
-    esperado = ma.comparacao_pareada(d, b["LR_temporal"])
+    b = {"LR_Temporal": _predicoes(1, 2.0)}
+    r = ca.comparacoes(d, b)["LR_Temporal"]
+    esperado = ma.comparacao_pareada(d, b["LR_Temporal"])
     assert r["delta"] == esperado["delta"] and r["ic"] == esperado["ic"] and "p" not in r
     assert r["delta"] > 0
 
@@ -54,8 +54,8 @@ def test_main_grava_so_o_resumo_dos_classicos(tmp_path, monkeypatch):
     depois = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
     assert set(depois) - set(antes) == {classicos.relative_to(tmp_path) / "resumo.md"}
     texto = (classicos / "resumo.md").read_text()
-    assert "## D_FA contra os baselines clássicos" in texto and texto.count("| SZ | D_FA − ") == 9
-    assert "| MDD | D_FA − KNN_espectral |" in texto
+    assert "## DTSF_FA contra os baselines clássicos" in texto and texto.count("| SZ | DTSF_FA − ") == 9
+    assert "| MDD | DTSF_FA − KNN_Spectral |" in texto
     for proibido in ("H4", "interseção-união", "**Validade.**", "p (ranks)"):
         assert proibido not in texto
     assert '{"C": 0.1} ×40' in texto
@@ -66,4 +66,4 @@ def test_main_sem_resultados_nao_calcula_as_comparacoes(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", ["avaliar", "--classicos", str(tmp_path / "c"), "--modelos", str(tmp_path / "m")])
     ca.main()
     texto = (tmp_path / "c" / "resumo.md").read_text()
-    assert "incompleto" in texto and "## D_FA contra" not in texto
+    assert "incompleto" in texto and "## DTSF_FA contra" not in texto

@@ -1,6 +1,6 @@
-"""Experimento 3, resumo: o que os valores SHAP do modelo principal, o D_FA (pipeline/e09_investigacao/explicar.py), mostram.
+"""Experimento 3, resumo: o que os valores SHAP do modelo principal, o DTSF_FA (pipeline/e09_investigacao/explicar.py), mostram.
 
-Lê outputs/09_investigacao/explicacao/D_FA/{janelas,atribuicoes}/ e grava, na mesma pasta, resumo.md e as
+Lê outputs/09_investigacao/explicacao/DTSF_FA/{janelas,atribuicoes}/ e grava, na mesma pasta, resumo.md e as
 figuras frequencias.png, canais.png e tempo.png.
 
 - **Conferências:** a previsão da pessoa no modelo retreinado contra a da etapa 07 na repetição 0, e

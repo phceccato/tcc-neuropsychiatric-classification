@@ -18,7 +18,7 @@ def test_runner_so_aceita_o_dtsf_e_as_ablacoes(monkeypatch):
 
 def test_dispositivos_gravados_le_os_json_e_trata_os_antigos_como_cpu(tmp_path):
     import json
-    pasta = tmp_path / "SZ" / "D"
+    pasta = tmp_path / "SZ" / "DTSF"
     pasta.mkdir(parents=True)
     json.dump(dict(melhor_epoca=1), open(pasta / "r0_f0.json", "w"))
     json.dump(dict(melhor_epoca=1, dispositivo="cuda"), open(pasta / "r0_f1.json", "w"))
@@ -30,7 +30,7 @@ def test_runner_nao_mistura_cpu_e_gpu_na_mesma_pasta(tmp_path, monkeypatch):
     import json
 
     import pytest
-    pasta = tmp_path / "SZ" / "D"
+    pasta = tmp_path / "SZ" / "DTSF"
     pasta.mkdir(parents=True)
     json.dump(dict(melhor_epoca=1), open(pasta / "r0_f0.json", "w"))
     monkeypatch.setattr("torch.cuda.is_available", lambda: True)
@@ -80,22 +80,22 @@ def test_por_padrao_roda_os_seis_modelos_e_nao_aceita_permutacoes(tmp_path, monk
 # ---------- configuração gravada no .json ----------
 
 def test_configuracao_tarefa_registra_dispositivo_variante_e_hiperparametros():
-    c = r.configuracao_tarefa("D_sem_mixup", 20261108, "cuda")
-    assert c["modelo"] == "D_sem_mixup" and c["dispositivo"] == "cuda" and c["semente"] == 20261108
+    c = r.configuracao_tarefa("DTSF_Lite_NoMixup", 20261108, "cuda")
+    assert c["modelo"] == "DTSF_Lite_NoMixup" and c["dispositivo"] == "cuda" and c["semente"] == 20261108
     assert c["variante"]["mixup"] is False and c["variante"]["filtros"] == 16 and c["variante"]["oculto"] == 32
     assert c["hiperparametros"]["lr"] == 1e-3 and c["hiperparametros"]["paciencia"] == 10
     assert c["janelas_por_pessoa"] == 60 and "torch" in c and "cuda" in c
     import json
     json.dumps(c)  # serializável
-    assert r.configuracao_tarefa("D_FA", 1, "cpu")["variante"]["fa"] is True
+    assert r.configuracao_tarefa("DTSF_FA", 1, "cpu")["variante"]["fa"] is True
 
 
 # ---------- checkpoints do modelo principal ----------
 
 def test_checkpoint_so_do_principal_por_padrao():
-    assert r.modelos_com_checkpoint("principal", list(r.TIPOS_DTSF)) == {"D_FA"}
-    assert r.modelos_com_checkpoint("principal", ["D_pequeno"]) == set()
-    assert r.modelos_com_checkpoint("todos", ["D_FA", "D"]) == {"D_FA", "D"}
+    assert r.modelos_com_checkpoint("principal", list(r.TIPOS_DTSF)) == {"DTSF_FA"}
+    assert r.modelos_com_checkpoint("principal", ["DTSF_Lite"]) == set()
+    assert r.modelos_com_checkpoint("todos", ["DTSF_FA", "DTSF"]) == {"DTSF_FA", "DTSF"}
     assert r.modelos_com_checkpoint("nenhum", list(r.TIPOS_DTSF)) == set()
 
 
@@ -117,8 +117,8 @@ def _tarefa_sintetica(monkeypatch, tmp_path, modelo):
 
 def test_tarefa_grava_checkpoint_e_historico_completo(monkeypatch, tmp_path):
     from pipeline.e07_DTSF import treino as t
-    j, base = _tarefa_sintetica(monkeypatch, tmp_path, "D_FA")
-    ck = tmp_path / "ck" / "SZ" / "D_FA" / "r0_f0.pt"
+    j, base = _tarefa_sintetica(monkeypatch, tmp_path, "DTSF_FA")
+    ck = tmp_path / "ck" / "SZ" / "DTSF_FA" / "r0_f0.pt"
     assert ck.exists() and not list(tmp_path.rglob("*.tmp"))
     assert j["epocas_executadas"] == len(j["historico"]) and j["dispositivo"] == "cpu" and j["variante"]["fa"]
     assert j["perda_validacao_melhor"] == j["historico"][j["melhor_epoca"] - 1]["perda_validacao"]

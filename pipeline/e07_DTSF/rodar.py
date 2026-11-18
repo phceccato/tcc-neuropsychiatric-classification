@@ -5,11 +5,11 @@ outputs/07_DTSF/resultados/<dataset>/<modelo>/r<rep>_f<fold>.csv (previsões das
 teste) e .json (época escolhida, dispositivo, número de parâmetros, configuração do treino e histórico de perdas). Tarefas já gravadas são puladas, então
 o comando pode ser interrompido e rodado de novo. Cada processo usa 1 thread do PyTorch.
 
-Modelos (pipeline/e07_DTSF/redes_dtsf.py): D_FA (o principal), D_pequeno, D, D_sem_mixup, D_sem_T e D_sem_E;
+Modelos (pipeline/e07_DTSF/redes_dtsf.py): DTSF_FA (o principal), DTSF_Lite, DTSF, DTSF_Lite_NoMixup, DTSF_Lite_SpectralOnly e DTSF_Lite_TemporalOnly;
 por padrão, os seis. A semente de cada tarefa depende só de (repetição, fold): todos os modelos veem as mesmas
 partições e sementes.
 
-Checkpoints: o D_FA (o principal; --checkpoints todos para os seis) grava os pesos do melhor
+Checkpoints: o DTSF_FA (o principal; --checkpoints todos para os seis) grava os pesos do melhor
 modelo de cada fold em outputs/07_DTSF/checkpoints/<dataset>/<modelo>/r<rep>_f<fold>.pt (treino.salvar_checkpoint).
 O .json guarda o histórico de perdas de treino e de validação interna de todas as épocas executadas.
 
@@ -36,6 +36,7 @@ import pandas as pd
 import torch
 
 from pipeline.constantes import SEMENTE
+from pipeline.nomes import resolver_pasta
 from pipeline.e07_DTSF.dados_dtsf import FonteDTSF
 from pipeline.e07_DTSF.redes_dtsf import MODELOS, PRINCIPAL, TIPOS_DTSF
 from pipeline.e07_DTSF.treino import JANELAS_POR_PESSOA, PADRAO, prever, salvar_checkpoint, treinar
@@ -101,12 +102,12 @@ def gravar_json(caminho: Path, conteudo: dict) -> None:
 
 
 def modelos_com_checkpoint(opcao: str, modelos: list[str]) -> set[str]:
-    """`principal` (o padrão: só o D_FA), `todos` ou `nenhum`, entre os modelos pedidos."""
+    """`principal` (o padrão: só o DTSF_FA), `todos` ou `nenhum`, entre os modelos pedidos."""
     return {"principal": {PRINCIPAL}, "todos": set(TIPOS_DTSF), "nenhum": set()}[opcao] & set(modelos)
 
 
 def caminho_checkpoint(pasta: Path | str, dataset: str, modelo: str, repeticao: int, fold: int) -> Path:
-    return Path(pasta) / dataset / modelo / f"r{repeticao}_f{fold}.pt"
+    return resolver_pasta(Path(pasta) / dataset / modelo) / f"r{repeticao}_f{fold}.pt"
 
 
 def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv: str, saida: str,
@@ -122,7 +123,7 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     resultado = treinar(modelo, fonte, papel["treino"], papel["validacao"], y, semente=semente, dispositivo=dispositivo)
     prob = prever(resultado.modelo, fonte, papel["teste"])
 
-    destino = Path(saida) / dataset / modelo
+    destino = resolver_pasta(Path(saida) / dataset / modelo)   # a pasta de nome antigo, se a rodada é anterior à renomeação
     destino.mkdir(parents=True, exist_ok=True)
     base = destino / f"r{repeticao}_f{fold}"
     config = configuracao_tarefa(modelo, semente, dispositivo)
@@ -153,7 +154,7 @@ def main() -> None:
     parser.add_argument("--folds-ids", type=int, nargs="+", default=list(range(5)))
     parser.add_argument("--processos", type=int, default=10)
     parser.add_argument("--checkpoints", choices=["principal", "todos", "nenhum"], default="principal",
-                        help="quais modelos gravam os pesos do melhor fold em --saida-checkpoints (padrão: só o D_FA)")
+                        help="quais modelos gravam os pesos do melhor fold em --saida-checkpoints (padrão: só o DTSF_FA)")
     parser.add_argument("--saida-checkpoints", default=str(CHECKPOINTS))
     argumento_dispositivo(parser)
     args = parser.parse_args()
@@ -164,9 +165,9 @@ def main() -> None:
     # um treino só conta como feito se o .csv existe e, nos modelos com checkpoint, o .pt também
     tarefas = [(d, m, r, f) for m in args.modelos for d in args.datasets for r in args.repeticoes
                for f in args.folds_ids
-               if not (Path(args.saida) / d / m / f"r{r}_f{f}.csv").exists()
+               if not (resolver_pasta(Path(args.saida) / d / m) / f"r{r}_f{f}.csv").exists()
                or (m in com_checkpoint and not caminho_checkpoint(args.saida_checkpoints, d, m, r, f).exists())]
-    conferir_dispositivo(parser, args.dispositivo, [Path(args.saida) / d / m for m in args.modelos for d in args.datasets])
+    conferir_dispositivo(parser, args.dispositivo, [resolver_pasta(Path(args.saida) / d / m) for m in args.modelos for d in args.datasets])
     print(f"{len(tarefas)} tarefas pendentes ({args.dispositivo})", flush=True)
     with ProcessPoolExecutor(args.processos, initializer=_iniciar, mp_context=contexto_processos(args.dispositivo)) as executor:
         futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, args.dispositivo,

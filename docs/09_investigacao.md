@@ -1,6 +1,6 @@
 # Investigação dos erros e do confundidor de data — resultados
 
-Quatro análises pós-hoc sobre o DTSF, pedidas na conversa com o orientador: a data de gravação contra o diagnóstico, as pessoas que o modelo principal (D_FA) classifica errado, explicações SHAP e a influência da sessão de gravação. **Nenhuma delas testa hipótese**: são descritivas, e todas foram escolhidas depois de ver os resultados.
+Quatro análises pós-hoc sobre o DTSF, pedidas na conversa com o orientador: a data de gravação contra o diagnóstico, as pessoas que o modelo principal (DTSF_FA) classifica errado, explicações SHAP e a influência da sessão de gravação. **Nenhuma delas testa hipótese**: são descritivas, e todas foram escolhidas depois de ver os resultados.
 
 Resultado que não depende da semente:
 - **A data de gravação, sozinha, separa as classes:** AUC de 0,929 na SZ e 0,928 no MDD. Na SZ, nenhuma sessão de gravação tem as duas classes.
@@ -12,23 +12,23 @@ Os resultados das seções 2–4 dependem dos modelos treinados e estão pendent
   - `erros.py`: experimento 2;
   - `explicar.py` e `relatorio_explicacao.py`: experimento 3 (retreino com pesos gravados, SHAP e resumo);
   - `lote.py`: experimento 4.
-- **Estado:** o código desta etapa investiga o D_FA, mas as saídas que estão em `outputs/09_investigacao/explicacao/D_pequeno/` e `lote/resultados/MDD/D_pequeno/` são de uma rodada anterior, em que o modelo principal era o `D_pequeno`; os números abaixo vêm dela. Depois que a etapa 07 tiver o `D_FA` completo (rodada oficial), rode `explicar`, `relatorio_explicacao` e `lote` de novo, no mesmo dispositivo da etapa 07, e atualize este doc. `datas` e `erros` (a parte sem retreino) também dependem das previsões do D_FA.
-- Modelo investigado: o principal da etapa 07, o D_FA (`PRINCIPAL` em [pipeline/e07_DTSF/redes_dtsf.py](../pipeline/e07_DTSF/redes_dtsf.py)). Os retreinos usam a mesma rede, as mesmas partições e as mesmas sementes da etapa 07.
+- **Estado:** o código desta etapa investiga o DTSF_FA, mas as saídas que estão em `outputs/09_investigacao/explicacao/DTSF_Lite/` e `lote/resultados/MDD/DTSF_Lite/` são de uma rodada anterior, em que o modelo principal era o `DTSF_Lite`; os números abaixo vêm dela. Depois que a etapa 07 tiver o `DTSF_FA` completo (rodada oficial), rode `explicar`, `relatorio_explicacao` e `lote` de novo, no mesmo dispositivo da etapa 07, e atualize este doc. `datas` e `erros` (a parte sem retreino) também dependem das previsões do DTSF_FA.
+- Modelo investigado: o principal da etapa 07, o DTSF_FA (`PRINCIPAL` em [pipeline/e07_DTSF/redes_dtsf.py](../pipeline/e07_DTSF/redes_dtsf.py)). Os retreinos usam a mesma rede, as mesmas partições e as mesmas sementes da etapa 07.
 - Testes: `tests/e09_investigacao/`.
-- Saídas em `outputs/09_investigacao/`: `datas/`, `erros/`, `explicacao/D_FA/` e `lote/` (com o retreino em `lote/resultados/MDD/D_FA/`), cada uma com `resumo.md`; logs `log_explicacao.txt` e `log_lote.txt`. A explicação e o retreino ficam numa pasta por modelo, porque pesos de redes diferentes não se misturam.
+- Saídas em `outputs/09_investigacao/`: `datas/`, `erros/`, `explicacao/DTSF_FA/` e `lote/` (com o retreino em `lote/resultados/MDD/DTSF_FA/`), cada uma com `resumo.md`; logs `log_explicacao.txt` e `log_lote.txt`. A explicação e o retreino ficam numa pasta por modelo, porque pesos de redes diferentes não se misturam.
 - Execução sobre as saídas da rodada completa.
 
 ```bash
 venv/bin/python -m pipeline.e09_investigacao.datas
-venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # 10 retreinos do D_FA + SHAP; retoma
+venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # 10 retreinos do DTSF_FA + SHAP; retoma
 venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao
 venv/bin/python -m pipeline.e09_investigacao.erros          # usa as janelas do explicar, se existirem
-venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt               # subconjuntos + 50 retreinos do D_FA; retoma
+venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt               # subconjuntos + 50 retreinos do DTSF_FA; retoma
 ```
 
-Pré-requisitos: as etapas 02, 03, 05, 06, 07 (com os caches e as previsões do D_FA) e 08.
+Pré-requisitos: as etapas 02, 03, 05, 06, 07 (com os caches e as previsões do DTSF_FA) e 08.
 
-O `explicar` e o `lote` aceitam `--dispositivo cuda`, como a etapa 07 (ver [07_DTSF.md](07_DTSF.md#cpu-ou-gpu)): os retreinos do D_FA rodam na GPU. No `explicar`, o modelo volta para a CPU antes do SHAP, que continua na CPU. Use o mesmo dispositivo da etapa 07, para o D_FA da etapa 09 ser treinado como o D_FA que ele investiga; o runner se recusa a completar uma pasta com retreinos feitos em outro dispositivo.
+O `explicar` e o `lote` aceitam `--dispositivo cuda`, como a etapa 07 (ver [07_DTSF.md](07_DTSF.md#cpu-ou-gpu)): os retreinos do DTSF_FA rodam na GPU. No `explicar`, o modelo volta para a CPU antes do SHAP, que continua na CPU. Use o mesmo dispositivo da etapa 07, para o DTSF_FA da etapa 09 ser treinado como o DTSF_FA que ele investiga; o runner se recusa a completar uma pasta com retreinos feitos em outro dispositivo.
 
 ## 1. Data de gravação × diagnóstico
 
@@ -57,20 +57,20 @@ A tabela por ano e mês está em `outputs/09_investigacao/datas/resumo.md`.
 
 ## 2. Erros individuais
 
-Para cada pessoa: a previsão do D_FA nas 10 repetições, a qualidade do sinal, a sessão e o espectro (Welch nas janelas aceitas sem overlap, média dos 19 canais).
+Para cada pessoa: a previsão do DTSF_FA nas 10 repetições, a qualidade do sinal, a sessão e o espectro (Welch nas janelas aceitas sem overlap, média dos 19 canais).
 Pessoas em foco: s06 (SZ), h10 (HC da SZ) e MDD S27, com o espectro comparado ao das duas classes (figuras `erros/espectros.png` e `erros/janelas.png`).
 
 **Resultados:** pendentes da rodada com a semente 20261108.
 
 ## 3. Explicações SHAP
 
-**Como.** As previsões da etapa 07 não guardam os pesos, então o D_FA é retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes, e os pesos são gravados. Para cada janela de teste aceita sem overlap, os valores SHAP do logit são calculados por *expected gradients* (ERION et al., 2021), o algoritmo do `shap.GradientExplainer`, implementado em PyTorch para não trazer a biblioteca `shap` (que depende do `numba` e pode exigir outra versão do numpy). O fundo tem 100 janelas de treino de cada classe, e cada janela usa 50 amostras. φ > 0 empurra para paciente. A Frequency Attention fica dentro da rede, então os φ do ramo temporal já incluem o efeito dela.
+**Como.** As previsões da etapa 07 não guardam os pesos, então o DTSF_FA é retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes, e os pesos são gravados. Para cada janela de teste aceita sem overlap, os valores SHAP do logit são calculados por *expected gradients* (ERION et al., 2021), o algoritmo do `shap.GradientExplainer`, implementado em PyTorch para não trazer a biblioteca `shap` (que depende do `numba` e pode exigir outra versão do numpy). O fundo tem 100 janelas de treino de cada classe, e cada janela usa 50 amostras. φ > 0 empurra para paciente. A Frequency Attention fica dentro da rede, então os φ do ramo temporal já incluem o efeito dela.
 
 **Conferências:** a previsão da pessoa no modelo retreinado contra a da etapa 07 (repetição 0) e a completude (soma dos φ contra f(x) − E[f(fundo)]).
 
 **Grupos.** Cada pessoa de teste entra num grupo pela previsão do próprio modelo retreinado (HC certo, HC errado, paciente certo, paciente errado). Antes da média do grupo, o perfil de cada pessoa é normalizado para somar 1.
 
-Figuras: `explicacao/D_FA/frequencias.png`, `explicacao/D_FA/canais.png` (topografia) e `explicacao/D_FA/tempo.png`.
+Figuras: `explicacao/DTSF_FA/frequencias.png`, `explicacao/DTSF_FA/canais.png` (topografia) e `explicacao/DTSF_FA/tempo.png`.
 
 **Resultados:** pendentes da rodada com a semente 20261108.
 
@@ -78,14 +78,14 @@ Figuras: `explicacao/D_FA/frequencias.png`, `explicacao/D_FA/canais.png` (topogr
 
 ### Subconjuntos, sem retreino
 
-As previsões fora do fold já gravadas (D_FA da etapa 07, os 9 baselines da etapa 08 e a LR de 76 bandas da etapa 06) são reavaliadas só nas pessoas de cada subconjunto em que a data se confunde menos com o diagnóstico. Os modelos continuam treinados com todas as pessoas. AUC por pessoa (média das 10 repetições fora do fold); o IC de 95% (bootstrap estratificado) é só do D_FA.
+As previsões fora do fold já gravadas (DTSF_FA da etapa 07, os 9 baselines da etapa 08 e a LR de 76 bandas da etapa 06) são reavaliadas só nas pessoas de cada subconjunto em que a data se confunde menos com o diagnóstico. Os modelos continuam treinados com todas as pessoas. AUC por pessoa (média das 10 repetições fora do fold); o IC de 95% (bootstrap estratificado) é só do DTSF_FA.
 
 - **SZ:** os 3 pacientes gravados em 2003 contra os 14 HC (todos de 2003), e os 11 pacientes de 2004–2008 contra os mesmos HC.
 - **MDD:** sem o lote de jan/2013; só a sessão de abr–jul/2013, a única com as duas classes (4 HC); e cada sessão de HC separada contra todos os pacientes.
 
-### Retreino do D_FA no MDD sem o lote de jan/2013
+### Retreino do DTSF_FA no MDD sem o lote de jan/2013
 
-Partições novas 5 × 10, com o mesmo procedimento de [05_folds.md](05_folds.md), nas 42 pessoas restantes (13 HC e 29 MDD; 8–9 pessoas de teste por fold), e o D_FA treinado do zero com o código da etapa 07: 50 treinos.
+Partições novas 5 × 10, com o mesmo procedimento de [05_folds.md](05_folds.md), nas 42 pessoas restantes (13 HC e 29 MDD; 8–9 pessoas de teste por fold), e o DTSF_FA treinado do zero com o código da etapa 07: 50 treinos.
 
 Na SZ não há retreino equivalente: os 14 HC estão numa sessão só.
 

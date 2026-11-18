@@ -2,24 +2,24 @@
 
 Lê só outputs/10_resultados/ (a pasta versionada da etapa 10), para que qualquer pessoa gere os gráficos sem
 treinar nada: as previsões fora do fold de cada modelo (previsoes/<dataset>/<modelo>.csv, com y_true e y_prob),
-o histórico de perdas do D_FA (perdas/) e os resumos das etapas 06, 07 e 08 (resumos/). Recalcula, com as mesmas
+o histórico de perdas do DTSF_FA (perdas/) e os resumos das etapas 06, 07 e 08 (resumos/). Recalcula, com as mesmas
 funções e sementes dessas etapas:
 
 - por modelo e dataset: AUC por pessoa com IC de 95% (`avaliar`), AUC de cada repetição, a média ± desvio de todas
   as métricas nas 10 repetições (`media_desvio`), as secundárias por pessoa no limiar 0,5, a matriz de confusão por
   pessoa e os escores por pessoa (rótulo e escore médio, sem identificador), de que saem as curvas ROC;
 - as comparações descritivas, com `comparacao_pareada`, guardadas como "A − B" (ΔAUC com IC de 95% e o Δ por
-  repetição, sem p-valor): D_pequeno − ablação, D_FA − cada um dos 9 baselines e as comparações entre os DTSF
-  (D_FA − D, D − D_pequeno, D_FA − D_pequeno);
+  repetição, sem p-valor): DTSF_Lite − ablação, DTSF_FA − cada um dos 9 baselines e as comparações entre os modelos da família DTSF
+  (DTSF_FA − DTSF, DTSF − DTSF_Lite, DTSF_FA − DTSF_Lite);
 - teste de DeLong (`teste_delong`), bicaudal, a análise estatística principal: o modelo principal contra os outros
-  5 modelos principais (`DELONG_COMPARADOS`: D, D_pequeno e os 3 combinados), sobre os escores por pessoa (média
+  5 modelos principais (`DELONG_COMPARADOS`: DTSF, DTSF_Lite e os 3 combinados), sobre os escores por pessoa (média
   das 10 repetições); os 5 p brutos de cada transtorno são ajustados por Holm, com α = 0,05. Não há resumo de etapa
   para conferir: a conferência é o teste unitário contra uma implementação independente;
 - bootstrap do modelo principal: as curvas ROC de reamostras bootstrap estratificadas por pessoa (as mesmas
   reamostragens do IC de 95% da AUC, que é conferido), numa grade de 1 − especificidade; só as primeiras
   N_CURVAS_BOOTSTRAP curvas vão para o json;
-- perdas: o histórico de perda de treino e de validação interna do D_FA em cada (repetição, fold)
-  (perdas/<dataset>/D_FA.csv, se existir), conferido (50 folds, épocas 1, 2, …, e a época escolhida é a de menor
+- perdas: o histórico de perda de treino e de validação interna do DTSF_FA em cada (repetição, fold)
+  (perdas/<dataset>/DTSF_FA.csv, se existir), conferido (50 folds, épocas 1, 2, …, e a época escolhida é a de menor
   perda de validação).
 
 Cada AUC, IC e ΔAUC é conferido contra a tabela correspondente do resumo da etapa (|diferença| ≤ 0,0005); se algum
@@ -44,9 +44,10 @@ from pipeline.e07_DTSF.redes_dtsf import PRINCIPAL, TIPOS_DTSF
 from pipeline.e08_classicos.avaliar import REFERENCIA as REFERENCIA_BASELINES
 from pipeline.e08_classicos.treino import MODELOS as CLASSICOS
 from pipeline.e11_graficos.delong import COMPARADOS as DELONG_COMPARADOS
+from pipeline.nomes import LR_PSD as LR_PSD_NOMES, nome_novo, resolver_arquivo
 
 DATASETS = ("SZ", "MDD")
-LR_PSD = ("LR_psd_absolutas", "LR_psd_relativas")
+LR_PSD = tuple(LR_PSD_NOMES.values())   # "absolutas" -> LR_PSD_Absolute, "relativas" -> LR_PSD_Relative
 MODELOS = (*TIPOS_DTSF, *CLASSICOS, *LR_PSD)
 TOL_AUC = 5e-4
 N_CURVAS_BOOTSTRAP = 500
@@ -76,7 +77,7 @@ def tabela_modelos(md: str) -> dict[tuple[str, str], tuple[float, float, float]]
             continue
         m = re.match(rf"\| (\S+) \|(?: [\d.]+ \|)? {_NUM} \[{_NUM}, {_NUM}\] \|", linha)
         if dataset and m:
-            saida[(dataset, m.group(1))] = tuple(float(m.group(i)) for i in (2, 3, 4))
+            saida[(dataset, nome_novo(m.group(1)))] = tuple(float(m.group(i)) for i in (2, 3, 4))
     return saida
 
 
@@ -84,14 +85,14 @@ def tabela_deltas(md: str, referencia: str) -> dict[tuple[str, str], tuple[float
     """{(dataset, "A − B"): (Δ, IC baixo, IC alto)} das linhas "| SZ | A − B | Δ [IC] | ... |"."""
     saida = {}
     for m in re.finditer(rf"^\| (SZ|MDD) \| (\S+) − (\S+) \| {_NUM} \[{_NUM}, {_NUM}\] \|", md, re.M):
-        saida[(m.group(1), f"{m.group(2)} − {m.group(3)}")] = tuple(float(m.group(i)) for i in (4, 5, 6))
+        saida[(m.group(1), f"{nome_novo(m.group(2))} − {nome_novo(m.group(3))}")] = tuple(float(m.group(i)) for i in (4, 5, 6))
     return saida
 
 
 def tabela_lr_psd(md: str) -> dict[tuple[str, str], tuple[float, float, float]]:
     saida = {}
     for m in re.finditer(rf"^\| (SZ|MDD) \| (absolutas|relativas) \| {_NUM} \[{_NUM}, {_NUM}\] \|", md, re.M):
-        saida[(m.group(1), f"LR_psd_{m.group(2)}")] = tuple(float(m.group(i)) for i in (3, 4, 5))
+        saida[(m.group(1), LR_PSD_NOMES[m.group(2)])] = tuple(float(m.group(i)) for i in (3, 4, 5))
     return saida
 
 
@@ -123,7 +124,7 @@ def _comparacao(c: dict) -> dict:
 
 
 def comparacoes() -> list[tuple[str, str]]:
-    """Pares (A, B) de ΔAUC = A − B: as ablações do D_pequeno, o principal contra os 9 baselines e as descritivas."""
+    """Pares (A, B) de ΔAUC = A − B: as ablações do DTSF_Lite, o principal contra os 9 baselines e as descritivas."""
     pares = [(REFERENCIA_ABLACOES, x) for x in ABLACOES]
     pares += [(REFERENCIA_BASELINES, m) for m in CLASSICOS]
     return pares + list(DESCRITIVAS)
@@ -185,7 +186,7 @@ def calcular(raiz: Path = RESULTADOS) -> dict:
 
     numeros = dict(modelos={}, comparacoes={}, perdas={}, bootstrap={}, delong={})
     for d in DATASETS:
-        pred = {m: ler_previsoes(raiz / "previsoes" / d / f"{m}.csv") for m in MODELOS}
+        pred = {m: ler_previsoes(resolver_arquivo(raiz / "previsoes" / d / f"{m}.csv")) for m in MODELOS}
         incompletos = [m for m, p in pred.items() if not completo(p)]
         if incompletos:
             raise ValueError(f"{d}: previsões incompletas de {incompletos}")
@@ -211,8 +212,9 @@ def calcular(raiz: Path = RESULTADOS) -> dict:
         numeros["delong"][d] = delong_comparacoes(pred)
 
         numeros["bootstrap"][d] = bootstrap_principal(pred[PRINCIPAL], numeros["modelos"][d][PRINCIPAL]["ic"])
-        if (raiz / "perdas" / d / f"{PRINCIPAL}.csv").exists():
-            numeros["perdas"][d] = perdas_folds(raiz / "perdas" / d / f"{PRINCIPAL}.csv")
+        arquivo_perdas = resolver_arquivo(raiz / "perdas" / d / f"{PRINCIPAL}.csv")
+        if arquivo_perdas.exists():
+            numeros["perdas"][d] = perdas_folds(arquivo_perdas)
 
     return numeros
 

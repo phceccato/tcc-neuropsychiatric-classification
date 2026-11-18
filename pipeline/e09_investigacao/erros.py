@@ -1,7 +1,7 @@
 """Experimento 2: perfil das pessoas que o DTSF classifica errado, com foco em s06, h10 e MDD S27.
 
 Para cada pessoa, junta:
-- do modelo principal, o D_FA (etapa 07): a probabilidade média nas 10 repetições, o desvio entre repetições e em quantas
+- do modelo principal, o DTSF_FA (etapa 07): a probabilidade média nas 10 repetições, o desvio entre repetições e em quantas
   repetições a previsão (limiar 0,5) erra;
 - da qualidade do sinal: fração de janelas rejeitadas (etapa 03), duração e canal interpolado (02);
 - da data: data e sessão de gravação (outputs/09_investigacao/datas/pessoas.csv);

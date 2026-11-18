@@ -71,9 +71,9 @@ def test_carregar_exportados_usa_a_epoca_marcada_como_melhor(tmp_path):
     (tmp_path / "perdas" / "SZ").mkdir(parents=True)
     (tmp_path / "previsoes" / "SZ").mkdir(parents=True)
     pd.DataFrame(dict(repeticao=0, fold=0, epoca=[1, 2, 3], perda_treino=0.5, perda_validacao=0.5, melhor=[0, 1, 0])).to_csv(
-        tmp_path / "perdas" / "SZ" / "D_FA.csv", index=False)
+        tmp_path / "perdas" / "SZ" / "DTSF_FA.csv", index=False)
     pd.DataFrame(dict(repeticao=0, fold=0, subject_uid=["a", "b"], y_true=[0, 1], y_pred=[0, 1], y_prob=[.1, .9])).to_csv(
-        tmp_path / "previsoes" / "SZ" / "D_FA.csv", index=False)
-    folds, previsoes = e.carregar_exportados(tmp_path, "D_FA", "cuda")
+        tmp_path / "previsoes" / "SZ" / "DTSF_FA.csv", index=False)
+    folds, previsoes = e.carregar_exportados(tmp_path, "DTSF_FA", "cuda")
     assert folds.iloc[0]["melhor_epoca"] == 2 and folds.iloc[0]["dispositivo"] == "cuda"
     assert {"y", "prob"} <= set(previsoes.columns)

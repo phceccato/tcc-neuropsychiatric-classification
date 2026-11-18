@@ -83,9 +83,9 @@ Resultados: docs/07_DTSF.md.
 | Ramo espectral   | Entrada (19, 29, 16): log₁₀(\|X\|² + 10⁻¹²) da STFT da janela em µV (Hann de 125 amostras, passo de 25), de 2 a 30 Hz, com z-score por (canal, frequência) a partir das janelas de treino do fold. Duas Conv2d (kernels (29, 3) e (1, 3)), depois GRU → 16 tokens. Fica sem o z-score por pessoa, porque a potência absoluta carrega informação |
 | Fusão           | 32 tokens → Linear → token CLS no fim → posição aprendível → 2 blocos de encoder pre-LN (MHSA, FFN com gate GELU) → LN → último token → logit |
 | Mixup            | λ ~ Beta(1, 1), um por lote; mesmo λ e mesma permutação nos dois ramos e no alvo; só no treino, com gerador próprio                                                                                                                                                                                                                                         |
-| Dimensões        | As do artigo (Tabela 1): convoluções de 64 filtros, GRU e fusão de dimensão 128, encoder de 2 blocos com 4 cabeças (702.721 parâmetros; 704.769 com a FA). O `D_pequeno` usa 16 filtros, dimensão 32 e 2 cabeças (80.449 parâmetros) |
+| Dimensões        | As do artigo (Tabela 1): convoluções de 64 filtros, GRU e fusão de dimensão 128, encoder de 2 blocos com 4 cabeças (702.721 parâmetros; 704.769 com a FA). O `DTSF_Lite` usa 16 filtros, dimensão 32 e 2 cabeças (80.449 parâmetros) |
 | Treino           | A cada época, 60 janelas aceitas sorteadas de cada pessoa de treino; Adam (lr 1e-3, weight decay 1e-4), lotes de 64, BCE com peso de classe; early stopping com paciência 10 na perda por pessoa da validação interna, até 100 épocas                                                                                                                       |
-| Modelos         | `D_FA` (principal: dimensões do artigo + FA), `D` (dimensões do artigo, sem FA), `D_pequeno` (dimensões reduzidas, sem FA) e as ablações do `D_pequeno`, sem FA: `D_sem_mixup`, `D_sem_T` e `D_sem_E` |
+| Modelos         | `DTSF_FA` (principal: dimensões do artigo + FA), `DTSF` (dimensões do artigo, sem FA), `DTSF_Lite` (dimensões reduzidas, sem FA) e as ablações do `DTSF_Lite`, sem FA: `DTSF_Lite_NoMixup`, `DTSF_Lite_SpectralOnly` e `DTSF_Lite_TemporalOnly` |
 | Frequency Attention | Atenção de canal do FcaNet (XU et al., 2026) sobre o mapa do 1º bloco temporal: 4 grupos de 16 filtros, cada grupo resumido por um componente DCT fixo (0, 35, 70 e 105, os 4 de menor frequência da grade 7 do FcaNet; o TFST-SDKA escolhe 16 componentes pelo desempenho, aqui eles são fixados a priori) → FC(64 → 16) → ReLU → FC(16 → 64) → sigmoid, que reescala cada filtro (docs/07_DTSF.md) |
 | Hiperparâmetros | Fixados a priori, sem busca                                                                                                                                                                                                                                                                                                                                       |
 
@@ -120,7 +120,7 @@ Lotte et al. (2018) apontam classificadores clássicos, inclusive o Random Fores
 
 **Exposição a janelas:** os baselines ajustam com 22–25% mais pessoas que o DTSF, que reserva a validação para o early stopping.
 
-**Referência adicional:** regressão logística L2 (C = 1) sobre a média por pessoa de 76 potências de banda (Welch; WELCH, 1967), como em Mumtaz et al. (2017) (docs/06_LR_psd.md). Ela não entra na comparação com o `D_FA`.
+**Referência adicional:** regressão logística L2 (C = 1) sobre a média por pessoa de 76 potências de banda (Welch; WELCH, 1967), como em Mumtaz et al. (2017) (docs/06_LR_psd.md). Ela não entra na comparação com o `DTSF_FA`.
 
 ## Protocolo estatístico
 
@@ -132,7 +132,7 @@ Lotte et al. (2018) apontam classificadores clássicos, inclusive o Random Fores
 | Estimativa         | Média da probabilidade fora do fold de cada pessoa nas 10 repetições → AUC sobre esses escores                                                                                                   | Com 5–6 pessoas por fold de teste na SZ, métricas por fold são muito ruidosas                                                                                                                     |
 | Incerteza          | IC de 95% por bootstrap estratificado por pessoa (2000 reamostragens, percentil), mais média ± desvio das AUCs por repetição                                                                     | O IC mede a incerteza amostral; o desvio, a estabilidade em relação à partição                                                                                                                  |
 | Secundárias       | Acurácia, acurácia balanceada, precisão, sensibilidade (recall), especificidade, F1 (paciente como classe positiva) e Macro F1 no limiar 0,5, só descritivas                                                                                                        | Evita multiplicar testes                                                                                                                                                                             |
-| Comparação entre modelos | ΔAUC com IC de 95% (bootstrap estratificado e pareado) e, como análise estatística principal, o teste de DeLong do `D_FA` contra os outros 5 modelos principais, com Holm sobre os 5 p de cada transtorno | O DeLong compara duas AUCs correlacionadas nas mesmas pessoas; o Holm controla a multiplicidade das 5 comparações |
+| Comparação entre modelos | ΔAUC com IC de 95% (bootstrap estratificado e pareado) e, como análise estatística principal, o teste de DeLong do `DTSF_FA` contra os outros 5 modelos principais, com Holm sobre os 5 p de cada transtorno | O DeLong compara duas AUCs correlacionadas nas mesmas pessoas; o Holm controla a multiplicidade das 5 comparações |
 | Reprodutibilidade  | Sementes fixas, partições salvas em arquivo, versões das bibliotecas registradas e planos registrados antes de cada rodada                                                                         | Permite refazer qualquer comparação exatamente                                                                                                                                                     |
 
 ## Pergunta de pesquisa e comparações
@@ -147,40 +147,40 @@ Os modelos se dividem em dois grupos. "Dimensão" é o tamanho de cada token (H)
 
 | Modelo | O que é | Papel |
 | --- | --- | --- |
-| `D_FA` | **Principal.** DTSF (dois ramos, temporal e espectral) com as dimensões do artigo (dimensão 128) e a Frequency Attention | Principal |
-| `D_pequeno` | DTSF adaptado do artigo com as dimensões reduzidas (dimensão 32), sem FA | Referência das ablações |
-| `D` | DTSF com as dimensões do artigo (dimensão 128), sem FA | Comparação |
-| `KNN_combinado`, `LR_combinado`, `RF_combinado` | KNN, regressão logística e Random Forest sobre as características temporais e espectrais concatenadas ("dual branch") | Comparação |
+| `DTSF_FA` | **Principal.** DTSF (dois ramos, temporal e espectral) com as dimensões do artigo (dimensão 128) e a Frequency Attention | Principal |
+| `DTSF_Lite` | DTSF adaptado do artigo com as dimensões reduzidas (dimensão 32), sem FA | Referência das ablações |
+| `DTSF` | DTSF com as dimensões do artigo (dimensão 128), sem FA | Comparação |
+| `KNN_Combined`, `LR_Combined`, `RF_Combined` | KNN, regressão logística e Random Forest sobre as características temporais e espectrais concatenadas ("dual branch") | Comparação |
 
-Comparações entre os DTSF: `D_FA` − `D` (efeito da FA), `D` − `D_pequeno` (efeito do tamanho) e `D_FA` − `D_pequeno`.
+Comparações entre os modelos da família DTSF: `DTSF_FA` − `DTSF` (efeito da FA), `DTSF` − `DTSF_Lite` (efeito do tamanho) e `DTSF_FA` − `DTSF_Lite`.
 
 **Ablações e referências secundárias**
 
-As ablações do DTSF são pré-fixadas nas dimensões reduzidas (dimensão 32) e derivam do `D_pequeno`, sem FA:
+As ablações do DTSF são pré-fixadas nas dimensões reduzidas (dimensão 32) e derivam do `DTSF_Lite`, sem FA:
 
 | Modelo | O que é | Papel |
 | --- | --- | --- |
-| `D_sem_mixup` | `D_pequeno` sem Mixup | Ablação |
-| `D_sem_T` | `D_pequeno` só com o ramo espectral | Ablação |
-| `D_sem_E` | `D_pequeno` só com o ramo temporal | Ablação |
-| `LR_psd_absolutas`, `LR_psd_relativas` | Regressão logística sobre as 76 features de potência absoluta ou relativa (19 canais × 4 bandas; etapa 06) | Referência |
-| `KNN_temporal`, `LR_temporal`, `RF_temporal` | Clássicos sobre as 475 características temporais | Comparação: ΔAUC e IC contra o `D_FA` |
-| `KNN_espectral`, `LR_espectral`, `RF_espectral` | Clássicos sobre as 1.102 características espectrais | Comparação: ΔAUC e IC contra o `D_FA` |
+| `DTSF_Lite_NoMixup` | `DTSF_Lite` sem Mixup | Ablação |
+| `DTSF_Lite_SpectralOnly` | `DTSF_Lite` só com o ramo espectral | Ablação |
+| `DTSF_Lite_TemporalOnly` | `DTSF_Lite` só com o ramo temporal | Ablação |
+| `LR_PSD_Absolute`, `LR_PSD_Relative` | Regressão logística sobre as 76 features de potência absoluta ou relativa (19 canais × 4 bandas; etapa 06) | Referência |
+| `KNN_Temporal`, `LR_Temporal`, `RF_Temporal` | Clássicos sobre as 475 características temporais | Comparação: ΔAUC e IC contra o `DTSF_FA` |
+| `KNN_Spectral`, `LR_Spectral`, `RF_Spectral` | Clássicos sobre as 1.102 características espectrais | Comparação: ΔAUC e IC contra o `DTSF_FA` |
 
-Todas as comparações são feitas **em cada transtorno separadamente** (SZ × HC e MDD × HC), nas mesmas pessoas e partições, sobre a AUC por pessoa. ΔAUC = AUC(referência) − AUC(outro modelo), com a referência no `D_pequeno` nas ablações e no `D_FA` nas demais.
+Todas as comparações são feitas **em cada transtorno separadamente** (SZ × HC e MDD × HC), nas mesmas pessoas e partições, sobre a AUC por pessoa. ΔAUC = AUC(referência) − AUC(outro modelo), com a referência no `DTSF_Lite` nas ablações e no `DTSF_FA` nas demais.
 
-**Análise estatística principal: DeLong com Holm.** O teste de DeLong (DELONG et al., 1988) compara as AUCs de dois modelos por vez, nas mesmas pessoas. O `D_FA` é comparado com os outros 5 modelos principais (`D`, `D_pequeno`, `LR_combinado`, `RF_combinado` e `KNN_combinado`), e os 5 p brutos de cada transtorno são ajustados por Holm (HOLM, 1979), com α = 0,05. O teste é bicaudal. A tabela traz as AUCs, o ΔAUC, o Z, o p bruto, o p ajustado e a decisão do Holm (etapa 11, [docs/avaliacao.md](avaliacao.md)).
+**Análise estatística principal: DeLong com Holm.** O teste de DeLong (DELONG et al., 1988) compara as AUCs de dois modelos por vez, nas mesmas pessoas. O `DTSF_FA` é comparado com os outros 5 modelos principais (`DTSF`, `DTSF_Lite`, `LR_Combined`, `RF_Combined` e `KNN_Combined`), e os 5 p brutos de cada transtorno são ajustados por Holm (HOLM, 1979), com α = 0,05. O teste é bicaudal. A tabela traz as AUCs, o ΔAUC, o Z, o p bruto, o p ajustado e a decisão do Holm (etapa 11, [docs/avaliacao.md](avaliacao.md)).
 
 **Análises descritivas.** Em todas as demais comparações há só ΔAUC com IC de 95%, sem p-valor:
-- as ablações do `D_pequeno` (`D_sem_mixup`, `D_sem_T`, `D_sem_E`);
-- os efeitos da FA (`D_FA` − `D`) e do tamanho (`D` − `D_pequeno`);
-- o `D_FA` contra os 6 baselines de uma modalidade só (temporais e espectrais).
+- as ablações do `DTSF_Lite` (`DTSF_Lite_NoMixup`, `DTSF_Lite_SpectralOnly`, `DTSF_Lite_TemporalOnly`);
+- os efeitos da FA (`DTSF_FA` − `DTSF`) e do tamanho (`DTSF` − `DTSF_Lite`);
+- o `DTSF_FA` contra os 6 baselines de uma modalidade só (temporais e espectrais).
 
 **Interpretação:**
 
 - **IC do ΔAUC:** bootstrap estratificado e pareado, condicional às previsões obtidas.
-- **Ablações que mudam mais de uma coisa:** `D_sem_T` e `D_sem_E` mudam também o número de tokens e de parâmetros. Por isso a comparação mostra a arquitetura com e sem o ramo, e não isola o ramo puro. O `D_sem_mixup` muda só o Mixup. As ablações derivam do `D_pequeno`, e não do `D_FA`: mostram o efeito de cada componente na arquitetura de dimensão 32.
-- **Sem teste contra o acaso:** o trabalho não treina nenhum modelo com rótulos permutados (nem o `D_FA` nem a LR de 76 bandas). O IC de 95% da AUC por pessoa e o bootstrap mostram a incerteza da estimativa.
+- **Ablações que mudam mais de uma coisa:** `DTSF_Lite_SpectralOnly` e `DTSF_Lite_TemporalOnly` mudam também o número de tokens e de parâmetros. Por isso a comparação mostra a arquitetura com e sem o ramo, e não isola o ramo puro. O `DTSF_Lite_NoMixup` muda só o Mixup. As ablações derivam do `DTSF_Lite`, e não do `DTSF_FA`: mostram o efeito de cada componente na arquitetura de dimensão 32.
+- **Sem teste contra o acaso:** o trabalho não treina nenhum modelo com rótulos permutados (nem o `DTSF_FA` nem a LR de 76 bandas). O IC de 95% da AUC por pessoa e o bootstrap mostram a incerteza da estimativa.
 - **Validade:** a validação cruzada viola a independência que o DeLong supõe: as pessoas de um fold compartilham o modelo, os treinos se sobrepõem e o escore de cada pessoa é a média de 10 repetições com partições sobrepostas. Os p são aproximados e tendem a ser otimistas, e a aproximação normal é fraca com 14 + 14 pessoas.
 - **Confundimento com a sessão de gravação (limitação central):** a data do cabeçalho do EDF, sozinha, dá AUC de 0,929 na SZ e 0,928 no MDD. Na SZ nenhuma das 9 sessões tem as duas classes; no MDD, os 14 controles de jan/2013 formam uma sessão só de controles (com ritmo dominante de ~5 Hz que a normalização por potência total não remove), e só 4 dos 27 controles dividem sessão com os pacientes. A validação por sessão não é possível. As AUCs dos modelos podem refletir a sessão e não o diagnóstico, e por isso a AUC da data aparece ao lado delas nos resultados ([07_DTSF.md](07_DTSF.md)). O trabalho não afirma que os modelos aprendem fisiologia.
 - **Limiar:** as métricas secundárias usam o limiar fixo 0,5, e não um limiar escolhido na validação.

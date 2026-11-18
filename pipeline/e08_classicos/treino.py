@@ -39,6 +39,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from pipeline.constantes import JANELAS_POR_PESSOA_CLASSICOS
+from pipeline.nomes import MODALIDADE_DE_NOME, nome_classico, nome_novo
 from pipeline.e07_DTSF.dados import janelas_avaliacao, sortear
 
 JANELAS_POR_PESSOA = JANELAS_POR_PESSOA_CLASSICOS
@@ -47,7 +48,7 @@ ARVORES = 300
 CLASSIFICADORES = ("LR", "RF", "KNN")
 SEM_PESOS = {"KNN"}  # não aceitam sample_weight
 MODALIDADES = ("temporal", "espectral", "combinado")
-MODELOS = tuple(f"{c}_{m}" for m in MODALIDADES for c in CLASSIFICADORES)
+MODELOS = tuple(nome_classico(c, m) for m in MODALIDADES for c in CLASSIFICADORES)   # LR_Temporal, RF_Temporal, ...
 # do mais regularizado para o menos: o empate fica com o primeiro
 GRADES = {
     "LR": [dict(C=0.01), dict(C=0.1), dict(C=1.0)],
@@ -56,11 +57,11 @@ GRADES = {
 }
 
 def separar(modelo: str) -> tuple[str, str]:
-    """'RF_espectral' → ('RF', 'espectral')."""
-    classificador, modalidade = modelo.split("_")
-    if classificador not in CLASSIFICADORES or modalidade not in MODALIDADES:
+    """'RF_Spectral' → ('RF', 'espectral'): o classificador e a chave interna das características (aceita o nome antigo)."""
+    classificador, _, sufixo = nome_novo(modelo).partition("_")
+    if classificador not in CLASSIFICADORES or sufixo not in MODALIDADE_DE_NOME:
         raise ValueError(f"modelo desconhecido: {modelo!r}")
-    return classificador, modalidade
+    return classificador, MODALIDADE_DE_NOME[sufixo]
 
 def construir(classificador: str, parametros: dict, semente: int):
     if classificador == "LR":

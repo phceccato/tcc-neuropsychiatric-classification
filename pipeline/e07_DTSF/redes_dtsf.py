@@ -12,17 +12,17 @@ Arquitetura (F filtros, oculto H, C cabeças, 2 blocos):
   → Linear → logit.
 
 Modelos (`MODELOS`):
-- D_FA, o principal: dimensões do artigo (F = 64, H = 128, C = 4) e a Frequency Attention (FA);
-- D: o DTSF com as dimensões do artigo, sem FA (a ablação da FA);
-- D_pequeno: o D com as dimensões reduzidas (F = 16, H = 32, C = 2), sem FA;
-- D_sem_mixup, D_sem_T e D_sem_E: ablações do D_pequeno (dimensões reduzidas, sem FA): sem Mixup, sem o
+- DTSF_FA, o principal: dimensões do artigo (F = 64, H = 128, C = 4) e a Frequency Attention (FA);
+- DTSF: o DTSF com as dimensões do artigo, sem FA (a ablação da FA);
+- DTSF_Lite: o DTSF com as dimensões reduzidas (F = 16, H = 32, C = 2), sem FA;
+- DTSF_Lite_NoMixup, DTSF_Lite_SpectralOnly e DTSF_Lite_TemporalOnly: ablações do DTSF_Lite (dimensões reduzidas, sem FA): sem Mixup, sem o
   ramo temporal e sem o ramo espectral (o Transformer recebe só os 16 tokens de um ramo + CLS).
 
 Frequency Attention (`AtencaoFrequencia`), a atenção de canal do FcaNet aplicada ao mapa [B, F, 1, 250] que
 sai do 1º bloco temporal: os F filtros são divididos em 4 grupos, cada grupo é resumido por um componente
 DCT ao longo do tempo (0, 35, 70 e 105: os 4 de menor frequência da grade 7 do FcaNet, u · ⌊250/7⌋), e os F
 resumos passam por FC(F → F/4) → ReLU → FC(F/4 → F) → sigmoid, que reescala cada filtro. A FA é criada por
-último: na mesma semente, o D_FA começa com os mesmos pesos do D, e D_FA − D isola o efeito da FA.
+último: na mesma semente, o DTSF_FA começa com os mesmos pesos do DTSF, e DTSF_FA − DTSF isola o efeito da FA.
 
 O Mixup fica no laço de treino (pipeline/e07_DTSF/treino.py): `sortear_mixup` sorteia λ ~ Beta(1, 1)
 e a permutação do lote; `misturar` aplica os dois aos dois ramos e ao alvo.
@@ -38,7 +38,7 @@ from torch import nn
 from torch.nn import functional as F
 
 N_CANAIS, N_BANDAS, N_FREQUENCIAS, N_QUADROS = 19, 5, 29, 16
-FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2              # dimensões reduzidas (D_pequeno)
+FILTROS, OCULTO, CABECAS, CAMADAS = 16, 32, 2, 2              # dimensões reduzidas (DTSF_Lite)
 FILTROS_ARTIGO, OCULTO_ARTIGO, CABECAS_ARTIGO = 64, 128, 4     # dimensões do artigo (Tabela 1)
 DROPOUT, DROPOUT_ENCODER = 0.5, 0.1
 ALFA_MIXUP = 1.0
@@ -62,15 +62,15 @@ class Variante:
 
 
 MODELOS = {
-    "D_FA": Variante(fa=True),
-    "D_pequeno": Variante(filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
-    "D": Variante(),
-    "D_sem_mixup": Variante(mixup=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
-    "D_sem_T": Variante(temporal=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
-    "D_sem_E": Variante(espectral=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "DTSF_FA": Variante(fa=True),
+    "DTSF_Lite": Variante(filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "DTSF": Variante(),
+    "DTSF_Lite_NoMixup": Variante(mixup=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "DTSF_Lite_SpectralOnly": Variante(temporal=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
+    "DTSF_Lite_TemporalOnly": Variante(espectral=False, filtros=FILTROS, oculto=OCULTO, cabecas=CABECAS),
 }
 TIPOS_DTSF = tuple(MODELOS)
-PRINCIPAL = "D_FA"
+PRINCIPAL = "DTSF_FA"
 
 
 def sortear_mixup(rng: np.random.Generator, n: int, alfa: float = ALFA_MIXUP) -> tuple[float, np.ndarray]:

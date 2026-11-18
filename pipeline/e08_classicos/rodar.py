@@ -27,6 +27,7 @@ from threadpoolctl import threadpool_limits
 from pipeline.e08_classicos.caracteristicas import carregar
 from pipeline.e08_classicos.treino import ARVORES, GRADES, JANELAS_POR_PESSOA, MODELOS, PARTES_INTERNAS, separar, treinar_e_prever
 from pipeline.e07_DTSF.rodar import JANELAS_CSV, SEMENTE
+from pipeline.nomes import resolver_pasta
 
 CARACTERISTICAS = Path("outputs/08_classicos/caracteristicas")
 SAIDA = Path("outputs/08_classicos/resultados")
@@ -63,7 +64,7 @@ def rodar_tarefa(dataset: str, modelo: str, repeticao: int, fold: int, folds_csv
     r = treinar_e_prever(modelo, x[separar(modelo)[1]], indice, papel["treino"] + papel["validacao"],
                          papel["teste"], y, semente=semente)
 
-    destino = Path(saida) / dataset / modelo
+    destino = resolver_pasta(Path(saida) / dataset / modelo)   # a pasta de nome antigo, se a rodada é anterior à renomeação
     destino.mkdir(parents=True, exist_ok=True)
     base = destino / f"r{repeticao}_f{fold}"
     with open(f"{base}.json", "w") as f:
@@ -91,7 +92,7 @@ def main() -> None:
     args = parser.parse_args()
 
     tarefas = [(d, m, r, f) for m in args.modelos for d in args.datasets for r in args.repeticoes
-               for f in args.folds_ids if not (Path(args.saida) / d / m / f"r{r}_f{f}.csv").exists()]
+               for f in args.folds_ids if not (resolver_pasta(Path(args.saida) / d / m) / f"r{r}_f{f}.csv").exists()]
     print(f"{len(tarefas)} tarefas pendentes", flush=True)
     with ProcessPoolExecutor(args.processos, initializer=_iniciar) as executor:
         futuros = [executor.submit(rodar_tarefa, d, m, r, f, args.folds, args.saida, args.caracteristicas)

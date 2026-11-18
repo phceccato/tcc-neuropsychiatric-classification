@@ -1,6 +1,6 @@
 """Experimento 3: explicações SHAP do DTSF (expected gradients) nas pessoas de teste da repetição 0.
 
-As previsões da etapa 07 não guardam os pesos. Aqui o modelo principal (D_FA, `PRINCIPAL` em
+As previsões da etapa 07 não guardam os pesos. Aqui o modelo principal (DTSF_FA, `PRINCIPAL` em
 pipeline/e07_DTSF/redes_dtsf.py) é retreinado nos 5 folds da repetição 0 de cada dataset, com as mesmas partições e sementes de pipeline/e07_DTSF/rodar.py, e os pesos ficam
 gravados. Para cada pessoa de teste:
 - a probabilidade de cada janela aceita sem overlap (as mesmas que formam a previsão da pessoa);
@@ -18,7 +18,7 @@ Os φ não são gravados inteiros. Por pessoa, a média nas janelas de:
   (canal, frequência), e soma de |φ| por quadro.
 Por janela: o logit, a probabilidade e a soma de φ de cada ramo.
 
-Grava em outputs/09_investigacao/explicacao/D_FA/ (uma pasta por modelo: pesos de modelos diferentes não se misturam):
+Grava em outputs/09_investigacao/explicacao/DTSF_FA/ (uma pasta por modelo: pesos de modelos diferentes não se misturam):
 - modelos/<dataset>/f<fold>.pt e .json (época escolhida);
 - janelas/<dataset>/f<fold>.csv (uma linha por janela de teste);
 - atribuicoes/<dataset>/f<fold>.npz (agregados por pessoa).

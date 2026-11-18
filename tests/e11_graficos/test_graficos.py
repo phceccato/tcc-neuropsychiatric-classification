@@ -15,14 +15,14 @@ MD_MODELOS = """# x
 
 | Modelo | AUC por pessoa [IC 95%] | outra |
 | --- | --- | --- |
-| D_FA | 0.827 [0.643, 0.964] | 0.781 ± 0.058 |
-| LR_temporal | 0.602 [0.367, 0.806] | 0.617 ± 0.070 |
+| DTSF_FA | 0.827 [0.643, 0.964] | 0.781 ± 0.058 |
+| LR_Temporal | 0.602 [0.367, 0.806] | 0.617 ± 0.070 |
 
 ## MDD
 
-| D_FA | 704.769 | 0.958 [0.897, 0.995] | 0.937 ± 0.023 |
+| DTSF_FA | 704.769 | 0.958 [0.897, 0.995] | 0.937 ± 0.023 |
 
-## Ablações do D_pequeno
+## Ablações do DTSF_Lite
 
 | SZ | 0.192 (25) | não rejeita |
 """
@@ -30,23 +30,23 @@ MD_MODELOS = """# x
 
 def test_tabela_modelos_le_por_dataset_com_e_sem_parametros_e_ignora_outras_secoes():
     t = n.tabela_modelos(MD_MODELOS)
-    assert t == {("SZ", "D_FA"): (0.827, 0.643, 0.964), ("SZ", "LR_temporal"): (0.602, 0.367, 0.806),
-                 ("MDD", "D_FA"): (0.958, 0.897, 0.995)}
+    assert t == {("SZ", "DTSF_FA"): (0.827, 0.643, 0.964), ("SZ", "LR_Temporal"): (0.602, 0.367, 0.806),
+                 ("MDD", "DTSF_FA"): (0.958, 0.897, 0.995)}
 
 
 def test_tabelas_de_deltas_das_etapas_07_e_08():
-    md = ("| SZ | D_pequeno − D_sem_T | +0.000 [-0.087, +0.087] | x |\n"
-          "| MDD | D_FA − LR_temporal | +0.074 [+0.022, +0.142] | x |\n"
-          "| SZ | D_FA − D | +0.020 [-0.015, +0.082] | x |\n")
-    assert n.tabela_deltas(md, "D_FA") == {("SZ", "D_pequeno − D_sem_T"): (0.0, -0.087, 0.087),
-                                           ("MDD", "D_FA − LR_temporal"): (0.074, 0.022, 0.142),
-                                           ("SZ", "D_FA − D"): (0.020, -0.015, 0.082)}
+    md = ("| SZ | DTSF_Lite − DTSF_Lite_SpectralOnly | +0.000 [-0.087, +0.087] | x |\n"
+          "| MDD | DTSF_FA − LR_Temporal | +0.074 [+0.022, +0.142] | x |\n"
+          "| SZ | DTSF_FA − DTSF | +0.020 [-0.015, +0.082] | x |\n")
+    assert n.tabela_deltas(md, "DTSF_FA") == {("SZ", "DTSF_Lite − DTSF_Lite_SpectralOnly"): (0.0, -0.087, 0.087),
+                                           ("MDD", "DTSF_FA − LR_Temporal"): (0.074, 0.022, 0.142),
+                                           ("SZ", "DTSF_FA − DTSF"): (0.020, -0.015, 0.082)}
 
 
 def test_tabela_lr_psd():
     md = "| SZ | absolutas | 0.724 [0.520, 0.903] | 0.717 ± 0.046 |\n| MDD | relativas | 0.879 [0.774, 0.962] | x |\n"
-    assert n.tabela_lr_psd(md) == {("SZ", "LR_psd_absolutas"): (0.724, 0.520, 0.903),
-                                   ("MDD", "LR_psd_relativas"): (0.879, 0.774, 0.962)}
+    assert n.tabela_lr_psd(md) == {("SZ", "LR_PSD_Absolute"): (0.724, 0.520, 0.903),
+                                   ("MDD", "LR_PSD_Relative"): (0.879, 0.774, 0.962)}
 
 
 def test_conferir_para_quando_nao_bate():
@@ -63,16 +63,16 @@ def test_confusao_usa_o_escore_medio_da_pessoa():
 
 def test_comparacoes_tem_as_ablacoes_os_baselines_e_as_descritivas():
     pares = n.comparacoes()
-    assert ("D_pequeno", "D_sem_T") in pares and ("D_pequeno", "D_sem_E") in pares and ("D_pequeno", "D_sem_mixup") in pares
-    assert {b for a, b in pares if a == "D_FA"} >= set(n.CLASSICOS) and ("D_FA", "D") in pares
-    assert ("D", "D_pequeno") in pares and ("D_FA", "D_pequeno") in pares and len(pares) == len(set(pares))
+    assert ("DTSF_Lite", "DTSF_Lite_SpectralOnly") in pares and ("DTSF_Lite", "DTSF_Lite_TemporalOnly") in pares and ("DTSF_Lite", "DTSF_Lite_NoMixup") in pares
+    assert {b for a, b in pares if a == "DTSF_FA"} >= set(n.CLASSICOS) and ("DTSF_FA", "DTSF") in pares
+    assert ("DTSF", "DTSF_Lite") in pares and ("DTSF_FA", "DTSF_Lite") in pares and len(pares) == len(set(pares))
 
 
 def test_figura_dos_deltas_usa_as_comparacoes_calculadas():
     chaves = {chave for _, itens in g.GRUPOS_DELTA for chave, _, _ in itens}
     assert chaves <= {f"{a} − {b}" for a, b in n.comparacoes()}
     combinados = next(itens for t, itens in g.GRUPOS_DELTA if "combinados" in t)
-    assert [c for c, _, _ in combinados] == [f"D_FA − {c}_combinado" for c in ("LR", "RF", "KNN")]
+    assert [c for c, _, _ in combinados] == [f"DTSF_FA − {c}_Combined" for c in ("LR", "RF", "KNN")]
 
 
 def test_grupos_dos_graficos_tem_todos_os_modelos_exportados():
@@ -89,19 +89,19 @@ def test_virgula_e_sinal():
 def test_numeros_de_ponta_a_ponta(numeros_sinteticos):
     nums = json.loads(json.dumps(numeros_sinteticos))           # o que vai para numeros.json
     assert set(nums["modelos"]["SZ"]) == set(n.MODELOS)
-    r = nums["modelos"]["MDD"]["D_FA"]
+    r = nums["modelos"]["MDD"]["DTSF_FA"]
     assert set(r["media_desvio"]) >= {"auc", "acuracia", "precisao", "sensibilidade", "f1"}
     assert len(r["escores"]["y"]) == PESSOAS and "subject_uid" not in json.dumps(nums)
     assert sum(r["confusao"].values()) == PESSOAS
-    assert "D_FA − LR_combinado" in nums["comparacoes"]["SZ"]
-    assert set(nums["comparacoes"]["SZ"]["D_FA − D"]) == {"delta", "ic", "delta_repeticoes"}
+    assert "DTSF_FA − LR_Combined" in nums["comparacoes"]["SZ"]
+    assert set(nums["comparacoes"]["SZ"]["DTSF_FA − DTSF"]) == {"delta", "ic", "delta_repeticoes"}
     assert not {"h1", "h1_distribuicao", "hipoteses"} & set(nums)
 
 
 def test_numeros_param_se_o_resumo_nao_bate(tmp_path):
     _resultados_sinteticos(tmp_path, n.comparacao_pareada)
     md = tmp_path / "resumos" / "08_classicos.md"
-    md.write_text(md.read_text().replace("| RF_espectral | 0.", "| RF_espectral | 9.", 1))
+    md.write_text(md.read_text().replace("| RF_Spectral | 0.", "| RF_Spectral | 9.", 1))
     with pytest.raises((n.Divergencia, KeyError)):
         n.calcular(tmp_path)
 
@@ -116,7 +116,7 @@ def test_cada_figura_grava_pdf_e_png_na_sua_pasta(figura, numeros_sinteticos, tm
     assert pasta == ({g.PRINCIPAIS} if caminhos[0].name.startswith("p") else {g.SUPLEMENTARES})
 
 
-# ---------- perdas do D_FA e ROC de todos os modelos ----------
+# ---------- perdas do DTSF_FA e ROC de todos os modelos ----------
 
 def test_numeros_trazem_as_perdas_conferidas_do_d_fa(numeros_json):
     folds = numeros_json["perdas"]["SZ"]
@@ -169,8 +169,8 @@ def test_figura_roc_pr_tem_uma_figura_por_transtorno_com_os_6_principais(numeros
 
 
 def test_valores_do_grafico_de_linhas_sao_as_medias_nas_repeticoes_em_porcentagem(numeros_json):
-    md = numeros_json["modelos"]["SZ"]["D_FA"]["media_desvio"]
-    v = g.valores_limiar(numeros_json, "SZ", "D_FA")
+    md = numeros_json["modelos"]["SZ"]["DTSF_FA"]["media_desvio"]
+    v = g.valores_limiar(numeros_json, "SZ", "DTSF_FA")
     assert list(v) == ["acuracia", "precisao", "sensibilidade", "f1"]
     assert v["acuracia"] == pytest.approx(100 * md["acuracia"][0]) and v["f1"] == pytest.approx(100 * md["f1"][0])
 
@@ -192,7 +192,7 @@ def test_graficos_de_linhas_gravam_nas_pastas_certas(numeros_json, tmp_path):
 
 def test_bootstrap_do_principal_tem_o_mesmo_ic_do_resumo_e_curvas_na_grade(numeros_json):
     b = numeros_json["bootstrap"]["MDD"]
-    r = numeros_json["modelos"]["MDD"]["D_FA"]
+    r = numeros_json["modelos"]["MDD"]["DTSF_FA"]
     assert b["ic"] == pytest.approx(r["ic"], abs=1e-9) and b["reamostragens"] == 2000
     assert len(b["curvas"]) == n.N_CURVAS_BOOTSTRAP and len(b["curvas"][0]) == len(b["grade"]) == 101
     curvas = np.array(b["curvas"])
@@ -202,17 +202,17 @@ def test_bootstrap_do_principal_tem_o_mesmo_ic_do_resumo_e_curvas_na_grade(numer
 def test_figura_do_bootstrap_grava_em_principais(numeros_json, tmp_path):
     g.configurar()
     caminhos = g.fig_roc_bootstrap(numeros_json, tmp_path)
-    assert [c.name for c in caminhos] == ["p8_roc_bootstrap_d_fa.pdf", "p8_roc_bootstrap_d_fa.png"]
+    assert [c.name for c in caminhos] == ["p8_roc_bootstrap_dtsf_fa.pdf", "p8_roc_bootstrap_dtsf_fa.png"]
     assert caminhos[0].parent.name == g.PRINCIPAIS
 
 
 def test_delong_nos_numeros_tem_todas_as_comparacoes_com_holm_e_sem_identificadores(numeros_json):
     d = numeros_json["delong"]["SZ"]
-    assert set(d) == {f"D_FA − {m}" for m in dl.COMPARADOS} and len(d) == 5
+    assert set(d) == {f"DTSF_FA − {m}" for m in dl.COMPARADOS} and len(d) == 5
     assert all(r["p"] <= r["p_holm"] <= 1 and 0 <= r["p"] <= 1 for r in d.values())
-    r = d["D_FA − LR_combinado"]
-    assert r["delta"] == pytest.approx(numeros_json["comparacoes"]["SZ"]["D_FA − LR_combinado"]["delta"], abs=1e-9)
-    assert r["auc_a"] == pytest.approx(numeros_json["modelos"]["SZ"]["D_FA"]["auc"], abs=1e-9)
+    r = d["DTSF_FA − LR_Combined"]
+    assert r["delta"] == pytest.approx(numeros_json["comparacoes"]["SZ"]["DTSF_FA − LR_Combined"]["delta"], abs=1e-9)
+    assert r["auc_a"] == pytest.approx(numeros_json["modelos"]["SZ"]["DTSF_FA"]["auc"], abs=1e-9)
     assert r["ic"][0] <= r["delta"] <= r["ic"][1]
 
 
@@ -241,10 +241,10 @@ def test_figura_do_delong_grava_uma_figura_por_transtorno_em_principais(numeros_
 def test_linhas_da_tabela_do_delong_seguem_o_exemplo_e_a_decisao_do_holm(numeros_json):
     for d in ("SZ", "MDD"):
         linhas = dl.linhas(numeros_json, d)
-        assert [l[0] for l in linhas] == [f"D_FA vs. {dl.ROTULOS[m]}" for m in dl.COMPARADOS]
+        assert [l[0] for l in linhas] == [f"DTSF_FA vs. {dl.ROTULOS[m]}" for m in dl.COMPARADOS]
         assert all(len(l) == len(dl.CABECALHO) == 8 and l[-1] in ("Sim", "Não") for l in linhas)
         for l, m in zip(linhas, dl.COMPARADOS):
-            r = numeros_json["delong"][d][f"D_FA − {m}"]
+            r = numeros_json["delong"][d][f"DTSF_FA − {m}"]
             assert l[-1] == ("Sim" if r["p_holm"] <= 0.05 else "Não") and l[1] == dl.virgula(r["auc_a"])
 
 
@@ -256,7 +256,7 @@ def test_formatacao_do_delong():
 def test_latex_do_delong_tem_as_duas_tabelas_balanceadas_e_sem_unicode(numeros_json):
     tex = dl.latex(numeros_json)
     assert tex.count("{") == tex.count("}") and tex.count("\\begin") == tex.count("\\end")
-    assert tex.count("\\midrule") == 2 and "D\\_FA vs. D\\_pequeno" in tex and "\\label{tab:res-delong}" in tex
+    assert tex.count("\\midrule") == 2 and "DTSF\\_FA vs. DTSF\\_Lite" in tex and "\\label{tab:res-delong}" in tex
     assert all(ord(c) < 128 for c in tex.replace("ç", "").replace("ã", "").replace("õ", "").replace("é", "")
                .replace("á", "").replace("í", "").replace("ó", "").replace("ê", "").replace("â", "").replace("ú", ""))
 

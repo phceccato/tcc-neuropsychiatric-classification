@@ -58,16 +58,16 @@ venv/bin/python -m pipeline.e05_folds.folds                 # partições 5 × 1
 venv/bin/python -m pipeline.e06_LR_psd.lr           # regressão logística → outputs/06_LR_psd/
 venv/bin/python -m pipeline.e07_DTSF.dados               # cache do sinal z-score a 125 Hz → outputs/07_DTSF/cache/
 venv/bin/python -m pipeline.e07_DTSF.dados_dtsf          # cache multibanda do DTSF → outputs/07_DTSF/cache_dtsf/
-venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt   # os 6 modelos DTSF (retoma) → outputs/07_DTSF/resultados/
-venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt   # AUCs, ablações e comparações entre os DTSF → outputs/07_DTSF/resultados/resumo_dtsf.md
+venv/bin/python -m pipeline.e07_DTSF.rodar 2>&1 | tee -a outputs/07_DTSF/log_dtsf.txt   # os 6 modelos da família DTSF (retoma) → outputs/07_DTSF/resultados/
+venv/bin/python -m pipeline.e07_DTSF.avaliar 2>&1 | tee -a outputs/07_DTSF/log_dtsf_avaliar.txt   # AUCs, ablações e comparações entre os modelos da família DTSF → outputs/07_DTSF/resultados/resumo_dtsf.md
 venv/bin/python -m pipeline.e08_classicos.caracteristicas   # 475 + 1102 características por janela → outputs/08_classicos/caracteristicas/
 venv/bin/python -m pipeline.e08_classicos.rodar 2>&1 | tee -a outputs/08_classicos/log_classicos.txt   # 9 baselines clássicos (retoma) → outputs/08_classicos/resultados/
-venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e ΔAUC do D_FA contra os 9 baselines → outputs/08_classicos/resultados/resumo.md
+venv/bin/python -m pipeline.e08_classicos.avaliar 2>&1 | tee -a outputs/08_classicos/log_classicos_avaliar.txt   # AUCs e ΔAUC do DTSF_FA contra os 9 baselines → outputs/08_classicos/resultados/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.datas        # data de gravação × diagnóstico → outputs/09_investigacao/datas/
-venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # D_FA retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/D_FA/
-venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/D_FA/resumo.md
+venv/bin/python -m pipeline.e09_investigacao.explicar 2>&1 | tee -a outputs/09_investigacao/log_explicacao.txt   # DTSF_FA retreinado na repetição 0 + SHAP (retoma) → outputs/09_investigacao/explicacao/DTSF_FA/
+venv/bin/python -m pipeline.e09_investigacao.relatorio_explicacao   # resumo e figuras do SHAP → outputs/09_investigacao/explicacao/DTSF_FA/resumo.md
 venv/bin/python -m pipeline.e09_investigacao.erros         # perfil das pessoas classificadas errado → outputs/09_investigacao/erros/
-venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt   # AUC por subconjunto de sessão + D_FA no MDD sem jan/2013 (retoma) → outputs/09_investigacao/lote/
+venv/bin/python -m pipeline.e09_investigacao.lote 2>&1 | tee -a outputs/09_investigacao/log_lote.txt   # AUC por subconjunto de sessão + DTSF_FA no MDD sem jan/2013 (retoma) → outputs/09_investigacao/lote/
 venv/bin/python -m pipeline.e10_resultados.exportar   # previsões de todos os modelos (y_true, y_pred, y_prob), métricas e resumos → outputs/10_resultados/ (versionada)
 venv/bin/python -m pipeline.e11_graficos.numeros   # números dos gráficos, de outputs/10_resultados/, conferidos contra os resumos → outputs/11_graficos/numeros.json
 venv/bin/python -m pipeline.e11_graficos.graficos  # gráficos principais e suplementares (PDF e PNG) → outputs/11_graficos/principais/ e suplementares/
@@ -83,7 +83,7 @@ A especificação do experimento está em [docs/00_proposta-tcc.md](docs/00_prop
 
 ## Estado da rodada oficial (14/11/2026)
 
-Os resultados do TCC vêm de uma rodada completa em GPU (6 modelos DTSF × 2 datasets × 50 treinos, mais os baselines clássicos e a LR de 76 bandas), cujas previsões e gráficos estão versionados em `outputs/10_resultados/` e `outputs/11_graficos/`; o resto de `outputs/` não vai para o git. Numa máquina só com CPU, como esta, `outputs/07_DTSF/` e `outputs/08_classicos/` guardam uma rodada parcial antiga (as ablações do `D_pequeno` e os clássicos, de 9/11), sem `D_FA` nem `D`: nela o `exportar` recusa rodar para não apagar a exportação completa (`--permitir-parcial` desliga a trava). As pastas de experimentos antigos (`12_FA_SDKA`, `12_figuras_rodada2`, `13_graficos_rodada2`) foram arquivadas fora do repositório. O estado de cada etapa está no doc dela. Os hiperparâmetros ficam em constantes do código, a semente e as janelas por pessoa em `pipeline/constantes.py`, e, a cada tarefa, no `.json` de `outputs/07_DTSF/resultados` e de `outputs/08_classicos/resultados`; não há arquivo de configuração separado.
+Os nomes dos 17 modelos (renomeados em 17/11/2026) e o mapa para os nomes antigos estão em [docs/07_DTSF.md](docs/07_DTSF.md#nomenclatura-dos-17-modelos). Os resultados do TCC vêm de uma rodada completa em GPU (6 modelos DTSF × 2 datasets × 50 treinos, mais os baselines clássicos e a LR de 76 bandas), cujas previsões e gráficos estão versionados em `outputs/10_resultados/` e `outputs/11_graficos/`; o resto de `outputs/` não vai para o git. Numa máquina só com CPU, como esta, `outputs/07_DTSF/` e `outputs/08_classicos/` guardam uma rodada parcial antiga (as ablações do `DTSF_Lite` e os clássicos, de 9/11), sem `DTSF_FA` nem `DTSF`: nela o `exportar` recusa rodar para não apagar a exportação completa (`--permitir-parcial` desliga a trava). As pastas de experimentos antigos (`12_FA_SDKA`, `12_figuras_rodada2`, `13_graficos_rodada2`) foram arquivadas fora do repositório. O estado de cada etapa está no doc dela. Os hiperparâmetros ficam em constantes do código, a semente e as janelas por pessoa em `pipeline/constantes.py`, e, a cada tarefa, no `.json` de `outputs/07_DTSF/resultados` e de `outputs/08_classicos/resultados`; não há arquivo de configuração separado.
 
 ## Resultados por etapa
 

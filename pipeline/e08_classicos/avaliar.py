@@ -1,16 +1,16 @@
-"""Resultados dos baselines clássicos e a comparação com o modelo principal da etapa 07 (D_FA).
+"""Resultados dos baselines clássicos e a comparação com o modelo principal da etapa 07 (DTSF_FA).
 
 Sem hipóteses a decidir (docs/avaliacao.md):
 
 - AUC por pessoa (média da probabilidade fora do fold nas 10 repetições), IC por bootstrap estratificado,
   média ± desvio nas 10 repetições e secundárias descritivas, como em pipeline/e07_DTSF/avaliar.py;
-- ΔAUC = D_FA − baseline, para cada um dos 9 baselines (LR, RF e KNN sobre as características temporais,
+- ΔAUC = DTSF_FA − baseline, para cada um dos 9 baselines (LR, RF e KNN sobre as características temporais,
   espectrais e combinadas), nas mesmas pessoas, com IC de 95% (bootstrap estratificado e pareado) e o Δ de cada
   repetição (`comparacao_pareada`, pipeline/e07_DTSF/avaliar.py). Sem p-valor: o teste estatístico é o DeLong com
-  Holm do D_FA contra os 3 baselines combinados e os outros modelos principais (pipeline/e11_graficos/numeros.py).
+  Holm do DTSF_FA contra os 3 baselines combinados e os outros modelos principais (pipeline/e11_graficos/numeros.py).
 
 Lê outputs/08_classicos/resultados/<dataset>/<modelo>/r*_f*.{csv,json} e
-outputs/07_DTSF/resultados/<dataset>/<modelo principal> (D_FA); grava só outputs/08_classicos/resultados/resumo.md.
+outputs/07_DTSF/resultados/<dataset>/<modelo principal> (DTSF_FA); grava só outputs/08_classicos/resultados/resumo.md.
 """
 from __future__ import annotations
 

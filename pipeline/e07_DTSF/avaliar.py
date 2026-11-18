@@ -5,10 +5,10 @@ Sem hipóteses a decidir (docs/avaliacao.md): a etapa reporta, para cada modelo,
 - AUC por pessoa (média da probabilidade fora do fold nas 10 repetições), IC por bootstrap estratificado,
   AUC de cada repetição e a média ± desvio de todas as métricas nas 10 repetições; secundárias no limiar 0,5;
 - ΔAUC entre modelos nas mesmas pessoas (`comparacao_pareada`): Δ com IC de 95% por bootstrap estratificado e
-  pareado, e o Δ de cada repetição. As ablações comparam o D_pequeno com cada uma das suas variantes
-  (D_sem_T, D_sem_E, D_sem_mixup); as outras comparações são D_FA − D (efeito da FA), D − D_pequeno (efeito
-  do tamanho) e D_FA − D_pequeno. Nenhuma delas tem p-valor: o teste estatístico é o DeLong com Holm
-  (pipeline/e11_graficos/numeros.py), do D_FA contra os outros 5 modelos principais.
+  pareado, e o Δ de cada repetição. As ablações comparam o DTSF_Lite com cada uma das suas variantes
+  (DTSF_Lite_SpectralOnly, DTSF_Lite_TemporalOnly, DTSF_Lite_NoMixup); as outras comparações são DTSF_FA − DTSF (efeito da FA), DTSF − DTSF_Lite (efeito
+  do tamanho) e DTSF_FA − DTSF_Lite. Nenhuma delas tem p-valor: o teste estatístico é o DeLong com Holm
+  (pipeline/e11_graficos/numeros.py), do DTSF_FA contra os outros 5 modelos principais.
 
 Lê outputs/07_DTSF/resultados/<dataset>/<modelo>/r*_f*.csv; grava outputs/07_DTSF/resultados/resumo_dtsf.md.
 O resumo.md da mesma pasta, se existir, não é reescrito.
@@ -25,12 +25,13 @@ import pandas as pd
 from pipeline.avaliacao.metricas import (auc_em_lote, avaliar, delta_por_repeticao, escores_por_pessoa, ic_bootstrap_delta,
                                          parear, tabela_media_desvio)
 from pipeline.constantes import SEMENTE
+from pipeline.nomes import resolver_pasta
 from pipeline.e07_DTSF.redes_dtsf import DTSF, PRINCIPAL, TIPOS_DTSF
 
 ALFA = 0.05
-REFERENCIA_ABLACOES = "D_pequeno"
-ABLACOES = ("D_sem_T", "D_sem_E", "D_sem_mixup")
-DESCRITIVAS = (("D_FA", "D"), ("D", "D_pequeno"), ("D_FA", "D_pequeno"))
+REFERENCIA_ABLACOES = "DTSF_Lite"
+ABLACOES = ("DTSF_Lite_SpectralOnly", "DTSF_Lite_TemporalOnly", "DTSF_Lite_NoMixup")
+DESCRITIVAS = (("DTSF_FA", "DTSF"), ("DTSF", "DTSF_Lite"), ("DTSF_FA", "DTSF_Lite"))
 
 
 def completo(predicoes: pd.DataFrame, repeticoes: int = 10) -> bool:
@@ -48,12 +49,13 @@ def comparacao_pareada(predicoes_a: pd.DataFrame, predicoes_b: pd.DataFrame, sem
 
 
 def ler_modelo(pasta: Path) -> pd.DataFrame:
-    arquivos = sorted(pasta.glob("r*_f*.csv"))
+    """As previsões de um modelo; aceita a pasta de nome antigo de uma rodada anterior à renomeação (pipeline/nomes.py)."""
+    arquivos = sorted(resolver_pasta(pasta).glob("r*_f*.csv"))
     return pd.concat([pd.read_csv(a) for a in arquivos], ignore_index=True) if arquivos else pd.DataFrame()
 
 
 def _epocas(pasta: Path) -> str:
-    epocas = [json.load(open(a))["melhor_epoca"] for a in pasta.glob("r*_f*.json")]
+    epocas = [json.load(open(a))["melhor_epoca"] for a in resolver_pasta(pasta).glob("r*_f*.json")]
     return f"{np.median(epocas):.0f} ({min(epocas)}–{max(epocas)})" if epocas else "—"
 
 
@@ -73,8 +75,8 @@ CABECALHO_DELTA = ["| Dataset | Comparação | ΔAUC [IC 95%] | ΔAUC por repeti
 
 
 def linhas_ablacoes(ablacoes: list[tuple[str, str, dict]]) -> list[str]:
-    """D_pequeno − cada ablação: Δ e IC descritivos."""
-    linhas = ["## Ablações do D_pequeno", "",
+    """DTSF_Lite − cada ablação: Δ e IC descritivos."""
+    linhas = ["## Ablações do DTSF_Lite", "",
               f"ΔAUC = {REFERENCIA_ABLACOES} − ablação, nas mesmas pessoas. O IC é o bootstrap estratificado e pareado, "
               "condicional às previsões obtidas. Descritivo: sem p-valor.", ""]
     if not ablacoes:
@@ -83,10 +85,10 @@ def linhas_ablacoes(ablacoes: list[tuple[str, str, dict]]) -> list[str]:
 
 
 def linhas_descritivas(descritivas: list[tuple[str, str, str, dict]]) -> list[str]:
-    """D_FA − D, D − D_pequeno e D_FA − D_pequeno: Δ e IC descritivos."""
-    linhas = ["## Comparações entre os DTSF", "",
-              "D_FA − D isola a FA; D − D_pequeno isola o tamanho (dimensões do artigo contra as reduzidas). Descritivo: "
-              "sem p-valor; o teste estatístico do D_FA é o DeLong com Holm (etapa 11).", ""]
+    """DTSF_FA − DTSF, DTSF − DTSF_Lite e DTSF_FA − DTSF_Lite: Δ e IC descritivos."""
+    linhas = ["## Comparações entre os modelos da família DTSF", "",
+              "DTSF_FA − DTSF isola a FA; DTSF − DTSF_Lite isola o tamanho (dimensões do artigo contra as reduzidas). Descritivo: "
+              "sem p-valor; o teste estatístico do DTSF_FA é o DeLong com Holm (etapa 11).", ""]
     if not descritivas:
         return linhas + ["Ainda sem os modelos completos.", ""]
     return linhas + CABECALHO_DELTA + [_linha_delta(d, x, z, c) for d, x, z, c in descritivas] + [""]
